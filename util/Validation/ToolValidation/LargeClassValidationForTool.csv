@@ -1,0 +1,13 @@
+Class Name,Class LOC,class method count,class Attribute count,File Name
+LinuxCPUInfo,136,46,1,/Users/neda/git/Research/BadSmells/DemoProjects/numpy/numpy/distutils/cpuinfo.py
+_CCompiler,211,5,9,/Users/neda/git/Research/BadSmells/DemoProjects/numpy/numpy/distutils/ccompiler_opt.py
+CCompilerOpt,250,10,5,/Users/neda/git/Research/BadSmells/DemoProjects/numpy/numpy/distutils/ccompiler_opt.py
+FCompiler,459,33,14,/Users/neda/git/Research/BadSmells/DemoProjects/numpy/numpy/distutils/fcompiler/__init__.py
+build_ext ,521,8,18,/Users/neda/git/Research/BadSmells/DemoProjects/numpy/numpy/distutils/command/build_ext.py
+config,314,11,2,/Users/neda/git/Research/BadSmells/DemoProjects/numpy/numpy/distutils/command/config.py
+build_src,568,19,25,/Users/neda/git/Research/BadSmells/DemoProjects/numpy/numpy/distutils/command/build_src.py
+build_clib,304,8,12,/Users/neda/git/Research/BadSmells/DemoProjects/numpy/numpy/distutils/command/build_clib.py
+chararray,404,54,0,/Users/neda/git/Research/BadSmells/DemoProjects/numpy/numpy/core/defchararray.py
+MaskedArray,1269,98,12,/Users/neda/git/Research/BadSmells/DemoProjects/numpy/numpy/ma/core.py
+MaskedRecords,246,18,5,/Users/neda/git/Research/BadSmells/DemoProjects/numpy/numpy/ma/mrecords.py
+ABCPolyBase,468,50,4,/Users/neda/git/Research/BadSmells/DemoProjects/numpy/numpy/polynomial/_polybase.py
