@@ -1,0 +1,11 @@
+Radon: https://pypi.org/project/radon/
+RateLimit: https://pypi.org/project/ratelimit/
+		   pip install ratelimit
+PyYAML: https://pyyaml.org/wiki/PyYAMLDocumentation
+		pip install pyyaml
+GitPython: https://gitpython.readthedocs.io/en/stable/intro.html
+		   pip install gitpython
+Levenstein: https://pypi.org/project/python-Levenshtein/
+	    pip install python-Levenshtein
+	    
+Request: sudo pip install requests

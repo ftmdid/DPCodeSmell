@@ -1,0 +1,43 @@
+First Step: 
+Run Downloads class: 
+1.downloadGitHubPythonProject is for to download the project (project in the configInfo.yml file)
+	If you want to run a different url, you may need to change the url on the FileOperations.getGitHubURL method!
+downloadCommits: this is to download the commits on the open source project
+	You don't need to make a call to this method because downloadModifiedPythonFiles calls it. 
+2.downloadModifiedPythonFiles: this is to download the modified python files(not test files)
+3.downloadIssuesFromIssueTrackingSystem: this is to download the issues from issue tracking system
+	projectUrl="https://api.github.com/repos/django/django/issues?state=closed&page=&per_page=100" for django
+		there are 133 pages in total for django
+	projectUrl="https://api.github.com/repos/numpy/numpy/issues?state=closed&page=&per_page=100" for numpy
+		there are 139 pages in total for numpy
+	projectUrl="https://api.github.com/repos/keras-team/keras/issues?state=closed&page=&per_page=100" for keras-team/keras/
+		there are 111 pages in total for keras-team
+	projectUrl="https://api.github.com/repos/tensorflow/models/issues?state=closed&page=83&per_page=100"
+		there are 83 pages in total for tensorflow
+	numberOfPages=1 # you can learn how many pages are there on the project by typing the project url to address 
+	bar and see if with page=numberOfPages return empty list or not 
+	You need to make changes on some lines:
+		url= url[:66]+str(j)+url[66:] #numpy
+		url= url[:68]+str(j)+url[68:]#django
+		url= url[:71]+str(j)+url[71:] #Keras-team
+		url= url[:72]+str(j)+url[72:] #models
+		you need to use url1 for numpy and url2 for django
+	Also, github does not allow to download all issues at once. Therefore, you need to start with lower total pages
+	when calling the function. At first, the loop in line 92 of Downloads.downloadIssuesFromIssueTrackingSystem() method
+	starts from 1 till the numberOfPages in total. However, after some pages, it throws error. That's why the url and page
+	number is printed on the console. You need to check at what number the method throws error, next time, the loop in line 92
+	should start from that number like range(1,42), range(42, 80),....range(100, 134) etc.
+To download, only the step 1, 2 and 3 should be called!
+
+
+Second Step: 
+Run Analysis class:
+makeSemanticAndSyntacticAnalysis: this runs :
+	makeSemanticAnalysis() : is for calculateSimiliaritiesBetweenIssueAndCommits() 
+	makeSyntacticSubjectAnalysis(): is for isBugNumber(), isKeywords(), isPlainNumber() and isWordAlphaNum() methods to 
+									make syntactic analysis
+	and writes into util/Analysis/SemanticVsSyntacticAnalysis.csv file
+
+
+ThirdStep:
+At this step, you need to run checkForRelation method. This is to check the smells relation with issues!
