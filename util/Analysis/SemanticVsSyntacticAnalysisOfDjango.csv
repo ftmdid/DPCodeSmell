@@ -1,0 +1,72 @@
+Issue ID,Issue Body,issue User,commitID,Commit Subject,Semantic Confidence Level,Syntactic Confidence Level
+13176,Fixed #31674 -- Made technical 500 debug page respect __suppress_context__.,f36862b69c,7dfe03f86d,Sorted display of options in Func.__repr__().,2,0
+13176,Fixed #31674 -- Made technical 500 debug page respect __suppress_context__.,f36862b69c,a118287bca,Fixed #28284 -- Prevented Paginator's unordered object list warning from evaluating a QuerySet.,2,1
+13176,Fixed #31674 -- Made technical 500 debug page respect __suppress_context__.,f36862b69c,b5393028bf,Fixed #27767 -- Added distinct argument to ArrayAgg.,2,1
+13176,Fixed #31674 -- Made technical 500 debug page respect __suppress_context__.,377018b6ff,7dfe03f86d,Sorted display of options in Func.__repr__().,2,0
+13176,Fixed #31674 -- Made technical 500 debug page respect __suppress_context__.,377018b6ff,a118287bca,Fixed #28284 -- Prevented Paginator's unordered object list warning from evaluating a QuerySet.,2,1
+13176,Fixed #31674 -- Made technical 500 debug page respect __suppress_context__.,377018b6ff,b5393028bf,Fixed #27767 -- Added distinct argument to ArrayAgg.,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,6e9c5ee88f,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,a0df5dea33,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,71d9876e39,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,ab5720ad80,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,e649d691f8,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,60dc957a82,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,21aa2a5e78,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,8b3f1c35dd,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,9b508bdb9b,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,ec594942cd,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,623117d1f1,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,90ca9412e4,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,cb362a6750,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,0ec0e5029c,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,a4092af3d3,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,b5d47b18f1,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,af598187ec,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,767849b765,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,cd88faa628,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,5974cbe32e,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,f2e4c7aca4,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,ad9ecc2c20,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,44169a00c1,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+11320,Removed unnecessary line in DebugLexer.tokenize().,136a3ffe21,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2,1
+10870,Fixed #25791 -- Made cached template loader do nothing when DEBUG is on.,8890c533e0,7dfe03f86d,Sorted display of options in Func.__repr__().,2,0
+10870,Fixed #25791 -- Made cached template loader do nothing when DEBUG is on.,8890c533e0,a118287bca,Fixed #28284 -- Prevented Paginator's unordered object list warning from evaluating a QuerySet.,2,1
+10870,Fixed #25791 -- Made cached template loader do nothing when DEBUG is on.,8890c533e0,b5393028bf,Fixed #27767 -- Added distinct argument to ArrayAgg.,2,1
+5658,"Fixed #25349 - ModelForm bug that occurs when saving None value to a ForeignKey with null=True, blank=False and required=False.",375e1cfe2b,375e1cfe2b,"Fixed #25349 -- Allowed a ModelForm to unset a fields with blank=True, required=False.",2,1
+2976,Fixed #23060 -- UnicodeDecodeError in debug templatetag,c9ece2e6b9,0d23450e81,Fixed #19802 -- Fixed HttpResponse.set_cookie() with unicode data on Python 2.,2,1
+2976,Fixed #23060 -- UnicodeDecodeError in debug templatetag,c9ece2e6b9,08451f17d0,Fixed #23060 -- Prevented UnicodeDecodeError in debug templatetag,2,1
+2976,Fixed #23060 -- UnicodeDecodeError in debug templatetag,0e4d79c4f0,0d23450e81,Fixed #19802 -- Fixed HttpResponse.set_cookie() with unicode data on Python 2.,2,1
+2976,Fixed #23060 -- UnicodeDecodeError in debug templatetag,0e4d79c4f0,08451f17d0,Fixed #23060 -- Prevented UnicodeDecodeError in debug templatetag,2,1
+2976,Fixed #23060 -- UnicodeDecodeError in debug templatetag,08451f17d0,0d23450e81,Fixed #19802 -- Fixed HttpResponse.set_cookie() with unicode data on Python 2.,2,1
+2976,Fixed #23060 -- UnicodeDecodeError in debug templatetag,08451f17d0,08451f17d0,Fixed #23060 -- Prevented UnicodeDecodeError in debug templatetag,2,1
+2976,Fixed #23060 -- UnicodeDecodeError in debug templatetag,cf11e3789b,0d23450e81,Fixed #19802 -- Fixed HttpResponse.set_cookie() with unicode data on Python 2.,2,1
+2976,Fixed #23060 -- UnicodeDecodeError in debug templatetag,cf11e3789b,08451f17d0,Fixed #23060 -- Prevented UnicodeDecodeError in debug templatetag,2,1
+2976,Fixed #23060 -- UnicodeDecodeError in debug templatetag,364583b894,0d23450e81,Fixed #19802 -- Fixed HttpResponse.set_cookie() with unicode data on Python 2.,2,1
+2976,Fixed #23060 -- UnicodeDecodeError in debug templatetag,364583b894,08451f17d0,Fixed #23060 -- Prevented UnicodeDecodeError in debug templatetag,2,1
+2968,fixed #22873 -- rename use_debug_cursor to force_debug_cursor to clarify...,90faa196f6,1e7da99ea6,Corrected GenericIPAddressField protocol parameter doc.,2,0
+2968,fixed #22873 -- rename use_debug_cursor to force_debug_cursor to clarify...,90faa196f6,a81af7f49d,Fixed #13749 -- Added link from admin site to front-end site.,2,1
+2968,fixed #22873 -- rename use_debug_cursor to force_debug_cursor to clarify...,90faa196f6,a6691e5dcf,Fixed #23167 -- Added BaseForm.__repr__(),2,1
+2968,fixed #22873 -- rename use_debug_cursor to force_debug_cursor to clarify...,90faa196f6,0396cd8f19,Fixed #23327 -- Added 'zero' syntax to migrate help message,2,1
+2968,fixed #22873 -- rename use_debug_cursor to force_debug_cursor to clarify...,90faa196f6,9d6551204e,Removed unnecessary code-block directives.,2,0
+2968,fixed #22873 -- rename use_debug_cursor to force_debug_cursor to clarify...,90faa196f6,90b64db39c,Fixed syntax highlighting and indentation in docs/topics/logging.txt.,2,1
+2968,fixed #22873 -- rename use_debug_cursor to force_debug_cursor to clarify...,90faa196f6,7ca665c5f5,Fixed #23296 -- Fixed RunPython code sample in Migration Operations.,2,1
+2968,fixed #22873 -- rename use_debug_cursor to force_debug_cursor to clarify...,90faa196f6,ef90d395ab,Fixed #23278 -- Documented django.db.backends.schema logger,2,1
+2968,fixed #22873 -- rename use_debug_cursor to force_debug_cursor to clarify...,90faa196f6,3021453285,Fixed #20133 -- Added summary to admin deletion confirmation pages.,2,1
+2968,fixed #22873 -- rename use_debug_cursor to force_debug_cursor to clarify...,90faa196f6,2a4492aecb,Fixed #23224 - Documented EmailValidator.,2,1
+2968,fixed #22873 -- rename use_debug_cursor to force_debug_cursor to clarify...,90faa196f6,d441a9d006,Improved formatting of deconstruct() docs.,2,0
+2968,fixed #22873 -- rename use_debug_cursor to force_debug_cursor to clarify...,90faa196f6,3687aa0093,Simplified admin delete confirmation templates using {% elif %}.,2,0
+2968,fixed #22873 -- rename use_debug_cursor to force_debug_cursor to clarify...,90faa196f6,e4dd8b5dde,Fixed #23169 - Misc docs fixes.,2,1
+2968,fixed #22873 -- rename use_debug_cursor to force_debug_cursor to clarify...,90faa196f6,97a38de230,Fixed #23112 -- Field.get_choices tries to index an iterable,2,1
+2968,fixed #22873 -- rename use_debug_cursor to force_debug_cursor to clarify...,90faa196f6,67d7da5fb9,Fixed #23107 -- Made runserver output respect --no-color.,2,1
+2968,fixed #22873 -- rename use_debug_cursor to force_debug_cursor to clarify...,90faa196f6,90faa196f6,Fixed #22873 -- Renamed use_debug_cursor to force_debug_cursor to clarify the behavior.,2,1
+2933,[CLOSE]Fixed #23060 -- UnicodeDecodeError in debug templatetag,0e4d79c4f0,0d23450e81,Fixed #19802 -- Fixed HttpResponse.set_cookie() with unicode data on Python 2.,2,1
+2933,[CLOSE]Fixed #23060 -- UnicodeDecodeError in debug templatetag,0e4d79c4f0,08451f17d0,Fixed #23060 -- Prevented UnicodeDecodeError in debug templatetag,2,1
+2933,[CLOSE]Fixed #23060 -- UnicodeDecodeError in debug templatetag,08451f17d0,0d23450e81,Fixed #19802 -- Fixed HttpResponse.set_cookie() with unicode data on Python 2.,2,1
+2933,[CLOSE]Fixed #23060 -- UnicodeDecodeError in debug templatetag,08451f17d0,08451f17d0,Fixed #23060 -- Prevented UnicodeDecodeError in debug templatetag,2,1
+2933,[CLOSE]Fixed #23060 -- UnicodeDecodeError in debug templatetag,cf11e3789b,0d23450e81,Fixed #19802 -- Fixed HttpResponse.set_cookie() with unicode data on Python 2.,2,1
+2933,[CLOSE]Fixed #23060 -- UnicodeDecodeError in debug templatetag,cf11e3789b,08451f17d0,Fixed #23060 -- Prevented UnicodeDecodeError in debug templatetag,2,1
+640,note on minified jquery.js and DEBUG mode,4720117a31,7a8f405bba,Update Daniele Procida's bio,2,0
+640,note on minified jquery.js and DEBUG mode,4720117a31,dc8f95b639,Fixed #20877 -- added a performance optimization guide,2,1
+640,note on minified jquery.js and DEBUG mode,4720117a31,79cc66692a,Consolidated documentation for F() and Q(),2,0
+640,note on minified jquery.js and DEBUG mode,4720117a31,3e20a8856b,Added myself to the committers list.,2,0
+640,note on minified jquery.js and DEBUG mode,4720117a31,082b0638ef,Added myself to the committers list.,2,0
