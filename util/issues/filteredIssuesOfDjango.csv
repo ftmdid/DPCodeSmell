@@ -1,0 +1,857 @@
+id,Title,Body,User,Label,Created At,Updated At
+13308,Fixed #31897 -- Tweaked Settings docs to better explain settings.DEBUG example,"Tweaked Settings docs to better explain settings.DEBUG example
+
+The current example for how to use `from django.conf import settings` includes the example of using `settings.DEBUG`.
+
+The example is fine, but if a user tries to replicate this in their test scripts `settings.DEBUG` will always return `False` [as intended](https://docs.djangoproject.com/en/3.1/topics/testing/overview/#other-test-conditions). This PR simply adds an `admonition` in the docs to warn users about this and offer an alternative with `override_settings()`.",edelgm6,None,2020-08-14T19:05:56Z,2020-08-18T05:41:32Z
+13292,Fixed #31865 -- Adjusted admin sidebar template to reduce debug logging.,,carltongibson,None,2020-08-11T08:14:13Z,2020-08-11T09:42:20Z
+13189,Fixed #31791 -- Made technical 404 debug page display the tried URL patterns for Http404.,https://code.djangoproject.com/ticket/31791,jdufresne,None,2020-07-14T19:08:07Z,2020-09-07T05:42:58Z
+13176,Fixed #31674 -- Made technical 500 debug page respect __suppress_context__.,Ticket https://code.djangoproject.com/ticket/31674,orf,None,2020-07-11T22:25:50Z,2020-07-13T08:33:49Z
+13163,Refs #30400 -- Improved typography in debug and csrf templates.,https://code.djangoproject.com/ticket/30400,jdufresne,None,2020-07-07T23:37:07Z,2020-07-08T20:33:10Z
+13080,[BUG] Stable/3.0.x bug in queryset of django's filter,"there is something wrong with ""exact"" filter:
+
+product = Product.objects.filter(product_id__exact=str(product_id))[:1]
+
+this code genereate the following sql query:
+
+SELECT `main_product`.`id`, `main_product`.`name`, `main_product`.`product_id`, `main_product`.`supplier_id`, `main_product`.`description`, `main_product`.`price`, `main_product`.`type_id` FROM `main_product` WHERE `main_product`.`product_id` = dvxdioxfglixezqb LIMIT 1
+
+
+as you can notice **dvxdioxfglixezqb** don't have quotes
+
+
+<img width=""1334"" alt=""Screen Shot 2020-06-17 at 21 56 40"" src=""https://user-images.githubusercontent.com/26381154/84949652-7713b100-b0e5-11ea-9f01-1e7932dc4a1a.png"">
+",youssef02,None,2020-06-17T20:57:50Z,2020-06-18T06:00:55Z
+12678,Fixed #30779 -- Improved selection of filenames in technical 500 debug page.,"[Ticket 30779](https://code.djangoproject.com/ticket/30779)
+Continue [original PR](https://github.com/django/django/pull/11789)
+I rebased the patch and adjusted the tests.",hramezani,None,2020-04-06T22:02:20Z,2020-04-09T09:54:44Z
+12641,"bugfix: hardcoded User, fails with custom User model","In django/contrib/auth/forms.py:
+I think hardcoded 'User' should not be used to avoid failure with custom User model: ""Manager isn't available; User has been swapped for ..""
+Instead get_user_model() is correct.
+This function is in the top part of a forms.py assigned as 
+UserModel = get_user_model()
+.... so I have changed:
+User -> UserModel
+
+Best regards,
+Mirek",zvolsky,None,2020-03-29T14:41:52Z,2020-03-30T05:36:52Z
+12478,Captured logging in DebugViewTests with assertLogs().,,jdufresne,None,2020-02-20T04:33:29Z,2020-03-21T14:07:49Z
+12403,Fixed #31222 -- Fixed typo in docs/internals/contributing/bugs-and-features.txt.,"[Ticket #31222](https://code.djangoproject.com/ticket/31222)
+
+Removed **to** from:
+ _If your idea can be developed as an independent application or module — for instance, you want to support another database engine — we’ll probably suggest **that you to** develop it independently._",Vibhu-Agarwal,None,2020-02-01T17:00:45Z,2020-02-03T18:28:02Z
+12265,Fixed #30934: Include database alias in `django.db.backends` debug output ,"Original PR: #11994 
+
+Went through the patch checklist and changed patch notes and added version added admonition to documentation.
+
+Thanks to @codeinthehole for the ticket and patch. I simply added the documentation. ",abhijeetviswa,None,2019-12-31T18:51:53Z,2020-01-01T07:32:59Z
+12248,"Dummy PR to debug #31117, please ignore.","This is a dummy PR, not intended to be merged. It contains some extra debug printing, to be executed by the Jenkins builds, intended to discover why the bug described at https://code.djangoproject.com/ticket/31117 does not occur inside Jenkins.",matthijskooijman,None,2019-12-24T12:45:11Z,2019-12-24T21:04:15Z
+12196,Fixed #31077 -- Made debug decorators raise TypeError if they're not called.,"… decorators.
+
+Django will now raise an error if you forget to
+call the decorator:
+
+    @sensitive_variables
+    def my_function(*args):
+        ...
+
+ticket-31077",bmispelon,None,2019-12-09T11:37:40Z,2019-12-10T13:49:22Z
+12132,Fixed #31010 -- Allowed subdomains of localhost in the Host header by default when DEBUG=True.,https://code.djangoproject.com/ticket/31010,thenewguy,None,2019-11-24T02:18:03Z,2019-12-05T09:05:14Z
+11879,Fix bug with Apache x-sendfile header.,,Dart-net,None,2019-10-07T18:28:35Z,2019-10-08T06:19:58Z
+11801,Ref #30790 -- fixes a bug with `autocomplete_fields`,"When `search_fields` is not defined but `get_search_fields` is the `autocomplete_fields` feature fails this check. This commit should fix that.
+
+https://code.djangoproject.com/ticket/30790#ticket",chadgh,None,2019-09-20T21:23:28Z,2019-09-20T22:57:02Z
+11620,Fixed #29008 -- Fixed crash of 404 debug page when URL path converter raises Http404.,"Not sure while writing test for this, since `Resolver404` is instance of `Http404` and while raised it only pass.",nsiregar,None,2019-08-02T13:56:08Z,2019-08-09T21:22:56Z
+11320,Removed unnecessary line in DebugLexer.tokenize().,Removed unnecessary code/variable which is not in use.  Ref  https://lgtm.com/projects/g/django/django,sanchjat,None,2019-05-04T17:26:36Z,2019-05-07T11:34:06Z
+11286,Added tests for queries log in CursorDebugWrapper.executemany().,Related with #10920.,felixxm,None,2019-04-26T15:45:22Z,2019-04-29T08:38:21Z
+11224,Fixed #23004 -- Hid sensitive environment parameters in debug view,,MarkusH,None,2019-04-13T17:47:20Z,2019-07-11T11:04:33Z
+11170,Fixed #30324 -- Forced utf-8 encoding when loading debug templates.,"Refs #28007 and #29654.
+
+Regression in ea542a9c7239b5b665797b7c809f1aceb0b412cf and 50b8493581fea3d7137dd8db33bac7008868d23a.",pope1ni,None,2019-04-03T23:46:10Z,2019-04-05T14:45:40Z
+11062,Subquery resolving refactor and bug fixing.,"This allows the removal of a few hacks and address two tickets
+
+- [#21703](https://code.djangoproject.com/ticket/21703) now that `OuterRef` resolution is moved to `Query` it allows it to use this construct internally when performing a `split_exclude`.
+- [#30188](https://code.djangoproject.com/ticket/30188) the resolving logic push downs addresses the `AssertionError` on `set_source_expressions` but another commit was needed to address a broken reference caused by `rewrite_cols`. This method really needs to be refactored to either clear the existing inner queries annotations before performing the rewrite or reused the existing refs to prevent double work. I think this should be handled in a separate PR/ticket though.",charettes,None,2019-03-08T16:34:17Z,2019-04-05T14:06:49Z
+10870,Fixed #25791 -- Made cached template loader do nothing when DEBUG is on.,"Ticket: https://code.djangoproject.com/ticket/25791
+
+I originally implemented an autoreloader hook that attempted to clear the template cache, and while this is possible to do I feel it might be missing the point: Templates are cached in development. We can get around this by simply not caching them when `DEBUG` is `True`, which I feel is a lot cleaner and a lot simpler to implement.
+
+~~I need to add tests, and I'm not happy with the way the autoreloader is set up. It's actually a case I did not consider when designing it: the `django.template.loaders.*` are lazy-loaded and so are not imported until a template is rendered. Which is tricky for us as we need to register a signal at *import time*, before the auto-reloader is started.~~
+
+~~So I've put the auto-reload code inside `django.template.autoreload` even though I really feel it should belong inside `django.template.loaders.cached`, and I've triggered an import of this module from `django.template`. Which is also not nice, as this module is a kind of public API and I don't want to pollute it with `autoreload` stuff (or signal handing, if we where to use `.connect()` instead of `receiver()`).~~",orf,None,2019-01-18T23:28:39Z,2020-05-17T10:54:37Z
+10748,Fixed #23004 -- Cleanse sensitive request.META keys from DEBUG Views,"- Fixed ticket [#23004](https://code.djangoproject.com/ticket/23004)
+- Signed and sent CLA agreement
+- Includes tests and documentation
+
+This is based almost entirely on [PR 7996](https://github.com/django/django/pull/7996). There should be two differences: 
+- It works with the latest version of the master branch
+- It includes the test for ExceptionReporterFilter.get_safe_request_meta that was requested at the end of that PR",maxsond,None,2018-12-12T19:28:29Z,2020-01-09T10:43:08Z
+10712,Fixed #29995 -- Used higher contrast colors on debug page.,"In our technical error page in debug mode, some of the text/background
+colors were not high contrast enough to meet the WCAG standards for
+accessiblity (https://www.w3.org/TR/UNDERSTANDING-WCAG20/Overview.html).
+This change addresses those low contrast color combinations.",zachgarwood,None,2018-11-30T19:06:15Z,2018-12-21T23:19:35Z
+10371,Bugfix: Support Python 3.7 for 1.11,"I know that 1.11 should only get security bugfixes and does not officially support python 3.7, but please consider including this two character fix into the next patch release, it would make the work of many people easier.
+
+Bug ticket: https://code.djangoproject.com/ticket/28814
+
+Fix for:
+
+```
+  File "".../site-packages/django/contrib/admin/widgets.py"", line 152
+    '%s=%s' % (k, v) for k, v in params.items(),
+    ^
+SyntaxError: Generator expression must be parenthesized
+```
+
+And yes it's really only two square brackets missing!",dunkelstern,None,2018-09-06T11:02:14Z,2018-09-12T15:36:05Z
+9901,Fixed #29353 -- Made StaticFilesHandler return a 404 response when settings.DEBUG is False,,claudep,None,2018-04-25T08:39:41Z,2018-04-27T07:26:34Z
+9840,Fix a bug: template-variable-lookup call a callable object before evaluating all the variable.,"Fix a bug: template-variable-lookup call a callable object before evaluating all the variable.
+
+for example:
+```
+    def a():  return ""Hi""
+    a.b = ""Far""
+
+    from django.template import Template, Context
+    t = Template(""{{ a.b }}"")
+    t.render(Context({""a"": a}))
+```
+It will print string_if_invalid, i.e., empty string .
+
+After correct, it can print the right value ""Far""",luoxzhg,None,2018-03-31T04:21:12Z,2018-04-09T14:55:41Z
+9733,Fixed buggy regex in URL dispatcher docs,"I think we need to escape `-` in `[\w-_]`, otherwise it is interpreted as a range:
+
+```
+django.core.exceptions.ImproperlyConfigured: ""^articles/(?P<year>[0-9]{4})/(?P<month>[0-9]{2})/(?P<slug>[\w-_]+)/$"" is not a valid regular expression: bad character range \w-_ at position 59
+```
+
+Furthermore, `\w` already matches `_`, so we can just remove that.",rfleschenberg,None,2018-02-26T14:45:46Z,2018-02-27T01:00:15Z
+9507,fix 'NoneType' object has no attribute 'is_relation' bug,fix 'NoneType' object has no attribute 'is_relation' bug,HeatonHuang,None,2017-12-29T03:50:09Z,2017-12-29T09:33:53Z
+9442,Fixed leaky logger in NonDjangoTemplatesDebugViewTests.,"```
+...................................................................................Forbidden (Permission denied): /raises403/
+Not Found: /raises404/
+................ss.................................................................................................................
+```",pope1ni,None,2017-12-07T12:21:49Z,2017-12-11T14:41:49Z
+9415,Fixed #28882 -- Fixed bug with saving disabled MultiValueField,"https://code.djangoproject.com/ticket/28882
+
+The initial value for **disabled** MultiValueField is compressed, which means it's not iterable. On the other side is the MultiValueField validator which expects the value to be list/tuple. Providing decompressed initial value for multi-value fields satisfies the validator.
+
+I am still not convinced whether silencing AttributeError is a good decision, but I am checking whether the widget has `decompress` method because of two reasons:
+- Default widget for MultiValueField is TextInput, which does not have this method.
+- MultiWidget enforces any children classes to have `decompress` method, but docstring of MultiValueField only suggests to use that widget.
+",avalanchy,None,2017-12-04T08:35:06Z,2018-01-07T16:53:28Z
+9360,Fixed #27629 -- Fixed bug where allow_relation() is never called,"Modified the behavior surrounding router.allow_relation checks within
+the related_descriptors module. It will now always resolve the
+instance and value database if needed and then always call the
+relation check.
+
+https://code.djangoproject.com/ticket/27629",srfilipek,None,2017-11-17T14:26:29Z,2018-05-11T00:42:45Z
+9125,bug#28198. Fixed attributes which are duplicated in parent and child classes ,bug#28198. Fixed attributes. Now all attributes which are in parent and child classes will be removed from first one during child initialization,denys-tarykin,None,2017-09-22T08:55:08Z,2017-09-22T08:56:50Z
+9123,bug#28198. Fixed attributes.,bug#28198. Fixed attributes. Now all attributes which are in parent and child classes will be removed from first one during child initialization,denys-tarykin,None,2017-09-21T12:06:06Z,2017-09-21T12:26:24Z
+9118,bug#28198. Fixed attributes. Now all attributes which are in parent a…,bug#28198. Fixed attributes. Now all attributes which are in parent and child classes will be removed from first one during child initialization,denys-tarykin,None,2017-09-20T14:09:50Z,2017-11-16T09:39:51Z
+9104,bug#28198. Fixed logic that set default value for deferred fields,"All deferred fields were skipped during model initialization process, even they have default value ",denys-tarykin,None,2017-09-18T11:10:42Z,2017-09-21T12:03:01Z
+8839,Refs #7697 -- Tested escaping of safe strings in the technical 500 debug view.,"Tests were omitted in the original commit: a56a226241f5808b2eaf1e4b5a155d35047b8a06
+https://code.djangoproject.com/ticket/7697",timgraham,None,2017-08-01T14:30:19Z,2017-08-02T19:57:01Z
+8834,Refs #5046 -- Tested the 'unicode hint' in the technical 500 debug view.,https://code.djangoproject.com/ticket/5046#comment:8,timgraham,None,2017-07-31T22:33:57Z,2017-08-02T19:33:45Z
+8703,Fixed #28360 -- Fixed crash of test runner with --debug-sql on fail/error in subTest.,https://code.djangoproject.com/ticket/28360,sir-sigurd,None,2017-07-05T09:03:57Z,2017-07-07T07:31:58Z
+8509,Fixed #28209 Fixed year out of range bug in generic date view mixins.,"Added exception handling to YearMixin and MonthMixin in generic.dates
+to return 404 when trying to browse years greater than 5 digits since
+datetime module will throw an year out of range ValueError.",aditbiswas1,None,2017-05-15T19:49:25Z,2017-05-30T17:32:49Z
+8508,Fixed #28209 Fixed year out of range bug in generic date view mixins.,"Added exception handling to YearMixin and MonthMixin in generic.dates
+to return 404 when trying to browse years greater than 5 digits since
+datetime module will throw an year out of range ValueError.",aditbiswas1,None,2017-05-15T19:02:42Z,2017-05-15T19:47:40Z
+8446,Fixes bug causing 404 response due to Greek translation error,"The **Greek** translation of the *help_text* in *password* field of **UserChangeForm** class (file: contrib/auth/forms.py), causes a 404 error when trying to change the password of a user, when following the available link.
+By the way, I fixed a small typo, also!",ioagel,None,2017-05-01T17:39:40Z,2017-05-02T06:00:31Z
+8356,"Fixed #28079 -- Restored ""No POST data"" (rather than an empty table) in HTML debug page.",https://code.djangoproject.com/ticket/28079,timgraham,None,2017-04-14T12:52:38Z,2017-04-15T13:22:00Z
+8338,Fixed #28008 -- Removed getElementsByClassName() in debug view template.,"I have used querySelectorAll to replace getElementsByClassName().
+https://code.djangoproject.com/ticket/28008",gautamabhishek46,None,2017-04-08T20:39:13Z,2017-04-14T12:12:15Z
+8282,Fixed #28007 -- Moved debug templates on the filesystem,https://code.djangoproject.com/ticket/28007,claudep,None,2017-04-01T15:34:58Z,2017-04-12T16:07:02Z
+8259,Fixed #27987 -- Added default colors in debug view stylesheet,,xlotlu,None,2017-03-28T11:54:41Z,2017-03-28T12:55:17Z
+8162,Described DEBUG_PROPAGATE_EXCEPTIONS behavior in more detail.,,timgraham,None,2017-03-09T16:57:07Z,2017-03-09T19:05:01Z
+8152,Fixed #9363 -- Added callstack capture to CursorDebugWrapper,"continued from https://github.com/django/django/pull/7339
+
+@felixxm would you mind guiding the proper direction?",auvipy,None,2017-03-07T13:48:57Z,2017-03-24T00:09:30Z
+8013,Fixed #27539 -- assertNumQueries fails if debug cursor wrapper fills,Some doubts I have regarding the PR asked on the [Ticket](https://code.djangoproject.com/ticket/27539),reficul31,None,2017-02-02T13:06:05Z,2017-02-16T17:02:08Z
+7996,Fixed #23004 -- Cleanse sensitive request.META keys from DEBUG Views,"- Fixed ticket [#23004](https://code.djangoproject.com/ticket/23004)
+- Signed and sent CLA agreement
+- Added tests and documentation",audiolion,None,2017-01-30T19:51:09Z,2018-12-21T13:51:55Z
+7788,Refs #15035 -- Corrected a bug and improved comments for a staticfiles test.,,timgraham,None,2017-01-04T00:26:31Z,2017-01-04T13:06:56Z
+7720,BugFix: --database option not works,"Because of system checks before loading the module
+So, we need to disable system checks as I committed.",salehi,None,2016-12-20T02:38:55Z,2016-12-21T22:25:16Z
+7719,BugFix: --database not working due to systemchecks,#NAME?,salehi,None,2016-12-20T02:29:56Z,2016-12-20T02:40:43Z
+7445,Captured logging output from NonDjangoTemplatesDebugViewTests in view_tests.,"Before the fix the output would appear as:
+
+```
+test_400 (view_tests.tests.test_debug.NonDjangoTemplatesDebugViewTests) ... 
+ok
+```
+
+now:
+
+```
+test_400 (view_tests.tests.test_debug.NonDjangoTemplatesDebugViewTests) ... ok
+```
+",jdufresne,None,2016-10-28T03:57:44Z,2016-10-29T22:39:24Z
+7436,Fixed #27391 -- Implemented SimpleTestCase.debug().,"https://code.djangoproject.com/ticket/27391
+
+Users calling debug() expect it to bubble up an exception if occurring in test, but behave the
+same as run() when no exception occurred.
+",asfaltboy,None,2016-10-26T21:20:15Z,2019-10-18T13:31:27Z
+7420,Fixed #27373 -- Corrected message on 404 debug page for an empty request path.,"https://code.djangoproject.com/ticket/27373
+",felixxm,None,2016-10-22T20:26:51Z,2016-10-27T20:58:42Z
+7412,Fix KeyError bug when 'no_color' is not specified (#27366),"Associated ticket: https://code.djangoproject.com/ticket/27366#ticket
+
+Works fine now.
+",Ge0,None,2016-10-19T17:21:28Z,2016-10-19T17:24:55Z
+7339,Fixed #9363 -- Added callstack capture to CursorDebugWrapper,"Keeps a track of the callstack for each query executed to aid
+debugging of assertNumQueries failures.
+
+https://code.djangoproject.com/ticket/9363
+",timgraham,None,2016-10-04T12:05:05Z,2016-11-14T17:08:13Z
+7204,Fixed #25788 -- Enabled the cached template loader if debug is False.,"https://code.djangoproject.com/ticket/25788
+
+Updated from https://github.com/django/django/pull/6954 to fix tests. A few tests relied on the default loaders and needed to have them specified so the cached loader isn't used instead.
+",timgraham,None,2016-09-02T21:53:46Z,2016-09-03T19:51:18Z
+7060,Fixed #27008 -- Added --debug-mode option to DiscoverRunner.,,cjerdonek,None,2016-08-10T17:48:03Z,2016-08-13T00:45:54Z
+7052,Fixed #27035 -- Made it easier to change settings.DEBUG for test runs.,,cjerdonek,None,2016-08-09T08:42:14Z,2016-08-09T17:41:04Z
+7025,Fixed #27019 -- Made teardown_test_environment() restore the original value of DEBUG.,"https://code.djangoproject.com/ticket/27019
+",cjerdonek,None,2016-08-05T01:44:54Z,2016-08-10T20:27:20Z
+6980,Fixed #26961 -- Made Admin checks run when DEBUG = False,"[Ticket 26961](https://code.djangoproject.com/ticket/26961)
+",adamchainz,None,2016-07-27T10:11:37Z,2017-01-09T23:50:13Z
+6966,Fixed #26938 -- Fixed invalid HTML in template postmortem on the debug page.,"https://code.djangoproject.com/ticket/26938
+",jdufresne,None,2016-07-23T00:40:20Z,2016-07-24T16:22:51Z
+6954,Fixed #25788 -- Enabled the cached template loader if debug=False.,"Changed `Engine` to wrap default loaders in the cached template
+loader if no loaders are specified and debug is False. Updated the
+documentation and release notes accordingly and added tests to
+ensure that the default loaders are as expected.
+",harrislapiroff,None,2016-07-21T20:25:20Z,2016-09-02T23:51:12Z
+6905,Fixed #26671 -- Fixed bug in url converter,"https://code.djangoproject.com/ticket/26671
+",mrlnx,None,2016-07-12T12:29:38Z,2016-07-12T14:19:43Z
+6895,Fixed #26872 -- Fixed filter overflow bug in admin,"Updated the style of filter choices to prevent overflow. Added
+title attribute with full text to each choice.
+",kennethyang404,None,2016-07-08T02:09:28Z,2016-07-09T12:07:09Z
+6836,Fix marked bug in test so alter_field operates on correct field state.,,jdufresne,None,2016-06-26T14:33:05Z,2016-06-27T16:13:15Z
+6789,修复用户名不能使用中文的bug,"注释掉了对用户名限制
+",uhayate,None,2016-06-16T10:46:52Z,2016-06-16T11:58:22Z
+6762,Bug fix for postgres array indices,"Hey guys, this is my first attempt at contribution, hopefully I'll get it right.
+
+I've encountered a bug when trying to filter on an annotated function call (the function is my own, written in plpgpsql).
+The test case I've provided, which fails without my fix, is somewhat odd, but I could not find a general example of an annotation function that returns an array.
+
+I think my fix might be too over-reaching, it can be maybe fixed by surrounding the SQL before the array index in parenthesis.
+
+Thanks!
+",yotamofek,None,2016-06-12T02:03:14Z,2016-08-04T18:20:53Z
+6634,Fix bug in get_traceback_frame_variables,"When using django.utils.log.AdminEmailHandler logger handler with Celery, Exceptions do not get through because of AttributeError in get_traceback_frame_variables. 
+
+This fixes the issue.
+",tuomas2,None,2016-05-21T08:02:20Z,2016-06-28T09:44:43Z
+6435,Fixed #26145 -- Made debug context processor return queries for all databases.,,MounirMesselmeni,None,2016-04-09T12:12:37Z,2016-04-09T15:48:50Z
+6339,Refs #18239 -- Removed an obsolete workaround for bugs in HTMLParser.,,timgraham,None,2016-03-26T10:53:15Z,2016-03-26T16:48:50Z
+6331,Fixed #23004 -- Added cleansing of request.META in the debug view.,"Docker run with wsgi Django App, usually through the environment variable to pass parameters, need to protection the request.META with some environment KEY value.
+",shenjinti,None,2016-03-24T14:48:43Z,2016-04-04T22:34:06Z
+6290,Removed a workaround for a cookie encoding bug [1] in Python < 2.7.2.,"[1] http://bugs.python.org/issue9824
+",timgraham,None,2016-03-14T14:09:35Z,2016-03-14T23:49:33Z
+6261,Fixed #26342 -- Bug with NodeNotFoundError repr,"[Ticket #26342](https://code.djangoproject.com/ticket/26342#ticket)
+
+`NodeNotFoundError.node` is a tuple. Feeding it as a single argument to a formatter attempts to unpack it. We don't want that!
+",jarekwg,None,2016-03-09T10:43:43Z,2019-05-07T14:09:47Z
+6127,Fixed debug mode for UnicodeDecodeError,"Why silence the error in debug mode?
+",haos616,None,2016-02-11T21:02:57Z,2016-02-11T23:02:10Z
+5906,Add source property for token object in debug mode,,snkhokh,None,2015-12-31T10:30:46Z,2015-12-31T10:50:44Z
+5896,Refs #13614 -- Added test for admin's many-to-many widget data loss bug.,"It looks like browsers have fixed the reported issue.
+
+https://code.djangoproject.com/ticket/13614
+",timgraham,None,2015-12-30T15:13:17Z,2015-12-30T19:10:55Z
+5800,Fixed #25896 -- Fixed state bug in SeparateDatabaseAndState.database_backwards().,"New test catching the bug, and bugfix.
+",amosonn,None,2015-12-09T09:58:04Z,2015-12-09T16:14:41Z
+5799,Fixed #25896 -- Fixed state bug in SeparateDatabaseAndState.database_backwards().,"New test catching the bug, and bugfix.
+",amosonn,None,2015-12-09T09:51:17Z,2015-12-09T09:56:31Z
+5795,Refs #10060 -- Corrected description of multiple annotations bug.,"Per @akaariai at https://groups.google.com/d/msg/django-developers/qiYKd1YZY_E/Tgn0p1wHCQAJ
+",timgraham,None,2015-12-08T21:46:59Z,2015-12-15T13:05:12Z
+5792,Fixed #25896 -- Fixed state bug in SeparateDatabaseAndState.database_backwards().,"Test breaking with previous code, and fix which makes test pass.
+",amosonn,None,2015-12-08T20:01:05Z,2015-12-09T09:50:02Z
+5789,Fixed #25896 -- Fixed state bug in SeparateDatabaseAndState.database_backwards().,"Test breaking with previous code, and fix which makes test pass.
+",amosonn,None,2015-12-08T17:14:13Z,2015-12-08T19:56:56Z
+5658,"Fixed #25349 - ModelForm bug that occurs when saving None value to a ForeignKey with null=True, blank=False and required=False.","https://code.djangoproject.com/ticket/25349
+",haxoza,None,2015-11-14T16:42:41Z,2016-02-19T19:19:59Z
+5621,Fixed #25710 -- Documented what INTERNAL_IPS does under the DEBUG set…,"…ting.
+",atombrella,None,2015-11-10T18:43:41Z,2015-11-14T22:09:46Z
+5592,Fixed debug view crash during the autumn DST change.,"This PR supersedes #5529. /cc @apollo13 
+",aaugustin,None,2015-11-07T15:13:24Z,2015-11-07T22:18:48Z
+5529,Fixed AmbiguousTimeError in the debug view during DST changes.,"The error was caused if USE_TZ is False and an error was reported during DST changes.
+",apollo13,None,2015-11-01T11:03:21Z,2015-11-07T13:13:39Z
+5523,Fixed #25644 -- Fixed reset cookie expiry date bug,"https://code.djangoproject.com/ticket/25644
+
+Setting a cookie with the same key as a previously deleted cookie would set its expiry date to `'Thu, 01-Jan-1970 00:00:00 GMT'`.
+",raphaelmerx,None,2015-10-30T22:25:21Z,2015-11-18T12:54:35Z
+5393,Removed SimpleLazyObject workaround for a Python bug.,"Workaround added in fe8484efda257e151d9c1ca5151e546c9262bf0f
+",timgraham,None,2015-10-05T12:28:59Z,2015-10-05T13:47:35Z
+5381,Fixed #25037 -- Added request.user to the debug view.,,jonaldomo,None,2015-10-02T14:45:14Z,2015-10-05T13:37:45Z
+5273,25386 Explained that debug in class Engine defaults to settings.debug,"[Ticket 25386](https://code.djangoproject.com/ticket/25386) pointed out that options.debug defaults to settings.DEBUG, but the documentation for configuring a class engine and TEMPLATE_DEBUG both claim that they default to False without elaborating on that point. I added a line to the section of documentation configuring a class engine explaining this. 
+
+I did not change the TEMPLATE_DEBUG documentation, because it is deprecated. I will explain how this affects options debug in another pull request. 
+",dhanus,None,2015-09-11T22:58:03Z,2015-09-24T01:10:07Z
+5182,Fixed #25246 -- Remove duplicate paths due to a bug related to Python 3 namespace package,"https://code.djangoproject.com/ticket/25246
+",caioariede,None,2015-08-24T00:07:39Z,2015-09-02T19:28:27Z
+5056,Refs #25183 -- Added debugging for non-deterministic GeoIP test.,,timgraham,None,2015-07-28T11:24:33Z,2015-07-28T11:58:54Z
+5041,Fixed #25095 -- Fixed annotate() + values() group by bug,,timgraham,None,2015-07-24T17:30:00Z,2015-07-27T12:08:08Z
+5002,Fixed #25095 -- Fixed annotate() + values() group by bug,,mitchelljkotler,None,2015-07-15T21:30:35Z,2015-07-24T17:31:35Z
+4980,Improved whitespace in debug templates.,"Removed extra blank lines in the template text debug template,
+and prevented overindentation in the HTML debug template.
+
+Before & after:
+
+![before](https://cloud.githubusercontent.com/assets/411869/8628160/9a4881e2-271e-11e5-9a94-d72264e6f8f2.png)
+
+![after](https://cloud.githubusercontent.com/assets/411869/8628163/9da1df78-271e-11e5-8e3e-a0fcd2846a5b.png)
+
+![before1](https://cloud.githubusercontent.com/assets/411869/8628164/a04279a4-271e-11e5-91e4-bbecfce3e6ba.png)
+
+![after2](https://cloud.githubusercontent.com/assets/411869/8628165/a17b2622-271e-11e5-8fea-5f1be9cad250.png)
+",timgraham,None,2015-07-10T20:14:18Z,2015-07-13T23:51:07Z
+4969,"Fixed #25089, #25090 -- Added password validation to UserCreationForm, changepassword, createsuperuser; Fix html escape bug",,alexbecker,None,2015-07-09T08:12:27Z,2015-07-30T23:36:20Z
+4868,Fixed #24966 -- Made an empty ALLOWED_HOSTS raise ImproperlyConfigured when DEBUG=False,"See discussion here for details: https://groups.google.com/forum/#!topic/django-developers/nIrbGjyOsNY
+",raiderrobert,None,2015-06-16T13:26:54Z,2015-06-16T19:47:41Z
+4778,Fixed #24925 -- Add testcase for Coalesce bug on MySQL,"A datetime passed to `Coalesce` is converted to a string in MySQL. This means an annotated value is a string, not a datetime.
+",Ian-Foote,None,2015-06-04T16:40:23Z,2015-06-05T10:24:34Z
+4721,Refs #23643 -- Fixed debug view regression on Python 2.,"Updated from https://github.com/django/django/pull/4530.
+",timgraham,None,2015-05-29T13:32:04Z,2015-05-29T16:50:46Z
+4674,Fixed #24813 -- Documented {% include %} debug behavior variance,"Added doc note about difference in handling of missing template by
+include tag based on DEBUG setting.
+",akulakov,None,2015-05-18T21:15:39Z,2015-05-21T23:52:42Z
+4568,2 regression tests provided for bug #23643,"These are regression tests for https://code.djangoproject.com/ticket/23643
+raw fix provided in https://github.com/django/django/pull/4530, but still I have not investigated if there are further implications (i.e: if that patch really solves the issue).
+
+I hope tests will help
+",feroda,None,2015-04-27T06:43:19Z,2015-05-19T13:37:33Z
+4556,"Fixed #24119, #24120 -- Formalized debug integration for template backends",,prestontimmons,None,2015-04-24T19:55:44Z,2015-05-06T22:49:22Z
+4541,Fixed #24681 -- Removed Unicode bug in BrokenLinkEmailMiddleware.,,Code0x58,None,2015-04-21T12:55:19Z,2015-04-21T20:10:19Z
+4530,Refs #23643-- Fixed exception.__traceback__ AttributeError in debug view for py2,"This is just a raw fix I have not investigated how it can be possibile that python2 has 2 exceptions in that point of execution. 
+
+If the exceptions behaviour is wrong then the fix could do, else we have to manage multiple exceptions other than **traceback** attribute retrieval. 
+
+I don't know enough python now, but I have preferred to give a raw patch because of the ""release critical"" severity.
+",feroda,None,2015-04-19T13:39:10Z,2015-05-29T13:34:40Z
+4486,bugfix: support defaults which are unhashable (e.g. JsonField default={}...,"bugfix: support defaults which are unhashable.
+As an example now JsonField(default={}) causes an exception while executing the migration.
+",ronkonigsberg,None,2015-04-13T12:03:40Z,2015-05-06T00:30:38Z
+4474,Bug 24611: call field.get_db_prep_save() when updating remote field from...,"... model instance
+",jwineinger,None,2015-04-09T18:50:24Z,2015-04-13T16:18:53Z
+4259,Fixed #24455 -- Fixed crash in debug view with lazy objects,"Refs #24455
+",bpeschier,None,2015-03-07T12:20:23Z,2015-03-19T07:27:01Z
+4254,Cleaned up the template debug implementation.,,prestontimmons,None,2015-03-07T07:41:16Z,2015-03-20T12:59:18Z
+4228,Add padding to list items on debug.py - ticket_24440,"When viewing debug output, or any code which generates a stack trace, the CSS for debug.py does not contain enough padding for nested list items. This results in a dark grey border which directly touches the line of code it contains. This makes it difficult to read.
+
+This ticket is a request, along with screenshots and patch, to add 5px of padding on two list item CSS declarations.
+
+Before:
+![debug-screenshot-before](https://cloud.githubusercontent.com/assets/563460/6448478/e1697108-c0df-11e4-9812-498b47c47cd9.png)
+
+After:
+![debug-screenshot-after](https://cloud.githubusercontent.com/assets/563460/6448481/e4b3e410-c0df-11e4-9d5e-7f43eca306ff.png)
+
+Trac ticket link: https://code.djangoproject.com/ticket/24440#no1
+",commadelimited,None,2015-03-02T19:27:58Z,2015-03-24T01:27:15Z
+4147,Removed unnecessary __init__ definition from DebugLexer.,,prestontimmons,None,2015-02-16T15:37:39Z,2015-02-16T18:00:25Z
+4138,Deprecated TEMPLATE_DEBUG setting.,,aaugustin,None,2015-02-15T14:43:10Z,2015-02-15T19:49:36Z
+4091,Simplify the implementation of lazy SQL queries in debug.,"This has similar performance implications as:
+- 8099d33b6553c9ee7de779ae9d191a1bf22adbda
+- 82e0cd15711c7171aed7af5e481967cc721c9642
+",alex,None,2015-02-09T05:41:46Z,2015-02-09T05:57:04Z
+3926,Refs #24148 -- Documented the bug with case expressions in SQLite < 3.7....,"...0
+
+I've done some testing, and SQLite 3.7.0 is the first version where the failing test case passes.
+",michalmo,None,2015-01-15T21:48:16Z,2015-01-16T00:43:19Z
+3898,Refs #14645 -- Documented bug with exclude() and multi-value relations,"Described in this ticket: https://code.djangoproject.com/ticket/14645
+",seddonym,None,2015-01-12T16:13:00Z,2015-03-25T17:42:24Z
+3885,Fixed #24118 -- Added --debug-sql option for tests.,"This will need documentation and preferably some tests if we decide it's a feature we like.
+
+From the ticket:
+
+> It's a common problem (_especially_ when working on ORM code) to want to print the complete sql queries run during a failing test, especially when parts of the run sql are in the traceback...
+
+Example output:
+
+```
+> ./runtests.py expressions --debug-sql
+Testing against Django installed in '/Users/marc/code/django/django'
+Creating test database for alias 'default'...
+Creating test database for alias 'other'...
+.........s...............................s...F.Es...
+======================================================================
+ERROR: test_invalid_operator (expressions.tests.FTimeDeltaTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File ""/Users/marc/code/django/tests/expressions/tests.py"", line 779, in test_invalid_operator
+    1/0
+ZeroDivisionError: integer division or modulo by zero
+
+----------------------------------------------------------------------
+(0.000) QUERY = u'INSERT INTO ""expressions_experiment"" (""name"", ""assigned"", ""completed"", ""estimated_time"", ""start"", ""end"") VALUES (%s, %s, %s, %s, %s, %s)' - PARAMS = (u'e0', u'2010-06-25', u'2010-06-25', 0.0, u'2010-06-25 12:15:30.747000', u'2010-06-25 12:15:30.747000'); args=[u'e0', u'2010-06-25', u'2010-06-25', 0.0, u'2010-06-25 12:15:30.747000', u'2010-06-25 12:15:30.747000']
+(0.000) QUERY = u'INSERT INTO ""expressions_experiment"" (""name"", ""assigned"", ""completed"", ""estimated_time"", ""start"", ""end"") VALUES (%s, %s, %s, %s, %s, %s)' - PARAMS = (u'e1', u'2010-06-25', u'2010-06-26', 253000.0, u'2010-06-26 12:15:30.747000', u'2010-06-26 12:15:31'); args=[u'e1', u'2010-06-25', u'2010-06-26', 253000.0, u'2010-06-26 12:15:30.747000', u'2010-06-26 12:15:31']
+(0.000) QUERY = u'INSERT INTO ""expressions_experiment"" (""name"", ""assigned"", ""completed"", ""estimated_time"", ""start"", ""end"") VALUES (%s, %s, %s, %s, %s, %s)' - PARAMS = (u'e2', u'2010-06-22', u'2010-06-25', 3600000000.0, u'2010-06-25 12:15:30.747000', u'2010-06-25 12:16:14.747000'); args=[u'e2', u'2010-06-22', u'2010-06-25', 3600000000.0, u'2010-06-25 12:15:30.747000', u'2010-06-25 12:16:14.747000']
+(0.000) QUERY = u'INSERT INTO ""expressions_experiment"" (""name"", ""assigned"", ""completed"", ""estimated_time"", ""start"", ""end"") VALUES (%s, %s, %s, %s, %s, %s)' - PARAMS = (u'e3', u'2010-06-25', u'2010-06-30', 76080000000.0, u'2010-06-29 12:15:30.747000', u'2010-06-30 09:23:30.747000'); args=[u'e3', u'2010-06-25', u'2010-06-30', 76080000000.0, u'2010-06-29 12:15:30.747000', u'2010-06-30 09:23:30.747000']
+(0.000) QUERY = u'INSERT INTO ""expressions_experiment"" (""name"", ""assigned"", ""completed"", ""estimated_time"", ""start"", ""end"") VALUES (%s, %s, %s, %s, %s, %s)' - PARAMS = (u'e4', u'2010-06-15', u'2010-07-05', 777600000000.0, u'2010-06-25 12:15:30.747000', u'2010-07-05 12:15:30.747000'); args=[u'e4', u'2010-06-15', u'2010-07-05', 777600000000.0, u'2010-06-25 12:15:30.747000', u'2010-07-05 12:15:30.747000']
+(0.000) QUERY = u'SELECT ""expressions_experiment"".""id"", ""expressions_experiment"".""name"", ""expressions_experiment"".""assigned"", ""expressions_experiment"".""completed"", ""expressions_experiment"".""estimated_time"", ""expressions_experiment"".""start"", ""expressions_experiment"".""end"" FROM ""expressions_experiment"" ORDER BY ""expressions_experiment"".""name"" ASC' - PARAMS = (); args=()
+
+======================================================================
+FAIL: test_durationfield_add (expressions.tests.FTimeDeltaTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File ""/Users/marc/code/django/tests/expressions/tests.py"", line 793, in test_durationfield_add
+    self.fail()
+AssertionError: None
+
+----------------------------------------------------------------------
+(0.000) QUERY = u'INSERT INTO ""expressions_experiment"" (""name"", ""assigned"", ""completed"", ""estimated_time"", ""start"", ""end"") VALUES (%s, %s, %s, %s, %s, %s)' - PARAMS = (u'e0', u'2010-06-25', u'2010-06-25', 0.0, u'2010-06-25 12:15:30.747000', u'2010-06-25 12:15:30.747000'); args=[u'e0', u'2010-06-25', u'2010-06-25', 0.0, u'2010-06-25 12:15:30.747000', u'2010-06-25 12:15:30.747000']
+(0.000) QUERY = u'INSERT INTO ""expressions_experiment"" (""name"", ""assigned"", ""completed"", ""estimated_time"", ""start"", ""end"") VALUES (%s, %s, %s, %s, %s, %s)' - PARAMS = (u'e1', u'2010-06-25', u'2010-06-26', 253000.0, u'2010-06-26 12:15:30.747000', u'2010-06-26 12:15:31'); args=[u'e1', u'2010-06-25', u'2010-06-26', 253000.0, u'2010-06-26 12:15:30.747000', u'2010-06-26 12:15:31']
+(0.000) QUERY = u'INSERT INTO ""expressions_experiment"" (""name"", ""assigned"", ""completed"", ""estimated_time"", ""start"", ""end"") VALUES (%s, %s, %s, %s, %s, %s)' - PARAMS = (u'e2', u'2010-06-22', u'2010-06-25', 3600000000.0, u'2010-06-25 12:15:30.747000', u'2010-06-25 12:16:14.747000'); args=[u'e2', u'2010-06-22', u'2010-06-25', 3600000000.0, u'2010-06-25 12:15:30.747000', u'2010-06-25 12:16:14.747000']
+(0.000) QUERY = u'INSERT INTO ""expressions_experiment"" (""name"", ""assigned"", ""completed"", ""estimated_time"", ""start"", ""end"") VALUES (%s, %s, %s, %s, %s, %s)' - PARAMS = (u'e3', u'2010-06-25', u'2010-06-30', 76080000000.0, u'2010-06-29 12:15:30.747000', u'2010-06-30 09:23:30.747000'); args=[u'e3', u'2010-06-25', u'2010-06-30', 76080000000.0, u'2010-06-29 12:15:30.747000', u'2010-06-30 09:23:30.747000']
+(0.000) QUERY = u'INSERT INTO ""expressions_experiment"" (""name"", ""assigned"", ""completed"", ""estimated_time"", ""start"", ""end"") VALUES (%s, %s, %s, %s, %s, %s)' - PARAMS = (u'e4', u'2010-06-15', u'2010-07-05', 777600000000.0, u'2010-06-25 12:15:30.747000', u'2010-07-05 12:15:30.747000'); args=[u'e4', u'2010-06-15', u'2010-07-05', 777600000000.0, u'2010-06-25 12:15:30.747000', u'2010-07-05 12:15:30.747000']
+(0.000) QUERY = u'SELECT ""expressions_experiment"".""id"", ""expressions_experiment"".""name"", ""expressions_experiment"".""assigned"", ""expressions_experiment"".""completed"", ""expressions_experiment"".""estimated_time"", ""expressions_experiment"".""start"", ""expressions_experiment"".""end"" FROM ""expressions_experiment"" ORDER BY ""expressions_experiment"".""name"" ASC' - PARAMS = (); args=()
+(0.001) QUERY = u'SELECT ""expressions_experiment"".""id"", ""expressions_experiment"".""name"", ""expressions_experiment"".""assigned"", ""expressions_experiment"".""completed"", ""expressions_experiment"".""estimated_time"", ""expressions_experiment"".""start"", ""expressions_experiment"".""end"" FROM ""expressions_experiment"" WHERE ""expressions_experiment"".""start"" = ((django_format_dtdelta(\'+\', ""expressions_experiment"".""start"", ""expressions_experiment"".""estimated_time""))) ORDER BY ""expressions_experiment"".""name"" ASC' - PARAMS = (); args=()
+(0.001) QUERY = u'SELECT ""expressions_experiment"".""id"", ""expressions_experiment"".""name"", ""expressions_experiment"".""assigned"", ""expressions_experiment"".""completed"", ""expressions_experiment"".""estimated_time"", ""expressions_experiment"".""start"", ""expressions_experiment"".""end"" FROM ""expressions_experiment"" WHERE ""expressions_experiment"".""end"" < ((django_format_dtdelta(\'+\', ""expressions_experiment"".""start"", ""expressions_experiment"".""estimated_time""))) ORDER BY ""expressions_experiment"".""name"" ASC' - PARAMS = (); args=()
+(0.001) QUERY = u'SELECT ""expressions_experiment"".""id"", ""expressions_experiment"".""name"", ""expressions_experiment"".""assigned"", ""expressions_experiment"".""completed"", ""expressions_experiment"".""estimated_time"", ""expressions_experiment"".""start"", ""expressions_experiment"".""end"" FROM ""expressions_experiment"" WHERE ""expressions_experiment"".""end"" >= ((django_format_dtdelta(\'+\', (django_format_dtdelta(\'+\', ""expressions_experiment"".""start"", ""expressions_experiment"".""estimated_time"")), \'01:00:00\'))) ORDER BY ""expressions_experiment"".""name"" ASC' - PARAMS = (); args=()
+
+----------------------------------------------------------------------
+Ran 52 tests in 0.315s
+
+FAILED (failures=1, errors=1, skipped=3)
+Destroying test database for alias 'default'...
+Destroying test database for alias 'other'...
+```
+",mjtamlyn,None,2015-01-10T23:00:27Z,2015-01-12T08:19:47Z
+3577,Fixed #23871 -- Removed promotion of MySQL warnings to errors in DEBUG mode.,,timgraham,None,2014-11-19T19:40:00Z,2014-12-02T19:15:56Z
+3535,Fixes #23643 - Show exception chain in debug template for Py3k,"https://code.djangoproject.com/ticket/23643#no4
+",tricoder42,None,2014-11-15T15:05:49Z,2015-03-30T18:09:58Z
+3486,Fixed #14664 -- Logged a warning if MiddlewareNotUsed is raised in DEBUG mode.,"https://code.djangoproject.com/ticket/14664
+",berkerpeksag,None,2014-11-07T19:59:44Z,2014-11-27T19:05:40Z
+3375,Update migrations.txt with note about DEBUG.,"Updating migrations.txt with a short note on the behavior of settings.DEBUG, Django saving all the queries it runs in that mode, and its affect on large data migrations.
+",daidoji,None,2014-10-15T23:34:51Z,2014-10-22T18:14:43Z
+3246,Fixed a bug that appears by using the bash autocompletion with Python 3.,"My environment is Python 3.4 and Linux Mint 17. When using the django autocompletion, a TAB-completion after a command gives me an exception. For instance, typing a TAB after `django-admin startproject`:
+
+```
+$ django-admin startproject Traceback (most recent call last):
+      ...
+  File "".../django/core/management/__init__.py"", line 262, in autocomplete
+    options = sorted((k, v) for k, v in options if k.startswith(curr))
+TypeError: unorderable types: bool() < NoneType()
+```
+
+That happens because at line 225 the `options` list is initilized as:
+
+```
+options = [('--help', None)]
+```
+
+and at line 263:
+
+```
+options = sorted((k, v) for k, v in options if k.startswith(curr))
+```
+
+But since `options` contains `--help` twice, in Python 3 we get an error comparing a `bool` with `None`:
+
+```
+>>> sorted([('foo', True), ('--help', False), ('--help', None)])
+Traceback (most recent call last):
+    ...
+TypeError: unorderable types: NoneType() < bool()
+```
+
+That obviously does not happen in Python 2. The doctring of `autocomplete()` says:
+
+```
+>>> from django.core.management import ManagementUtility
+>>> for line in ManagementUtility.autocomplete.__doc__.splitlines()[10:15]:
+...     print(line)
+... 
+
+        Subcommand options are saved as pairs. A pair consists of
+        the long option string (e.g. '--exclude') and a boolean
+        value indicating if the option requires arguments. When printing to
+        stdout, an equal sign is appended to options which require arguments.
+```
+
+So, how come `options` is initialized with the pair `('--help', None)` instead of `('--help', False)`?
+",marco-buttu,None,2014-09-20T14:50:11Z,2014-09-25T12:17:04Z
+3146,Fixing bug in migrations.SeparateDatabaseAndState,"The `migrations.SeparateDatabaseAndState` class currently appears to not work, which makes an ironic sort of sense, given https://code.djangoproject.com/ticket/22918
+
+This patch fixes what seems to be an obvious error in the code, allowing the migration to actually run. Before this patch, attempting to use `migrations.SeparateDatabaseAndState` in a migration failed with the following traceback:
+
+```
+Creating test database for alias 'default'...
+Traceback (most recent call last):
+  File ""./manage.py"", line 10, in <module>
+    execute_from_command_line(sys.argv)
+  File ""/Users/dave/Workspace/crfs_products/venv/src/django/django/core/management/__init__.py"", line 385, in execute_from_command_line
+    utility.execute()
+  File ""/Users/dave/Workspace/crfs_products/venv/src/django/django/core/management/__init__.py"", line 377, in execute
+    self.fetch_command(subcommand).run_from_argv(self.argv)
+  File ""/Users/dave/Workspace/crfs_products/venv/src/django/django/core/management/commands/test.py"", line 50, in run_from_argv
+    super(Command, self).run_from_argv(argv)
+  File ""/Users/dave/Workspace/crfs_products/venv/src/django/django/core/management/base.py"", line 288, in run_from_argv
+    self.execute(*args, **options.__dict__)
+  File ""/Users/dave/Workspace/crfs_products/venv/src/django/django/core/management/commands/test.py"", line 71, in execute
+    super(Command, self).execute(*args, **options)
+  File ""/Users/dave/Workspace/crfs_products/venv/src/django/django/core/management/base.py"", line 338, in execute
+    output = self.handle(*args, **options)
+  File ""/Users/dave/Workspace/crfs_products/venv/src/django/django/core/management/commands/test.py"", line 88, in handle
+    failures = test_runner.run_tests(test_labels)
+  File ""/Users/dave/Workspace/crfs_products/venv/src/django/django/test/runner.py"", line 147, in run_tests
+    old_config = self.setup_databases()
+  File ""/Users/dave/Workspace/crfs_products/venv/src/django/django/test/runner.py"", line 109, in setup_databases
+    return setup_databases(self.verbosity, self.interactive, **kwargs)
+  File ""/Users/dave/Workspace/crfs_products/venv/src/django/django/test/runner.py"", line 299, in setup_databases
+    serialize=connection.settings_dict.get(""TEST_SERIALIZE"", True),
+  File ""/Users/dave/Workspace/crfs_products/venv/src/django/django/db/backends/creation.py"", line 374, in create_test_db
+    test_flush=True,
+  File ""/Users/dave/Workspace/crfs_products/venv/src/django/django/core/management/__init__.py"", line 115, in call_command
+    return klass.execute(*args, **defaults)
+  File ""/Users/dave/Workspace/crfs_products/venv/src/django/django/core/management/base.py"", line 338, in execute
+    output = self.handle(*args, **options)
+  File ""/Users/dave/Workspace/crfs_products/venv/src/django/django/core/management/commands/migrate.py"", line 160, in handle
+    executor.migrate(targets, plan, fake=options.get(""fake"", False))
+  File ""/Users/dave/Workspace/crfs_products/venv/src/django/django/db/migrations/executor.py"", line 63, in migrate
+    self.apply_migration(migration, fake=fake)
+  File ""/Users/dave/Workspace/crfs_products/venv/src/django/django/db/migrations/executor.py"", line 97, in apply_migration
+    migration.apply(project_state, schema_editor)
+  File ""/Users/dave/Workspace/crfs_products/venv/src/django/django/db/migrations/migration.py"", line 107, in apply
+    operation.database_forwards(self.app_label, schema_editor, project_state, new_state)
+  File ""/Users/dave/Workspace/crfs_products/venv/src/django/django/db/migrations/operations/special.py"", line 27, in database_forwards
+    database_operation.database_forwards(self, app_label, schema_editor, from_state, to_state)
+TypeError: database_forwards() takes 5 positional arguments but 6 were given
+```
+
+This patch doesn't fix the related issue of no unit tests for `migrations.SeparateDatabaseAndState` (https://code.djangoproject.com/ticket/22918). I suspect that writing unit tests for DB migrations is rather specialised, so I'm assuming that the author of the new (and generally excellent) Django 1.7 migrations will handle this better than I could.
+",etianen,None,2014-09-01T09:36:45Z,2014-09-02T08:28:42Z
+3019,bugfix 19139: Make OpenLayersWidget respect GeoModelAdmin's modifiable attribute,"ref https://code.djangoproject.com/ticket/19139
+",fcurella,None,2014-08-04T16:17:06Z,2014-09-12T06:50:01Z
+2976,Fixed #23060 -- UnicodeDecodeError in debug templatetag,"Then a PR #2933
+
+@claudep pls, review, thanks :beer: 
+
+Reference Documents:
+- https://docs.djangoproject.com/en/dev/internals/contributing/committing-code/#committing-guidelines
+- https://docs.djangoproject.com/en/1.6/internals/contributing/writing-code/working-with-git/
+",qingfeng,None,2014-07-26T15:45:06Z,2014-07-26T16:07:32Z
+2968,fixed #22873 -- rename use_debug_cursor to force_debug_cursor to clarify...,"rename use_debug_cursor to force_debug_cursor to clarify the private API behaviour
+",areski,None,2014-07-26T11:08:11Z,2014-07-26T14:39:41Z
+2967,Fixed #23070 -- not to break the debug page by callable setting with __slots__,,hirokiky,None,2014-07-26T10:42:55Z,2014-07-26T12:43:03Z
+2964,Fixed #22808 -- Fixed bug in ModelMultipleChoiceField choices validation,,nip3o,None,2014-07-26T09:09:29Z,2014-07-31T19:33:41Z
+2961,Fixed #22979: Move bug* tests,"Moved bug8245 to it's own directory: admin_autodiscover. Moved bug639 to model_forms tests.
+",tb123,None,2014-07-26T01:35:23Z,2014-07-27T01:24:17Z
+2933,[CLOSE]Fixed #23060 -- UnicodeDecodeError in debug templatetag,"ticket: [23060](https://code.djangoproject.com/ticket/23060)
+
+pls, review, thanks :beer: 
+",qingfeng,None,2014-07-21T17:39:29Z,2014-07-26T15:42:28Z
+2846,Fixed #21668 -- Return detailed error page when SuspiciousOperation is raised and DEBUG=True,,coder9042,None,2014-06-24T12:39:39Z,2014-06-24T13:09:51Z
+2689,Fixed bug in spanish translation on auth forms,,albertoalcolea,None,2014-05-20T10:29:43Z,2014-06-28T13:27:31Z
+2455,Fixed SpooledTemporaryFile bug in File class.,"Added condition to prevent checking the existence of a file name of a
+file like object when the name attribute is None. This is necessary
+because a SpooledTemporaryFile won't exist on the file system or have a
+name until it has reached its max_size. Also added tests.
+",hlawrenz,None,2014-03-21T15:05:25Z,2014-06-25T06:21:33Z
+2336,Fixed bug with inspection of arguments in Python 3,,ilya-pirogov,None,2014-02-21T10:43:32Z,2014-06-24T17:03:12Z
+2202,Fix and test for Bug #18255 Inconsistent data type for BigIntegerField a...,"...fter calling full_clean()
+",adamduren,None,2014-01-23T06:09:20Z,2014-06-16T07:22:44Z
+2134,Fixed bug from #21206.,"Added test to verify an empty label performs discovery on the current
+working directory.
+",prestontimmons,None,2013-12-31T18:04:04Z,2014-06-24T23:58:43Z
+2006,Fixing URL bug to allow users to have only one URL rule.,"Currently Django 1.6 does not allow developers to specify only one URL within the urls.py file. The app_name and namespace attributes don't exist and an exception is thrown if urls.py only contains one URL.
+# 
+
+Traceback (most recent call last):
+  File ""/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/wsgiref/handlers.py"", line 85, in run
+    self.result = application(self.environ, self.start_response)
+  File ""/Users/dmyerscough/nagios-api-env/lib/python2.7/site-packages/django/contrib/staticfiles/handlers.py"", line 67, in **call**
+    return self.application(environ, start_response)
+  File ""/Users/dmyerscough/nagios-api-env/lib/python2.7/site-packages/django/core/handlers/wsgi.py"", line 206, in **call**
+    response = self.get_response(request)
+  File ""/Users/dmyerscough/nagios-api-env/lib/python2.7/site-packages/django/core/handlers/base.py"", line 148, in get_response
+    response = debug.technical_404_response(request, e)
+  File ""/Users/dmyerscough/nagios-api-env/lib/python2.7/site-packages/django/views/debug.py"", line 471, in technical_404_response
+    and tried[0][0].app_name == tried[0][0].namespace == 'admin')):
+AttributeError: 'RegexURLPattern' object has no attribute 'app_name'
+# 
+
+Steps to reproduce this:-
+
+1 - Edit the urls.py file and include only one URL rule
+
+urlpatterns = patterns('',
+    url(r'^test/', 'nagios_api.views.comments', name='home'),
+
+2 - Connect to the Django web server and the error above will be reproduced.
+",dmyerscough,None,2013-11-29T13:26:09Z,2014-06-12T09:00:05Z
+2002,Set zip_safe to false to avoid a ton of debug messages during install.,"During install, it's pretty annoying to see a list of every single time that Django uses `__file__`. By specifying `zip_false` in the call to `setup`, these messages aren't output and Django is simply unpacked into a directory, as it isn't zip compatible anyway:
+
+```
+Getting distribution for 'django==1.6.0'.
+warning: no previously-included files matching '__pycache__' found under directory '*'
+warning: no previously-included files matching '*.py[co]' found under directory '*'
+zip_safe flag not set; analyzing archive contents...
+django.conf.project_template.project_name.settings: module references __file__
+django.contrib.admin.bin.compress: module references __file__
+django.contrib.admindocs.views: module references __file__
+django.contrib.auth.tests.test_context_processors: module references __file__
+django.contrib.auth.tests.test_forms: module references __file__
+django.contrib.auth.tests.test_views: module references __file__
+django.contrib.flatpages.tests.test_csrf: module references __file__
+django.contrib.flatpages.tests.test_middleware: module references __file__
+django.contrib.flatpages.tests.test_templatetags: module references __file__
+django.contrib.flatpages.tests.test_views: module references __file__
+django.contrib.formtools.tests.tests: module references __file__
+django.contrib.formtools.tests.wizard.namedwizardtests.tests: module references __file__
+django.contrib.formtools.tests.wizard.wizardtests.tests: module references __file__
+django.contrib.gis.geometry.test_data: module references __file__
+django.contrib.gis.tests.geo3d.tests: module references __file__
+django.contrib.gis.tests.geogapp.tests: module references __file__
+django.contrib.gis.tests.layermap.tests: module references __file__
+django.contrib.sitemaps.tests.test_http: module references __file__
+django.contrib.staticfiles.storage: module references __file__
+django.core.management.__init__: module references __path__
+django.core.management.sql: module references __file__
+django.core.management.templates: module references __path__
+django.core.management.commands.makemessages: module references __file__
+django.db.utils: module references __file__
+django.db.models.loading: module references __file__
+django.db.models.loading: module references __path__
+django.template.loaders.app_directories: module references __file__
+django.test._doctest: module references __file__
+django.test._doctest: module MAY be using inspect.getsourcefile
+django.utils.autoreload: module references __file__
+django.utils.module_loading: module references __path__
+django.utils.version: module references __file__
+django.utils.translation.trans_real: module references __file__
+django.utils.unittest.collector: module references __file__
+django.utils.unittest.loader: module references __file__
+django.views.i18n: module references __file__
+Got Django 1.6.
+```
+",naftulikay,None,2013-11-27T23:46:46Z,2014-07-19T16:12:38Z
+1948,Fixed #21443 -- Cannot show debug info on PY3's importlib,"See [ticket 21443](https://code.djangoproject.com/ticket/21443).
+",Bouke,None,2013-11-20T17:51:11Z,2014-06-15T07:16:01Z
+1833,Test case for repeated deletion bug in issue #18508,"Updated test case for repeated deletion bug in issue #18508.
+",OleLaursen,None,2013-10-31T12:41:12Z,2014-06-20T10:47:50Z
+1737,Fixed #20962: render() methods could raise exceptions in DEBUG,"See [ticket 20962](https://code.djangoproject.com/ticket/20962).
+",Bouke,None,2013-10-14T12:45:24Z,2014-06-25T00:10:36Z
+1682,Solving bug #21170,"This solves https://code.djangoproject.com/ticket/21170
+",mnowotka,None,2013-09-26T09:41:25Z,2014-07-20T01:19:42Z
+1579,Fix debug view blowing up when a template is not given to render(),"See https://code.djangoproject.com/ticket/21058
+
+First commit from DjangoCon 2013 by @jambonrose and @ianawilson
+",ianawilson,None,2013-09-06T20:59:44Z,2014-06-18T20:38:17Z
+1519,Fixed bug #2818 with another side of ForeignKey. Missed condition detail in a89b156 commit,"As we can see, in https://code.djangoproject.com/ticket/2818 we have fixed bug in django admin behavior with joins - we should use distinct in this cases. Commit 4938c8e fixed this issue.
+But, in a89b156 it was reworked as set of codelines for enhanced conditions. To check for possible joins, was created function lookup_needs_distinct. It looks for field by name(for example, in 'user__docs__name' it takes 'user') and does some checks to verify is it relation object.
+As we can see, RelatedObject(any relation) and ManyToManyRel(reverse side of ManyToMany) handled. But, we also have reverse side of ForeignKey - ManyToOneRel. So yea, we have a problem here - appearance of bug #2818. So I decide to create this pull request. At least, it works perfectly for me.
+FYI, I'm not checking for OneToOneRel, because there should be no duplications in this case.
+",iorlas,None,2013-08-27T10:05:19Z,2014-06-15T07:21:04Z
+1467,Fixed bug in paginator when QuerySet is generated with objects.extra(),"The paginator relies on the `count()` method on a QuerySet. When a QuerySet is generated with a call to `objects.extra()`, however, the `count()` method is unavailable. It will return with a `DatabaseError: no such column 'foo'`. The other viable option is to take the length of the list of objects in the QuerySet. This is already implemented when the `count()` method can't be accessed for other reasons, so the only thing to do is add `DatabaseError` to the except clause.
+",mattr555,None,2013-08-12T02:38:08Z,2014-07-20T01:21:04Z
+1437,Unlocalize line numbers and ids in debug 500 view.,"While using USE_L10N, line numbers and IDs are printed as comma
+separated values.
+",ramiro,None,2013-08-04T22:12:16Z,2014-07-17T12:37:07Z
+1372,Cleaned up UserAdmin.get_form() that worked around a bug fixed in 23e1b59.,"Refs #18681.
+",loic,None,2013-07-18T17:02:26Z,2014-06-30T06:46:18Z
+1292,Fix bug #20631. The max length of the email is 254 ,"How you can see in the next link the max length of an email is 254 chars. Now we have only 75 chars...
+
+http://stackoverflow.com/questions/386294/what-is-the-maximum-length-of-a-valid-email-address
+
+Pull request related:
+
+https://github.com/django/django/pull/1291
+
+Ticket related:
+
+https://code.djangoproject.com/ticket/20631
+
+With this pull request we can customize the max length of the emails.
+
+The max length does not change directly, because ""At present we do not have the ability to make schema changes in core and so we cannot change the underlying database field of any given model field"" (Marc Tamlyn, @mjtamlyn)
+",goinnn,None,2013-06-20T11:12:23Z,2014-06-17T06:11:19Z
+1290,Fix bug 19881:  Document that get_next/previous_by_FOO uses default mana...,"...ger.
+",ubernostrum,None,2013-06-20T06:54:41Z,2014-06-13T06:38:27Z
+1289,"Fix bug 19695: Retitle ""Form Media"" to ""Form Assets"".","This also rewrites the former docs/topics/forms/media.txt to match the
+new title. Whenever possible, references to ""media"" have become proper
+references to a Media class, or a Media declaration or media
+property. Failing that, the word ""media"" is not used, and where it's
+impossible to rewrite the docs to be clean English without using some
+word for this, ""assets"" is used.
+",ubernostrum,None,2013-06-20T06:54:34Z,2014-07-20T01:22:03Z
+1286,Fixed minor bug in documentation and updated my Authors entry,,shanx,None,2013-06-19T20:43:28Z,2014-07-20T01:22:04Z
+1276,Fixed bug in a versionadded statement in templates builtins docs.,"Well, I just removed a colon.
+",batisteo,None,2013-06-17T07:40:26Z,2014-07-20T01:22:07Z
+1268,Fix widget has changed bug,"This fixes https://code.djangoproject.com/ticket/19557 which has been reported 5 month ago and still is open.
+",jrief,None,2013-06-13T21:38:03Z,2014-06-18T18:39:59Z
+1249,Fixed #19875 - Added notes in docs regarding DEBUG=False and empty ALLOWED HOSTS.,"Also modified runserver to output an error message if
+it won't serve any requests due to such a config.
+",timgraham,None,2013-06-06T17:20:38Z,2014-06-17T06:57:12Z
+1219,Fixes #20502 -- i18n test bug discovered by Travis.,"If the following tests are run in this order:
+- defaultfilters.tests.DefaultFiltersTests.test_localized_filesizeformat
+- i18n.tests.AppResolutionOrderI18NTests
+
+then the second test will fail because the first has cached the 'de' translation before the second one changes INSTALLED_APPS to install the test app, which has its own translation.
+",qris,None,2013-05-26T10:49:41Z,2014-07-03T15:17:59Z
+1070,Fix bug introduced in contrib.gis in 74f3884ae0,"See discussion on #1069
+",mfogel,None,2013-05-15T21:59:02Z,2014-07-20T01:23:13Z
+1007,Bugfixes around utils.functional.allow_lazy,"Includes fixes for the following tickets:
+- https://code.djangoproject.com/ticket/20221
+- https://code.djangoproject.com/ticket/20222
+- https://code.djangoproject.com/ticket/20223
+- https://code.djangoproject.com/ticket/20231
+
+Here's the two main points that this PR change:
+- Introduce `keep_lazy` as a replacement for `allow_lazy`, which allows it to be used with normal decorator syntax.
+- Fix the issue of lazy strings not being marked safe by introducing a `safe` decorator that marks the output of functions as safe, and using that decorator on the lazy-enabled version of functions.
+",bmispelon,None,2013-04-10T10:20:24Z,2014-06-12T13:12:43Z
+996,Fixed #19987 All host validation disabled when DEBUG=True.,"The documentation promises that host validation is disabled when
+DEBUG=True, that all hostnames are accepted. Domains not compliant with
+RFC 1034/1035 were however being validated, this validation has now been
+removed when DEBUG=True.
+
+Additionally, when DEBUG=False a more detailed SuspiciousOperation
+exception message is provided when host validation fails because the
+hostname is not RFC 1034/1035 compliant.
+",willhardy,None,2013-04-06T01:16:23Z,2014-07-20T01:23:36Z
+988,Update debug.py,"Interactive debug response was nerfed as of Django 1.4 when working with AJAX. The change resulted in internal errors only returning the traceback body, and not the nice interactive debug response which we know and love.
+
+This change makes working with AJAX in >1.4 very difficult compared with <1.4. 
+
+My proposed change makes this nerfing optional: set NERF_DEBUG_ON_AJAX to False in your settings.py to get the goodness when using AJAX.
+
+See here: https://github.com/django/django/commit/0d9b6a5bc43c06716212bd3f847460ce985381aa
+",rikatee,None,2013-04-03T21:54:00Z,2014-07-18T14:19:40Z
+983,"Fix bug, TypeError: unicode argument expected, got 'str' on core management validation","Error:
+
+```
+2013-04-03 02:37:08 [71497] [INFO] Starting gunicorn 0.17.2
+2013-04-03 02:37:08 [71497] [INFO] Listening at: http://127.0.0.1:8000 (71497)
+2013-04-03 02:37:08 [71497] [INFO] Using worker: sync
+2013-04-03 02:37:08 [71500] [INFO] Booting worker with pid: 71500
+2013-04-03 02:37:10 [71500] [ERROR] Exception in worker process:
+Traceback (most recent call last):
+  File ""/Users/avelino/.virtualenvs/yacows.virgula/lib/python2.7/site-packages/gunicorn/arbiter.py"", line 485, in spawn_worker
+    worker.init_process()
+  File ""/Users/avelino/.virtualenvs/yacows.virgula/lib/python2.7/site-packages/gunicorn/workers/base.py"", line 100, in init_process
+    self.wsgi = self.app.wsgi()
+  File ""/Users/avelino/.virtualenvs/yacows.virgula/lib/python2.7/site-packages/gunicorn/app/base.py"", line 103, in wsgi
+    self.callable = self.load()
+  File ""/Users/avelino/.virtualenvs/yacows.virgula/lib/python2.7/site-packages/gunicorn/app/djangoapp.py"", line 101, in load
+    return mod.make_wsgi_application()
+  File ""/Users/avelino/.virtualenvs/yacows.virgula/lib/python2.7/site-packages/gunicorn/app/django_wsgi.py"", line 36, in make_wsgi_application
+    if get_validation_errors(s):
+  File ""/Users/avelino/.virtualenvs/yacows.virgula/lib/python2.7/site-packages/django/core/management/validation.py"", line 150, in get_validation_errors
+    e.add(opts, ""'%s' has a relation with model %s, which has either not been installed or is abstract."" % (f.name, f.rel.to))
+  File ""/Users/avelino/.virtualenvs/yacows.virgula/lib/python2.7/site-packages/django/core/management/validation.py"", line 19, in add
+    self.outfile.write(self.style.ERROR(force_str(u""%s: %s\n"" % (context, error))))
+TypeError: unicode argument expected, got 'str'
+Traceback (most recent call last):
+  File ""/Users/avelino/.virtualenvs/yacows.virgula/lib/python2.7/site-packages/gunicorn/arbiter.py"", line 485, in spawn_worker
+    worker.init_process()
+  File ""/Users/avelino/.virtualenvs/yacows.virgula/lib/python2.7/site-packages/gunicorn/workers/base.py"", line 100, in init_process
+    self.wsgi = self.app.wsgi()
+  File ""/Users/avelino/.virtualenvs/yacows.virgula/lib/python2.7/site-packages/gunicorn/app/base.py"", line 103, in wsgi
+    self.callable = self.load()
+  File ""/Users/avelino/.virtualenvs/yacows.virgula/lib/python2.7/site-packages/gunicorn/app/djangoapp.py"", line 101, in load
+    return mod.make_wsgi_application()
+  File ""/Users/avelino/.virtualenvs/yacows.virgula/lib/python2.7/site-packages/gunicorn/app/django_wsgi.py"", line 36, in make_wsgi_application
+    if get_validation_errors(s):
+  File ""/Users/avelino/.virtualenvs/yacows.virgula/lib/python2.7/site-packages/django/core/management/validation.py"", line 150, in get_validation_errors
+    e.add(opts, ""'%s' has a relation with model %s, which has either not been installed or is abstract."" % (f.name, f.rel.to))
+  File ""/Users/avelino/.virtualenvs/yacows.virgula/lib/python2.7/site-packages/django/core/management/validation.py"", line 19, in add
+    self.outfile.write(self.style.ERROR(force_str(u""%s: %s\n"" % (context, error))))
+TypeError: unicode argument expected, got 'str'
+2013-04-03 02:37:10 [71500] [INFO] Worker exiting (pid: 71500)
+2013-04-03 02:37:10 [71497] [INFO] Shutting down: Master
+2013-04-03 02:37:10 [71497] [INFO] Reason: Worker failed to boot.
+```
+",avelino,None,2013-04-03T06:33:34Z,2014-06-21T05:08:05Z
+970,Fixed bug https://code.djangoproject.com/ticket/19607,"Fixed crash on prefetch_related. See https://code.djangoproject.com/ticket/19607
+",askoretskiy,None,2013-03-28T11:17:40Z,2014-06-15T09:52:31Z
+810,Fix and test for Bug #18255 Inconsistent data type for BigIntegerField a...,"...fter calling full_clean()
+",adamduren,None,2013-02-23T22:09:24Z,2014-06-24T07:07:03Z
+782,Fixed bug #18972,"An alternate implementation of doda's patch at https://github.com/django/django/pull/415, that avoids the ""offset"" math in favor of just stuffing the data into a BytesIO and then .read()ing from it with a sentinel-style iterator.
+
+Includes a unit test from a previous pull request, all tests pass.
+",datagrok,None,2013-02-23T16:47:48Z,2014-07-04T20:55:51Z
+765,Fixed #18373 -- Improved debug messages for 404 errors,"When an Http404 exception is raised from a view (as opposed to Django
+trying to route the request), make the exception message contain the
+full stack trace for easier debugging.
+
+Also, make the reported URL match the one requested in resolve() call,
+not the URL of the current page
+
+https://code.djangoproject.com/ticket/18373
+",gnosek,None,2013-02-23T14:19:34Z,2014-06-13T08:42:28Z
+675,Fix for bug #18481.,"Throw UnreadablePostError also on IOErrors from FILES.
+",edevil,None,2013-01-25T17:28:53Z,2014-07-20T01:25:20Z
+640,note on minified jquery.js and DEBUG mode,"https://github.com/django/django/pull/639 is more complicated than I first thought, so I have extracted one of the issues from it for this pull request, which I think will be simpler to deal with.
+",evildmp,None,2013-01-11T22:02:33Z,2014-07-04T08:31:32Z
+584,Fixed a bug in QuerySet slicing,"django/db/models/query.py (QuerySet.**getitem**): Fixed a bug where slicing a partly iterated QuerySet without explicit stop would return the slice of the unmodified result cache, discarding uncached rows from the slice.
+
+This bug applies to QuerySets that are larger than CHUNK_SIZE which seem to be 100.
+",robert-j-engdahl,None,2012-12-13T08:41:40Z,2014-07-20T01:25:48Z
+528,Bug #17428: Admin formfield validation uses form model instead of registered model.,"The model specified in ModelForm.Meta should not limit the
+available fields. This solution uses the same modelform factory used by
+the ModelAdmin.get_form method, which adds the registered model's
+fields.
+
+https://code.djangoproject.com/ticket/17428
+
+This is my first django core contribution, submitted during the Stockholm sprint. Please double check that I don't break anything. I expect it to be rejected ;)
+",per42,None,2012-11-17T20:42:23Z,2014-06-16T06:47:00Z
+522,Fix bug [#19277]: LocaleMiddleware permanent redirects,"https://code.djangoproject.com/ticket/19277#comment:3
+
+""We're sprinting (Stockholm) at the moment and plan to solve this bug like this:
+
+Instead of setting a status_code attribute, we would like to use a redirect_class. The reason for this is that HttpResponseRedirectBase has built in protection against unsafe protocol redirections. If we use a HttpResponse object and let the user supply their own status code they will probably miss that security issue, which would be a shame.""
+
+Authors: @pelme and @EmilStenstrom
+",EmilStenstrom,None,2012-11-17T12:19:16Z,2014-06-19T20:46:46Z
+498,Fixed django admin inline verbose name (plural/singular). Bug #18549,"https://code.djangoproject.com/ticket/18549
+",harph,None,2012-11-05T03:37:49Z,2014-06-13T10:35:00Z
+478,Remove weird and buggy try/except block,"This is really weird code. I don't know how it has gone unnoticed for so long.
+
+First of all, nothing in that try block could raise `DoesNotExist`. Passing an empty `QuerySet` to `list` returns an empty list with no error. The except block I removed was never being executed. This code only happens to work and appropriately raise `IndexError` because directly indexing the empty list raises the correct error itself.
+
+But the except code itself is bad. `e.args` is a tuple, so passing it as the first argument to `IndexError` casts it as a string and uses it as the message:
+
+```
+IndexError: ('list index out of range',)
+```
+
+What was meant was probably to to pass either `*e.args` or simply `e.message`.
+
+Briefly exploring the commit history, the code seems to have been like this for a long, long time.
+
+I _could_ change the code so that the message of the `IndexError` is the same as the `DoesNotExist` exception like so:
+
+```
+IndexError: <model name> matching query does not exist.
+```
+
+As that seems to be what was originally intended. I won't make that decision myself though.
+
+For now, the functionality is unchanged but the code itself is simplified with these nonsensical parts removed.
+",fletom,None,2012-10-29T21:28:33Z,2017-11-22T13:51:27Z
+368,fixed bug#6681: RST default reference role tries docutils' default role ...,"Fixes bug#6681 as described in https://code.djangoproject.com/ticket/6681
+
+Docutils establish a ''DEFAULT_INTERPRETED_ROLE'' which is overriden by django with **cmsreference** role.
+
+Django's role is intended to work on admin docs, but it's not suitable for general purpose as it needs some keys in ''inliner.document.settings''.
+",jgsogo,None,2012-09-11T08:59:59Z,2014-06-17T04:50:28Z
+289,Fixed bug in 212b982 -- Removed duplicate code in removetags,,mjtamlyn,None,2012-08-18T16:08:17Z,2014-07-20T01:27:25Z
+250,Bugfix/16455 postgis2 optimized,"Optimized code to do extra actions when really needed.
+originally made by fcurella.
+",kamikaze,None,2012-08-06T00:40:07Z,2014-07-20T01:27:40Z
+227,Regression test for bug #18660,"Seems like [#18660](https://code.djangoproject.com/ticket/18660) was fixed by accident on aee9eecb920cf281e8339a5f7edadc6f2dd04fea
+
+This regression test should keep an eye on it so it doesn't come back.
+",eduardocereto,None,2012-07-24T08:50:25Z,2014-07-20T01:27:48Z
+211,Common OAuth terms into debug hidden values,"Django already does a pretty nice job of protecting certain hidden values in DEBUG mode. This changes adds a few more values to sanitized based on common terminology of the OAuth protocol.
+",Miserlou,None,2012-07-16T02:08:33Z,2014-07-20T01:27:53Z
+171,fix typo/minor bug in JSONResponseMixin example,,gabrielgrant,None,2012-06-24T02:55:47Z,2014-07-20T01:28:06Z
+8,Added DEBUG_PLAINTEXT_AJAX_ERROR_MESSAGES setting to customize error display,"The plaintext error responses for AJAX requests in 1.4 drop a lot of the stack trace context that was included in the HTML responses pre-1.4.  Tools like the network response 'Preview' viewer in Chrome make it easy to navigate the HTML response to drill down into the richer context it provides.  This patch maintains the 1.4 default but enables the response to be configured to use the original behavior.
+",davehughes,None,2012-04-28T17:15:07Z,2014-06-13T09:26:49Z
