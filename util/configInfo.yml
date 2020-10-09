@@ -1,0 +1,30 @@
+github:
+    url:  https://github.com/
+clone:
+    path: /DemoProjects 
+    path2: /Sieve
+repo:
+    url2: numpy/numpy
+numpy:
+    url: numpy/numpy
+Django:
+    url: django/django
+keras:
+    url: keras-team/keras
+models:
+    url: tensorflow/models
+scikit-learn:
+    url: scikit-learn/scikit-learn
+zulip:    
+    url: zulip/zulip
+
+log: 
+    cmd: git log --pretty=format:%H,%h,%an,%ae,%ad,%cn,%ce,%cd,%s 
+filter:
+    keywords: [bug, fix, fixed, resolved, closed, issue, mistake, incorrect, fail, detect, fault, long method, large class, long parameter list, long message chain, switch statements, lazy class]
+shell:
+    script: ./backupGithubIssues.sh
+    fileURL: /script/backupGithubIssues.sh
+    path: /script
+    
+ 
