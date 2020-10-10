@@ -81,7 +81,7 @@ class SemanticAnalysis(object):
      
     def filterIssueFile(self,issuesList,projectPath):    
     #     increaseCSVReaderSize()
-        filteredIssueFilePath=os.path.join(projectPath,'issues/filteredIssuesOf'+self.projectName+'.csv')
+        filteredIssueFilePath=os.path.join(projectPath,'issues/filtered/filteredIssuesOf'+self.projectName+'.csv')
         filteredIssueFile = csv.writer(open(filteredIssueFilePath,'w+'))
         filteredIssueFile.writerow(('id', 'Title', 'Body',"User", 'Label','Created At', 'Updated At'))
         for i  in range(0,len(issuesList)):
@@ -92,7 +92,7 @@ class SemanticAnalysis(object):
     def calculateSimiliaritiesBetweenIssueAndCommits(self):
         projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__))+ '/util')
     
-        issuesPath=os.path.join(projectPath, 'issues/issuesOf'+self.projectName+'.csv')
+        issuesPath=os.path.join(projectPath, 'issues/issues/issuesOf'+self.projectName+'.csv')
     
         logsPath=os.path.join(projectPath, 'commits/commitsOf'+self.projectName+'.csv')
         

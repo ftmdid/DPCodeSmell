@@ -127,8 +127,8 @@ class Analysis(object):
         
         
 #projectName='Django'
-projectName='keras'
-#projectName='models'
+#projectName='django'
+projectName='models'
 analysis=Analysis(projectName)
 analysis.makeSemanticAndSyntacticAnalysis()
 #print gt.pullListChangedFiles()

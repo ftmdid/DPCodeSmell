@@ -14,6 +14,8 @@ downloadCommits: this is to download the commits on the open source project
 		there are 111 pages in total for keras-team
 	projectUrl="https://api.github.com/repos/tensorflow/models/issues?state=closed&page=83&per_page=100"
 		there are 83 pages in total for tensorflow
+	projectUrl="https://api.github.com/repos/zulip/zulip/issues?state=closed&page=83&per_page=100"
+		there are 148 pages in total for zulip
 	numberOfPages=1 # you can learn how many pages are there on the project by typing the project url to address 
 	bar and see if with page=numberOfPages return empty list or not 
 	You need to make changes on some lines:
@@ -21,6 +23,7 @@ downloadCommits: this is to download the commits on the open source project
 		url= url[:68]+str(j)+url[68:]#django
 		url= url[:71]+str(j)+url[71:] #Keras-team
 		url= url[:72]+str(j)+url[72:] #models
+		url= url[:66]+str(j)+url[66:] #zulip
 		you need to use url1 for numpy and url2 for django
 	Also, github does not allow to download all issues at once. Therefore, you need to start with lower total pages
 	when calling the function. At first, the loop in line 92 of Downloads.downloadIssuesFromIssueTrackingSystem() method

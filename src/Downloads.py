@@ -89,12 +89,11 @@ class Downloads(object):
             csvfile = 'issuesOf'+self.projectName+".csv"
             csvout = csv.writer(open(os.path.join(projectPath,csvfile), 'w+'))
             csvout.writerow(('id', 'Title', 'Body',"User", 'Label','Created At', 'Updated At'))
-            for j in range(106,numberOfPages): # 139 is the number of pages in numpy
-                                            # 133 is the number of pages in django total
-                #url= url[:66]+str(j)+url[66:] #numpy
+            for j in range(61,numberOfPages):
+                #url= url[:66]+str(j)+url[66:] #numpy - zulip
                 #url= url[:68]+str(j)+url[68:]#django
-                url= url[:71]+str(j)+url[71:] #Keras-team
-                #url= url[:72]+str(j)+url[72:] #models
+                #url= url[:71]+str(j)+url[71:] #Keras-team
+                url= url[:72]+str(j)+url[72:] #models
                 print(url)
     
                 FIFTEEN_MINUTES = 1200 #It was 900
@@ -148,17 +147,19 @@ class Downloads(object):
 
 
 if __name__ == '__main__':
-    projectName='keras'
-    #projectName='django'
+    #projectName='zulip'
+    #projectName='keras'
     #projectName='numpy'
-    #projectName='models'
+    projectName='models'
+    #projectName="django"
     downloads=Downloads(projectName)
-    projectUrl="https://api.github.com/repos/keras-team/keras/issues?state=closed&page=&per_page=100"
+    #projectUrl="https://api.github.com/repos/keras-team/keras/issues?state=closed&page=&per_page=100"
+    #projectUrl="https://api.github.com/repos/zulip/zulip/issues?state=closed&page=&per_page=100"
     #projectUrl="https://api.github.com/repos/django/django/issues?state=closed&page=&per_page=100"
     #projectUrl="https://api.github.com/repos/numpy/numpy/issues?state=closed&page=&per_page=100"
-    #projectUrl= "https://api.github.com/repos/tensorflow/models/issues?state=closed&page=&per_page=100"
+    projectUrl= "https://api.github.com/repos/tensorflow/models/issues?state=closed&page=&per_page=100"
     
-    numberOfPages=140
+    numberOfPages=120
     #downloads.downloadGitHubPythonProject()
     #downloads.downloadCommits()
     #downloads.downloadModifiedPythonFiles()

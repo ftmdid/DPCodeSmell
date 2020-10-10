@@ -7,7 +7,7 @@ repo:
     url2: numpy/numpy
 numpy:
     url: numpy/numpy
-Django:
+django:
     url: django/django
 keras:
     url: keras-team/keras

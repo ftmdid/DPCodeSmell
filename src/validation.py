@@ -9,9 +9,9 @@ Created on Sep 15, 2020
 import os
 import src.BadSmell as BS
 import csv
-from os import walk
-from os.path import join 
-import src.runOperations as op
+import src.helper as help
+
+
 
 def getMethodFilesInProject(pythonFiles, validationFolder):
     methodsListForTool = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation/ToolValidation/methodsListForTool.csv'
@@ -89,33 +89,14 @@ def getRequestedItemFiles(fileName, requestedItem):
             print(ex)
             print("Exception occurred in getRequestedItemFiles method")
                 
-def getAllPythonFilesInProject(projectPath):
-    pythonFiles = []
-    for path, _, files in walk(projectPath):
-        for name in files:
-            if not name.lower().startswith('test'):
-                if name[-3:] == ".py":
-                    pythonFiles.append(join(path, name)) #pythonFiles that has all the python files in numpy project
-        
-    return pythonFiles
 
-def getTotalLinesInAProject():
-    try:
-        totalLine=0
-        for each in pythonFiles:
-            with open(each, "r") as fileToBeRead:
-                lines = fileToBeRead.read()
-                totalLine +=op.get_line_count(lines)
-        return totalLine
-    except Exception as ex:
-        print(ex)
-        print("Exception occurred in getTotalLinesInAProject() method")
-        
+
 
 if __name__ == '__main__':
     
-    projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'DemoProjects/numpy')
-    pythonFiles= getAllPythonFilesInProject(projectPath)
+    #projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'DemoProjects/numpy')
+    projectName="keras"
+    pythonFiles= help.getAllPythonFilesInProject(projectName)
     
     print("There are "+str(len(pythonFiles)) + " in total")
     
