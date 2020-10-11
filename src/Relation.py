@@ -93,18 +93,18 @@ class Relation(object):
             buggedCommitsList = self.fileOp.readCSVFile(os.path.join(projectPath, csvfile))
         
            
-            relationAnalysisLargeClassCSVfile = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/Bad Smells/LargeClassRelationAnalysisOf'+self.projectName+'.csv'
+            relationAnalysisLargeClassCSVfile = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/BadSmells/LargeClassRelationAnalysisOf'+self.projectName+'.csv'
             relationAnalysisLargeClassCSVout = csv.writer(open(os.path.join(projectPath, relationAnalysisLargeClassCSVfile), 'w+'))
             relationAnalysisLargeClassCSVout.writerow(('CommitID' ,'File Name','Class Name' ,'isLargeClass', 'Index of File In Folder', 'Index of Bug Fixed Commit In File',"Number of Files In Folder", "Folder"))
       
             
-            relationAnalysisLongParameterListCSVfile = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/Bad Smells/LongParameterListRelationAnalysisOf'+self.projectName+'.csv'
+            relationAnalysisLongParameterListCSVfile = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/BadSmells/LongParameterListRelationAnalysisOf'+self.projectName+'.csv'
             relationAnalysisLongParameterListCSVout = csv.writer(open(os.path.join(projectPath, relationAnalysisLongParameterListCSVfile), 'w+'))
             relationAnalysisLongParameterListCSVout.writerow(('CommitID', 'File Name','Method Name' ,'isLongParameterList', 'Index of File In Folder','Index of Bug Fixed Commit In File', "Number of Files In Folder", "Folder"))
       
            
     
-            relationAnalysisMessageChainCVoutListCSVfile = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/Bad Smells/MessageChainRelationAnalysisOf'+self.projectName+'.csv'
+            relationAnalysisMessageChainCVoutListCSVfile = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/BadSmells/MessageChainRelationAnalysisOf'+self.projectName+'.csv'
             relationAnalysisMessageChainCVoutListCSVout = csv.writer(open(os.path.join(projectPath, relationAnalysisMessageChainCVoutListCSVfile), 'w+'))
             relationAnalysisMessageChainCVoutListCSVout.writerow(('CommitID', 'File Name','Message Chain Line' ,'isMessageChain', 'Index of File In Folder','Index of Bug Fixed Commit In File', "Number of Files In Folder", "Folder"))
      
@@ -196,17 +196,17 @@ class Relation(object):
             print("Done")
         except Exception as ex:
             print(ex)
-            print("Exception occurred in checkForRelation() method")                             
+            print("Exception occurred in Relation.checkForRelation() method")                             
     
 
     
 
 #fileName="/Users/neda/OneDrive - Auburn University/PhDworkspace/BadSmells/util/Python/numpy/misc_util/misc_util@cba01fd50@Thu Feb 2 03:29:38 2006 +0000.py"
 #fileName="/Users/neda/OneDrive - Auburn University/PhDworkspace/BadSmells/util/Python/numpy/core/core@77f95a139@Mon Dec 1 17:56:58 2008 +0000.py"
-#fileName="/Users/neda/OneDrive - Auburn University/PhDworkspace/BadSmells/util/Python/numpy/system_info/system_info@5082215ea@Mon Apr 1 23:28:37 2002 +0000.py"
-projectName="keras"   
-relation=Relation(projectName)   
-relation.checkForRelation()  
+# #fileName="/Users/neda/OneDrive - Auburn University/PhDworkspace/BadSmells/util/Python/numpy/system_info/system_info@5082215ea@Mon Apr 1 23:28:37 2002 +0000.py"
+# projectName="keras"   
+# relation=Relation(projectName)   
+# relation.checkForRelation()  
 
 
 
