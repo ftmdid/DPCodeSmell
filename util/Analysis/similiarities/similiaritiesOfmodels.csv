@@ -34,8 +34,6 @@ Issue ID,Issue Body,issue User,commitID,Commit Subject,cosine similiarity,Levens
 9207,fix `base_url`,kaczmarj,40ea6deb,fix,0.7071067811865475,11
 9207,fix `base_url`,kaczmarj,e6b7e0ad,fix,0.7071067811865475,11
 9207,fix `base_url`,kaczmarj,7a210706,fix,0.7071067811865475,11
-"
-9200","tensorflow 2.3.0 requires numpy<1.19.0 >=1.16.0  but you'll have numpy 1.19.1 which is incompatible.  """,nicolas-gervais,03a6d6c8,Pin to tf-models-official 2.2.0 since 2.3.0 pulls TF 2.3 which is incompatible with numpy 1.19.1,0.6210590034081187,78
 9184,fix broken url for attention_ocr README.md,moneypi,6e291f47,fix for broken link to slim README.md,0.6681531047810609,21
 9163,fix ValueError for adversarial_text,moneypi,7d40b2ac,fix ValueError for adversarial_text (#9163),0.8944271909999159,8
 9163,fix ValueError for adversarial_text,moneypi,b152ed9c,fix,0.5,32
@@ -2755,7 +2753,6 @@ Issue ID,Issue Body,issue User,commitID,Commit Subject,cosine similiarity,Levens
 8435,tf.compat.v1.name_scope to tf.name_scope,ayushmankumar7,31f1af58,Changed deprecated tf.initialize_all_variables() to tf.global_variables_initializer(),0.502518907629606,65
 8435,tf.compat.v1.name_scope to tf.name_scope,ayushmankumar7,320545f0,Update tf.concat_v2 to tf.concat,0.5330017908890261,29
 8435,tf.compat.v1.name_scope to tf.name_scope,ayushmankumar7,e5079c83,Update inception model based on tf API changes: replace tf.op_scope with tf.name_scope and tf.variable_op_scope with tf.variable_scope; fix the order of arguments for tf.concat; replace tf.mul with tf.multiply.,0.5482304134858554,176
-8396,Couldn't read checkpoints for resnet models (resnet 50 and resnet 101),VenuGopalVasarla,e649274e,add seperated class for resnet 50 101 152,0.5,48
 8320,"""ncf_test.py"" failed.",ayushmankumar7,503cc99c,Fix context_rcnn_meta_arch_tf1_test.py failed test,0.5163977794943222,33
 8293,tf.compat.v1.train.AdamOptimizer() to tf.keras.optimizers.Adam,ayushmankumar7,60cbe4e4,compat.v1.name_scope to tf.name_scope,0.5103103630798287,37
 8293,tf.compat.v1.train.AdamOptimizer() to tf.keras.optimizers.Adam,ayushmankumar7,62abe403,AdamOptimizer() to Adam(),0.5000000000000001,41
@@ -2771,6 +2768,7 @@ Issue ID,Issue Body,issue User,commitID,Commit Subject,cosine similiarity,Levens
 8201,ModuleNotFoundError: No module named 'official',ayushmankumar7,20f31bf6,"fix ""No module named 'official.utils.logs'"" for deep_speech (#8687)",0.5656854249492379,57
 8200,GPU Support for official models detection ,weichen456,803b2540,Add setup.py for official models.,0.5000000000000001,21
 8111,Error in installation instructions for DELF,tjennz12,b03da6ec,Add in instructions for TFDS for classifier_trainer.,0.5443310539518174,38
+8063,Fix bug of class DenseEinsum,ZhuBaohe,281d1757,Fix bug introduced.,0.5163977794943222,19
 8038,"Update VGGish README for new path, soundfile",dpwe,f4baddb3,Update README.,0.5345224838248487,31
 8038,"Update VGGish README for new path, soundfile",dpwe,8b479cc7,"Update VGGish README for new path, soundfile (#8038)",0.9354143466934852,8
 8038,"Update VGGish README for new path, soundfile",dpwe,76c0ac54,Update README,0.5345224838248487,31
@@ -3825,6 +3823,9 @@ Issue ID,Issue Body,issue User,commitID,Commit Subject,cosine similiarity,Levens
 5015,fix a bug,GeneralLi95,7a210706,fix,0.5773502691896258,6
 5015,fix a bug,GeneralLi95,89f5e4e0,bug fix for failing demo,0.5163977794943222,18
 5015,fix a bug,GeneralLi95,bc061e9e,fix eval_training_data bug,0.6666666666666667,17
+4989,Fix bug where data_async_generation.py would freeze.,reedwm,58037d2c,Fix bug where data_async_generation.py would freeze. (#4989),0.9354143466934852,8
+4987,Bug fix: change dict.iteritems() to dict.items(),TwistedHardware,e2ea9eb4,Bug fix: change dict.iteritems() to dict.items(),0.9999999999999998,0
+4987,Bug fix: change dict.iteritems() to dict.items(),TwistedHardware,b5574d2a,Replace dict.iteritems() with dict.items() for Python3 compatibility,0.5720775535473553,42
 4822,Fixed minor bug in STEVE which sometimes prevented resuming experiments.,buckman-google,c1da1ae5,Fixed minor bug in STEVE which sometimes prevented resuming experiments.,0.9999999999999998,0
 4784,Loss -> Accuracy,rrrutledge,3aa19ac8,Loss -> Accuracy,0.9999999999999998,0
 4662,[vid2depth] tiny readme typos,kalanityL,120758d6,readme,0.5,23
@@ -3994,3 +3995,53 @@ Issue ID,Issue Body,issue User,commitID,Commit Subject,cosine similiarity,Levens
 1436,[slim] Python 3 support,pokey,2bb1baad,slim Python 3 compatibility: cPickle and str/bytes (#1534),0.5,43
 1436,[slim] Python 3 support,pokey,2335c9fc,Python 3 support for some inception scripts,0.5669467095138409,34
 1406,DOC: document bash use for resnet,stsievert,214ecc79,DOC: document bash use for resnet,1.0000000000000002,0
+1275,tf.concat BUG,Google1234,320545f0,Update tf.concat_v2 to tf.concat,0.6123724356957945,22
+1275,tf.concat BUG,Google1234,e5079c83,Update inception model based on tf API changes: replace tf.op_scope with tf.name_scope and tf.variable_op_scope with tf.variable_scope; fix the order of arguments for tf.concat; replace tf.mul with tf.multiply.,0.524890659167824,200
+1247,README.md warning on extra background class added by build_image_data.py,jimmyyentran,c766ef27,update warning on extra background class added by build_image_data.py,0.8581163303210331,9
+1226,"Revert ""fixed a bug in sampled_loss(), made compatible for 0.12.0""",nealwu,79d2ecb1,"Revert ""fixed a bug in sampled_loss(), made compatible for 0.12.0""",1.0,0
+1226,"Revert ""fixed a bug in sampled_loss(), made compatible for 0.12.0""",nealwu,a38bf8d7,"fixed a bug in sampled_loss(), made compatible for 0.12.0",0.9636241116594316,9
+1037,im2txt: Why is the initial learning rate so high (2.0)?,danieljl,746a927c,Setting the initial learning rate.,0.5393598899705937,26
+982,"fixed a bug in sampled_loss(), made compatible for 0.12.0",arvind385801,79d2ecb1,"Revert ""fixed a bug in sampled_loss(), made compatible for 0.12.0""",0.9636241116594316,9
+982,"fixed a bug in sampled_loss(), made compatible for 0.12.0",arvind385801,a38bf8d7,"fixed a bug in sampled_loss(), made compatible for 0.12.0",1.0000000000000002,0
+960,Corrections and explanations for the updated Neural GPU model.,lukaszkaiser,a046ec81,Corrections and explanations for the updated Neural GPU model.,1.0,0
+905,Remove dated Bazel docs in syntaxnet,jart,0f12d4a4,Fix Bazel incantations in docs,0.5477225575051661,27
+905,Remove dated Bazel docs in syntaxnet,jart,be37e9db,Remove dated Bazel docs in syntaxnet (#905),0.9258200997725514,7
+905,Remove dated Bazel docs in syntaxnet,jart,ccc0b7a2,Upgrade Bazel in syntaxnet Dockerfile,0.5477225575051661,26
+901,cifar10_multi_gpu_train.py,weigei123,c0ece9cc,"Move data pre-processing related files (classifier_data_lib.py, create_finetuning_data.py, create_pretraining_data.py, squad_lib.py, squad_lib_sp.py) to data folder.",0.5521576303742327,146
+901,cifar10_multi_gpu_train.py,weigei123,75d3de64,Update cifar10_multi_gpu_train.py,0.8164965809277259,7
+785,tf.contrib.deprecated elimination bugfix for tf version 12,mrphoenix13,1f6b3d7d,Changing tf.contrib.data to tf.data for release of tf 1.4,0.5263613559678152,45
+785,tf.contrib.deprecated elimination bugfix for tf version 12,mrphoenix13,31f1af58,Changed deprecated tf.initialize_all_variables() to tf.global_variables_initializer(),0.502518907629606,63
+785,tf.contrib.deprecated elimination bugfix for tf version 12,mrphoenix13,e5079c83,Update inception model based on tf API changes: replace tf.op_scope with tf.name_scope and tf.variable_op_scope with tf.variable_scope; fix the order of arguments for tf.concat; replace tf.mul with tf.multiply.,0.5177731682921968,176
+784,tf.contrib.deprecated methods is eliminated in tf version 0.12,mrphoenix13,49292f34,tf.contrib.data -> tf.data in mnist,0.5017452060042545,39
+656,Fix ValueError when processing bbox in XML annotation file,xionghc,c924285b,fixed ValueError when processing bbox in XML annotation file,0.8888888888888888,3
+448,Fix bug caused by signature change of resize_images().,cshallue,f63a80ae,Fix regressions caused by a previous change,0.5345224838248487,39
+448,Fix bug caused by signature change of resize_images().,cshallue,1e16f101,Fix bug caused by signature change of resize_images().,0.9999999999999998,0
+445,Fix a bug in the im2txt code where the Saver is created before the optimizer,cshallue,d7ce4e89,Fix the links,0.5039526306789697,67
+445,Fix a bug in the im2txt code where the Saver is created before the optimizer,cshallue,cd5e9b7c,Fix a bug in the im2txt code where the Saver is created before the optimizer.,1.0,1
+441,Add Bazel workspace name to fix bug in relative path of shell scripts.,cshallue,c778f4ad,Add Bazel workspace name to fix bug in relative path of shell scripts.,1.0000000000000002,0
+441,Add Bazel workspace name to fix bug in relative path of shell scripts.,cshallue,c0bc7c31,"Revert ""Fix bug in relative path of shell scripts built with bazel.""",0.5604485383178051,44
+441,Add Bazel workspace name to fix bug in relative path of shell scripts.,cshallue,3e3a4b50,"Revert ""Add Bazel workspace name to fix bug in relative path of shell scripts.""",0.9636241116594316,9
+441,Add Bazel workspace name to fix bug in relative path of shell scripts.,cshallue,a704458a,Add Bazel workspace name to fix bug in relative path of shell scripts.,1.0000000000000002,0
+441,Add Bazel workspace name to fix bug in relative path of shell scripts.,cshallue,091d6e4a,Fix bug in relative path of shell scripts built with bazel.,0.5853694070049636,46
+416,Fix bug in relative path of shell scripts built with bazel.,cshallue,c778f4ad,Add Bazel workspace name to fix bug in relative path of shell scripts.,0.5853694070049636,46
+416,Fix bug in relative path of shell scripts built with bazel.,cshallue,c0bc7c31,"Revert ""Fix bug in relative path of shell scripts built with bazel.""",0.9574271077563381,9
+416,Fix bug in relative path of shell scripts built with bazel.,cshallue,3e3a4b50,"Revert ""Add Bazel workspace name to fix bug in relative path of shell scripts.""",0.5640760748177662,55
+416,Fix bug in relative path of shell scripts built with bazel.,cshallue,a704458a,Add Bazel workspace name to fix bug in relative path of shell scripts.,0.5853694070049636,46
+416,Fix bug in relative path of shell scripts built with bazel.,cshallue,091d6e4a,Fix bug in relative path of shell scripts built with bazel.,1.0,0
+364,Full code refactor and added all networks,nathansilberman,65fad62d,Full code refactor and added all networks,0.9999999999999999,0
+322,Fix bug in inception instructions,aselle,20a0716c,Fix flags in the instructions.,0.5999999999999999,13
+322,Fix bug in inception instructions,aselle,281d1757,Fix bug introduced.,0.5163977794943222,19
+322,Fix bug in inception instructions,aselle,7acce35d,Fix bug in test dataset generation,0.5477225575051661,18
+322,Fix bug in inception instructions,aselle,9b7b64be,Fix bug in dataset reader. (#6871),0.5477225575051661,22
+322,Fix bug in inception instructions,aselle,5105ce71,Fix bug in gym_wrapper.,0.6708203932499369,21
+322,Fix bug in inception instructions,aselle,fa32bb5f,Fix the inception link in resnet (#2431),0.5070925528371099,24
+322,Fix bug in inception instructions,aselle,2f09f78b,Fix broken link in inception readme,0.5477225575051661,21
+322,Fix bug in inception instructions,aselle,f8e16db8,Fix bug in inception instructions (#322),0.9128709291752769,7
+322,Fix bug in inception instructions,aselle,148a15fb,Fix Typo in inception/README.md (#49),0.5070925528371099,20
+322,Fix bug in inception instructions,aselle,c17a8c07,Fix typo in inception/README.md,0.5477225575051661,17
+322,Fix bug in inception instructions,aselle,f9e702d4,Fix Typos in inception/README.md,0.5477225575051661,18
+254,Fixed bug test failed on parser_trainer_test,tinh1115,7bbf3113,Fixed bug test failed on parser_trainer_test,1.0000000000000002,0
+155,Fix bug in transformer model: Changed the examples to specify the output size,elezar,89cc856f,Fix the transformer link,0.5163977794943222,58
+155,Fix bug in transformer model: Changed the examples to specify the output size,elezar,cd5e9b7c,Fix a bug in the im2txt code where the Saver is created before the optimizer.,0.50709255283711,46
+155,Fix bug in transformer model: Changed the examples to specify the output size,elezar,eec79382,Fix bug in transformer model: Changed the examples to specify the output size (#155),0.9682458365518541,7
+105,Update Tensorflow Submodule to newest version,Brok-Bucholtz,c059e0b2,Update version string to 1.4.,0.5000000000000001,30

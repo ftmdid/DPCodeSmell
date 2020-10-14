@@ -70,7 +70,7 @@ def getAllPythonFilesInProject(projectName):
     return pythonFiles
 # countFilesFolderForValidation()
 
-projectName='django'  
-print(len(getAllPythonFilesInProject(projectName)))
-print(getTotalLinesInAProject(projectName))
+#projectName='django'  
+#print(len(getAllPythonFilesInProject(projectName)))
+#print(getTotalLinesInAProject(projectName))
     

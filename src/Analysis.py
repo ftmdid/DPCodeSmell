@@ -97,8 +97,9 @@ class Analysis(object):
                         semanticConfValue =3
                     else:
                         semanticConfValue =2 
-                        
-                    csvout.writerow([each[0],each[1],each[3],commit[0],commit[8], semanticConfValue])
+                    
+                    #csvout.writerow([each[0],each[1],each[3],commit[0],commit[8], semanticConfValue])
+                    csvout.writerow([each[0],each[1],each[2],commit[0],commit[8], semanticConfValue])
 
         print("Done with semantic analysis")
         
@@ -110,14 +111,14 @@ class Analysis(object):
         semanticAnalysisFilePath=os.path.join(projectPath,'SemanticAnalysis/semanticAnalysisOf'+self.projectName+".csv")
         
         
-        '''semanticAnalysisList returns ['Issue ID', 'Issue Body','issue User', 'commitID','Commit Subject',"Semantic Confidence Level"]'''
+        '''semanticAnalysisList returns ['Issue ID', 'Issue Body','issue of User', 'commitID','Commit Subject',"Semantic Confidence Level"]'''
         semanticAnalysisList=self.fileOp.readCSVFile(semanticAnalysisFilePath)
         
         
   
         csvfile='SemanticVsSyntacticAnalysisOf'+self.projectName+".csv"
         csvout = csv.writer(open(os.path.join(projectPath,csvfile), 'w+'))
-        csvout.writerow(['Issue ID', 'Issue Body','issue User', 'commitID','Commit Subject',"Semantic Confidence Level","Syntactic Confidence Level"]) 
+        csvout.writerow(['Issue ID', 'Issue Body','issue of User', 'commitID','Commit Subject',"Semantic Confidence Level","Syntactic Confidence Level"]) 
       
         for each in semanticAnalysisList:
             syntacticConfidenceLevel=self.makeSyntacticSubjectAnalysis(each[4])

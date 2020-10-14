@@ -7,11 +7,9 @@ Created on May 18, 2018
 
 import os
 import csv 
+import wget
+import zipfile
 
-# from git import Repo
-# import requests
-# import json
-# import logging
 
 
 class GitLogs(object):
@@ -115,11 +113,7 @@ class GitLogs(object):
                                      'logSize' ])
                 
                 for line in lines:
-                    #print line
                     if line :
-                        #print(line)
-                        
-                        #logDict = self.createLogDictionary(line)
                         logDict = self.createLogDictionary(line)
                         filewriter.writerow([logDict['cHash'], logDict['pHash'], logDict['aName'],\
                                             logDict['aEmail'], logDict['aDate'], logDict['cName'],\
@@ -187,120 +181,18 @@ class GitLogs(object):
         except csv.Error or IOError:
             print ("JsonFiles.readLogDictioary Error")
             
-    '''
-    def createLogDictionary(self,data):
-        """ 
-            createLogDictionary is a method that helps to create a dictionary using gitlogs
-            Args:
-                data (str): GitLog data
-            return: 'a dictionary that has key-value pairs'
-                    keys: ['lSize','cHash','pHash', 'aName', 'aEmail','aDate', 'cName','cEmail','cDate','subject', 'cFiles', 'lAdd', 'lDel']
-                    lSize = log size of each commit
-                    cHash = commit Hash
-                    pHash = parent Hash
-                    aName = author Name
-                    aEmail = author Email
-                    cName = committer Name
-                    cEmail = committer Email
-                    cDate = committer Date
-                    subject = subject of the commit
-                    cFiles = changed Files
-                    lAdd = number of lines added to the changed file(s)
-                    lDel = number of lined deleted from the changed file(s)
-        """
-        self.hexshas = data
-        logDict = {}
-        items = self.hexshas.splitlines()
-        ind=0
-        #fileChanged=[]
-        logDict['cFiles']=[]
-        for item in items:  
-            if ind == 0:
-                logDict['lSize'] = int(item)
-                if item==193:
-                    print("somehting")
-            elif  ('~' in item) and ind==1:
-                splittedItem = item.split('~')
-                splittedItem=splittedItem[1:-1]
-                keys = ['cHash','pHash', 'aName', 'aEmail','aDate', 'cName','cEmail','cDate','subject']
-                i=0
-                for j in range(0,len(splittedItem)):
-#                     if j == 0:
-#                         if splittedItem[0] == '8f568cfc19f5b5f2aa59b06d4e2b5b8d31423605' or splittedItem[0] == 'c78070d8623fb6f40bf4ef20a1109083ca79ef7a' or splittedItem[0] == '5127b8bd26a58cb9ac8214a89cee16eb14349e59' or splittedItem[0] == 'fa9817778c83eb35b9c2c4332ccb7e5190d1ffa2':
-#                             print splittedItem[0]
-                    logDict[keys[i]]=splittedItem[j]         
-                    i +=1   
-            elif item:
-                item = item.replace(' ' , '')
-                if ('|' in item):
-                    item = item.split('|')[0]
-                    #fileChanged.append(item)
-                    logDict['cFiles'].append(item)
-                elif ('changed' and 'file' in item):  
-                    if ('insertion' in item):
-                        itAdd = HM.findBetween(item, ",", "i")
-                        if itAdd:
-                            logDict['lAdd'] = itAdd
-                        else:
-                            logDict['lAdd'] = 0
-                    if ('deletion' in item):
-                        if '(+)' in item:
-                            itDel = HM.findBetween(item, "(+),", "d")
-                        else: 
-                            itDel = HM.findBetween(item, ",", "d")
-                        if itDel:
-                            logDict['lDel'] = itDel
-                        else:
-                            logDict['lDel'] = 0
-            ind +=1
-        logDict = HM.checkForKeys(logDict)
-        return logDict
-   
-    def writeDataToCSVLogFile(self, data):
-        """
-            writeDataToCSVLogFile: is a method that sends the gitlog data to createLogDictionary() function, 
-                                   gets the dictionary. Then it creates a csv file and write the dictionary into
-                                   the csv file. The file is located in the "util" folder in the project folder. 
-            Args:
-                data (str) : gitlog data that will be written into the csv file. 
-        """
-        self.hexshas=data
-        logDict = {}
-        lines = self.hexshas.split('log size ')
-        path= os.path.join(os.path.dirname(os.path.dirname(__file__)), 'util/commits')
-        self.fileName= 'commitsOf'+self.projectName+".csv"
-        filePath = os.path.join(path,self.fileName)
-    
-        try:
-            with open(filePath, 'w') as csvfile:
-                filewriter = csv.writer(csvfile)
-           
-                filewriter.writerow(['commitHash', 'parentHash','authorName',\
-                                     'authorEmail','authorDate','committerName'\
-                                     ,'committerEmail','committerDate','Subject',\
-                                     'linesDeleted','linesAdded','changedFiles',\
-                                     'logSize' ])
-                
-                for line in lines:
-                    #print line
-                    if line :
-                        print(line)
-                        logDict = self.createLogDictionary(line)
-                        filewriter.writerow([logDict['cHash'], logDict['pHash'], logDict['aName'],\
-                                            logDict['aEmail'], logDict['aDate'], logDict['cName'],\
-                                            logDict['cDate'], logDict['cEmail'], logDict['subject'],\
-                                            logDict['lDel'], logDict['lAdd'], logDict['cFiles'], logDict['lSize']])
-                                  
-        except IOError:
-            raise IOError("GitLogs.writeDataToCVSLogFile: IOError") 
-    
-    '''
-
-
-        
-
- 
-
-
-  
-    
+    def downloadProjectInASpecificCommit(self,projectName,projectUrl, commitID):
+        outputDirectory = os.path.dirname(os.path.dirname(__file__)) + '/util/Zip'
+        projectFolder = os.path.join(outputDirectory, projectName)
+        if not os.path.isdir(projectFolder):
+            os.mkdir(projectFolder)
+#         url = "https://github.com/numpy/numpy/archive/" + commitID + ".zip"
+        url = "https://github.com/"+projectUrl+"/archive/" + commitID + ".zip"
+        wget.download(url, out=outputDirectory)
+        for item in os.listdir(outputDirectory):
+            if item.endswith(".zip"):
+                fileName = os.path.join(outputDirectory, os.path.basename(item))
+                with zipfile.ZipFile(os.path.join(fileName), "r") as zipObj:
+                    zipObj.extractall(os.path.join(outputDirectory, projectName))
+                zipObj.close()
+                os.remove(fileName)

@@ -16,6 +16,7 @@ import sys
 import csv
 import shutil
 # import re
+import src.helper as help
 
 
 
@@ -283,21 +284,24 @@ class FileOperations(object):
         except OSError:
             print ('Error: Creating directory. ' + directory)
     
-    def createOnePythonFile(self):
-        projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'DemoProjects/numpy')
+    def createOnePythonFile(self, projectPath):
+        #projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'DemoProjects/numpy')
         pythonFiles =[]
         for path, _,files in os.walk(projectPath):
             for name in files:
                 if name[-3:]==".py":
-                    if name!= "setup.py":
-                        if not 'test' in os.path.join(path,name):
+                    if not name.lower().startswith('test'):
+#                     if name!= "setup.py":
+#                         if not 'test' in os.path.join(path,name):
                             pythonFiles.append(os.path.join(path,name))
+
         try:
-            newPythonFile= os.path.join(os.path.dirname(os.path.dirname(__file__)), 'DemoProjects/numpy/allPythonFiles.py')
+
+            newPythonFile= os.path.join(projectPath,'allPythonFiles.py')
             if os.path.exists(newPythonFile):
                 os.remove(newPythonFile)
             else:
-                print("Can not delete the file as it doesn't exists")
+                print("Can not delete the file since it doesn't exists")
             with open(newPythonFile,'w+') as writer:
                 count=0
                 for each in pythonFiles:
@@ -305,14 +309,7 @@ class FileOperations(object):
                         with open(each) as infile:
                             source = infile.read()+'\n'
                             writer.write(source)
-                            #print(source)
-                            #try:
-                            #    if compile(source,each,'exec'):
-                            #        writer.write(source)
                             count +=1
-                            
-                            #except SyntaxError as ex:
-                            #    raise SyntaxError(ex.tostring())
                 print(count) #-->python files count
                 writer.close()
         except Exception as ex:

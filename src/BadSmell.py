@@ -11,6 +11,7 @@ import importlib.util
 import re
 import src.runOperations as op
 import src.pythonMethods as pyMethods
+from src.FileOperations import FileOperations
 
 class BadSmell(object):
     '''
@@ -20,12 +21,13 @@ class BadSmell(object):
         '''
         Constructor
         '''
+
        
     def getClassLinesOfFile(self,source):
         '''
             Some part of it is referenced from: https://stackoverflow.com/questions/58142456/how-to-get-the-scope-of-a-class-in-terms-of-starting-line-and-end-line-in-python
         '''
-        try:
+        try:               
                 totalLine=len(source)
                 classes = {}
                 current_class = None
@@ -34,10 +36,16 @@ class BadSmell(object):
                         if line != '\n':
                             classes[current_class]['end'] = lineno - 1
                             current_class = None
-            
-                    if line.lstrip().startswith('class ') and ('=' not in line) and ('(' and ')' in line) and (":" in line):
-                        current_class = re.search(r'class (.+?)(?:\(|:)', line).group(1)
-                        classes[current_class] = {'start': lineno}
+                    if line.lstrip().startswith('class') and (":" in line):
+                        if "(" and ")" in line:
+                            current_class=line.split('class ')[1].lstrip().split('(')[0]
+                            classes[current_class] = {'start': lineno}
+                        else:
+                            className=line.split('class ')[1].lstrip().split(':')[0]
+                            if not ' ' in className:
+                                current_class=className
+                                classes[current_class] = {'start': lineno}
+                        
                     
                 if current_class:
                     classes[current_class]['end'] = totalLine
@@ -51,7 +59,7 @@ class BadSmell(object):
     def getMethodsLinesOfFile(self,fileName):
         try:
             with open(fileName,'r') as fle:
-                source=fle.readlines()
+                source=fle.readlines()                
                 totalLine=len(source)
                 methods = {}
                 current_method = None
@@ -62,9 +70,6 @@ class BadSmell(object):
                             current_method = None
                     if re.match(r'def (.+?)( ?\()', line.lstrip()):
                         if 'self' not in line:
-#                     if line.lstrip().startswith('def ') and ('self' not in line) and ('(' and ')' in line) and( ":" in line):
-#                     #if line.lstrip().startswith('def') and ('=' not in line) and ('(' and ')' in line) and( ":" in line):
-                        #current_method = re.search(r'def (.+?)(?:\(|:)', line).group(1)
                             current_method=line.split('def')[1].lstrip().split('(')[0]
                             methods[current_method] = {'start': lineno}
             
@@ -81,9 +86,9 @@ class BadSmell(object):
             try:
                 methodsList=[]
                 for each in classLines:
-                    if 'def' in each and 'self' in each:
-                        if each.lstrip().startswith('def ') and (('(self' in each) or('(self,' in each)) and ("(" and ")" in each) and( ":" in each):
-                            currentMethod = re.search(r'def (.+?)(?:\(|:)', each).group(1)
+                    if re.match(r'def (.+?)( ?\()', each.lstrip()):
+                        if 'self'  in each:
+                            currentMethod=each.split('def')[1].lstrip().split('(')[0]
                             methodsList.append(currentMethod)
                 
                 return len(methodsList)
@@ -153,16 +158,13 @@ class BadSmell(object):
             if methodLines[i]:
                 if re.search(".+\) ?:", methodLines[i]):
                     methodLines[i]=methodLines[i].split(":")[0]+":"
-#                     if re.search(".+\) ?:", methodLines[i]):
                     methodDef +=methodLines[i]
                     return methodDef
                 else:
                     methodDef +=methodLines[i]
-                       
-                    
-                    
+                           
         return methodDef
-#             
+          
     '''
             This method is method level smell and we check if number of parameters is greater 
             than or equal to 5, that is a sign of long parameter list smell. 
@@ -171,14 +173,11 @@ class BadSmell(object):
         if not (")" and ":" in methodLines[0]):
             methodDef= self.getFunctionDefinition(methodLines)
         else:
-            methodDef=methodLines[0]
-         
-#         methodDef=methodDef.split(":")[0].rstrip()    
+            methodDef=methodLines[0]  
             
         funcAttrCount = 0
         line=methodDef
         if ',' in line:
-#             lines=line.split(":")[0]
             attrbts = line.split(",")
             funcAttrCount = len(attrbts)
         else:
@@ -188,23 +187,16 @@ class BadSmell(object):
             else:
                 funcAttrCount = 1
         return funcAttrCount
-                
-            
     
     def checkForLongParameterList(self,fileName):
         try:
             with open(fileName, "r") as fileToBeRead:
-                if fileName=="/Users/neda/git/Research/BadSmells/DemoProjects/numpy/numpy/compat/_inspect.py":
-                    print("Come on you can do this!")
                 lines= fileToBeRead.readlines()
                 methodsParameterList={}
                 methodParameterCount=0
                 methodsLines=self.getMethodsLinesOfFile(fileName)
                 if methodsLines!=None and len(methodsLines.items())>=1:
-                    #for key, value in methodsLines.items():
                     for key in methodsLines:  
-                        if key=="formatargspec":
-                            print("Hadi yapabilirsin")
                         value=methodsLines[key]
                         if 'start' and 'end' in value:  
                             if value['end']>value['start']:
@@ -223,7 +215,6 @@ class BadSmell(object):
             print(ex)
             print("Exception occurrred in BadSmell.checkLongParameter List in :"+fileName)
      
-       
     def checkForMessageChain(self,fileName):
         try:
             messageChainDictForTheFile={}
@@ -236,8 +227,6 @@ class BadSmell(object):
                         if messageChain>=4:
                             isMessageChain=True
                         messageChainDictForTheFile[line.lstrip().rstrip()]={'messageChainCount':messageChain,'isMessageChain':isMessageChain}
-    #         for k,v in  messageChainDictForTheFile.items():
-    #             print(v)
             return messageChainDictForTheFile
         except Exception as ex:
             print(ex)
@@ -245,19 +234,12 @@ class BadSmell(object):
 
     def checkForChain(self,textToBeChecked, messageCount):
         
-    
-    #     pythonMethods=[]
         pythonMethods=pyMethods.builtInFunctions+pyMethods.dictionaryMethods+pyMethods.fileMethods+pyMethods.listArrayMethods+pyMethods.setMethods+pyMethods.stringMethods+pyMethods.tupleMethods
-       
         if ")." in textToBeChecked:
-           
-            #patternFound=find_between(textToBeChecked, ").", "(")
             patternIndex=textToBeChecked.find(").")
             restOfStr=textToBeChecked[patternIndex+2:]
             methodStartIndex=restOfStr.find("(")
-            #methodEndIndex=restOfStr.find(")")
             methodName=restOfStr[:methodStartIndex]
-            
             if len(methodName)>0:
                 if (methodName+"()" in pythonMethods):
                     return messageCount
@@ -269,13 +251,12 @@ class BadSmell(object):
         else:
             return messageCount
             
-    
-    
-    
-    
-    def getDepthOfInheritanceTreeOfClass(self):
-        pythonFile = self.fileOp.createOnePythonFile() # create allPythonFiles.py in util folder
-        self.fileOp.checkPythonFile(pythonFile) # This is added due to SyntaxError: from __future__ imports must occur at the beginning of the file
+    def getDepthOfInheritanceTreeOfClass(self, projectName):
+        projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)) + '/util/Zip', projectName)
+        #projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'DemoProjects/numpy')
+        fileOp=FileOperations(projectName)
+        pythonFile = self.fileOp.createOnePythonFile(projectPath) # create allPythonFiles.py in util folder
+        fileOp.checkPythonFile(pythonFile) # This is added due to SyntaxError: from __future__ imports must occur at the beginning of the file
     
 #         try:
         #pythonFile="/Users/Neda/OneDrive - Auburn University/PhDworkspace/BadSmells/DemoProjects/numpy/allPythonFiles.py" 

@@ -1,3 +1,19 @@
+
+def downloadProjectInASpecificCommit(projectName, commitID):
+    outputDirectory = os.path.dirname(os.path.dirname(__file__)) + '/util/Zip'
+    projectFolder = os.path.join(outputDirectory, projectName)
+    if not os.path.isdir(projectFolder):
+        os.mkdir(projectFolder)
+    url = "https://github.com/numpy/numpy/archive/" + commitID + ".zip"
+    wget.download(url, out=outputDirectory)
+    for item in os.listdir(outputDirectory):
+        if item.endswith(".zip"):
+            fileName = os.path.join(outputDirectory, os.path.basename(item))
+            with zipfile.ZipFile(os.path.join(fileName), "r") as zipObj:
+                zipObj.extractall(os.path.join(outputDirectory, projectName))
+            zipObj.close()
+            os.remove(fileName)
+
 '''
 Created on Oct 10, 2020
 
@@ -6,6 +22,7 @@ Created on Oct 10, 2020
 import src.Downloads as download
 import src.Analysis as analysis
 import src.Relation as relation
+
 if __name__ == '__main__':
     
     #projectName='zulip'
@@ -43,7 +60,7 @@ if __name__ == '__main__':
 #     projectName='keras'
 #     analysis4=analysis.Analysis(projectName)
 #     analysis4.makeSemanticAndSyntacticAnalysis()
-#      
+# #      
 #     projectName='models'
 #     analysis5=analysis.Analysis(projectName)
 #     analysis5.makeSemanticAndSyntacticAnalysis()
@@ -53,7 +70,7 @@ if __name__ == '__main__':
 #     projectName="numpy"   
 #     relat=relation.Relation(projectName)   
 #     relat.checkForRelation()  
-#     
+
 #     projectName="django"   
 #     relation2=relation.Relation(projectName)   
 #     relation2.checkForRelation()  
@@ -69,44 +86,33 @@ if __name__ == '__main__':
 #     projectName="models"   
 #     relation5=relation.Relation(projectName)   
 #     relation5.checkForRelation()
-    import matplotlib.pyplot as plt
-    import os
-    import csv
-    fileName=os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/BadSmells/LargeClassRelationAnalysisOfkeras.csv'
-    
-  
-    folderList={}
-    with open(fileName) as fle:
-        csvReader= csv.reader(fle, delimiter=",")
-        rowCount=0
-        
-        for row in csvReader:
-            if rowCount!=0:
-                if int(row[5])-int(row[4])>-1 and int(row[5])-int(row[4])<5:
-                       
-                        if not row[7] in folderList.keys():
-                            folderList[row[7]]={}
-                            classList={}
-                            classList[row[2]]=[int(row[5])-int(row[4])]
-                            temp=row[1]
-                            folderList[row[7]]=classList
-                        else:
-                            for key, value in folderList.items():
-                                if not row[2] in folderList[key].keys():                       
-                                    folderList[key][row[2]]=[int(row[5])-int(row[4])]
-                                else:
-                                    if not int(row[5])-int(row[4]) in folderList[key][row[2]]:
-                                        folderList[key][row[2]].append(int(row[5])-int(row[4]))
-                          
-            rowCount +=1
    
 
-    for key, value in folderList.items():
-        print(key, value)
+    import wget
+    import os
+    import zipfile
+    projectName="numpy"
+    commitID="8eb6424"
+    downloadProjectInASpecificCommit(projectName, commitID)
+    
+    
+    from src.FileOperations import FileOperations
+    import shutil
+    projectName = "numpy"
+    fileOp=FileOperations(projectName)
+    projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)) + '/util/Zip', projectName)
+    
+    
+    pythonFile = fileOp.createOnePythonFile(projectPath)
+    
+    for name in os.listdir(projectPath):
+        dirToDel = os.path.join(projectPath, name)
+        if os.path.isdir(dirToDel):
+            shutil.rmtree(dirToDel)
+    
 
     
-    
-    
+   # os.remove(os.path.join(projectPath,'allPythonFiles.py'))
       
     
     

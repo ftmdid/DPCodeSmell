@@ -144,7 +144,7 @@ class SemanticAnalysis(object):
             endTime=datetime.datetime.now()
             executionTime=endTime - begin_time
             print(executionTime)
-            print("Done")
+            print("Similiarity between Commits and Issues are calculated,Done!")
             
         except FileNotFoundError or TypeError as ex:
             print(ex)

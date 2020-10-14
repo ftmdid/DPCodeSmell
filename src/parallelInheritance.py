@@ -6,9 +6,8 @@ Created on Jun 9, 2020
 import ast
 import tokenize
 def getClassListInAPythonFile(pythonFile):
-    #pythonFile="/Users/Neda/OneDrive - Auburn University/PhDworkspace/BadSmells/DemoProjects/numpy/allPythonFiles.py" 
     '''
-        python file is a file that includes all files in a specific commit
+        python file is a file that includes all files of a specific commit
     '''
     try:    
         classList=[]
@@ -28,15 +27,13 @@ def getClassListInAPythonFile(pythonFile):
         print(ex)       
     
 def calculateDIT(className, classList):  
-    count=2 # one the class itself and plus object  
+    count=2 # 
     classDict={} 
 
     if '(' and ')' in className:
         clsName=className.split('class')[1].lstrip().split("(")[0]
         classDict[clsName]=[]
         count+=1
-#         if clsName=="lapack_ilp64_opt_info":
-#             print(clsName)
         superClass= className.split("(")[1].split(")")[0]
         
         superClassList=[]
@@ -105,7 +102,7 @@ def calculateNumberOfChildren(classDictionary):
         numberOfChildren[k]=len(children[k])
     return [children, numberOfChildren]
 
-pythonFile="/Users/Neda/OneDrive - Auburn University/PhDworkspace/BadSmells/DemoProjects/numpy/allPythonFiles.py" 
+pythonFile="/Users/neda/Desktop/workspace/BadSmells/util/Zip/numpy/allPythonFiles.py" 
 dit=getDIT(pythonFile)
 ancestorClassesForEachClass=dit #Ancestor of each class
 

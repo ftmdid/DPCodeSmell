@@ -122,9 +122,10 @@ class Relation(object):
                 for file, commitIDInFile in modifiedFileListDict.items():  # file refers to key and commitIDInFile refers to value of dictionary
                     if commitID in commitIDInFile:
                         possibleChoices.append(file)
+                        
                 
             possibleChoices = list(set(possibleChoices))     #337 files that have bug fixed commit IDs   
-           
+            
                  
             filesListWithBugFixedCommitsDict = {} #337 files that have bug fixed commit IDs
             for each in possibleChoices:
@@ -167,14 +168,14 @@ class Relation(object):
                                 fileIndex = filesInFolder.index(fileInTheFolder)
                                 rootName = fileInTheFolder.split("@")[0] 
                                 longParameterListRelationAnalysisCSVoutList.append([fileName.split('@')[1], fileInTheFolder,k,"Yes", str(fileIndex),str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
-                
+                 
                 for fileInTheFolder in filesInFolder:   
                     messageChainDict= smell.checkForMessageChain(fileInTheFolder)
                     if messageChainDict:
                         for k, v in messageChainDict.items():
                             if str(v["isMessageChain"])=="True":
                                 messageChainRelationAnalysisCVoutList.append([fileName.split('@')[1],fileInTheFolder,k, "Yes", str(fileIndex), str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
-                                                                     
+                                                                      
                                 
                     
         
@@ -185,14 +186,14 @@ class Relation(object):
             longParameterListRelationAnalysisCSVoutList=self.checkForDuplicatesInListsofList(longParameterListRelationAnalysisCSVoutList)
             for analysis in longParameterListRelationAnalysisCSVoutList:
                 relationAnalysisLongParameterListCSVout.writerow(analysis)
-    
-    
-                            
-                
+     
+     
+                             
+                 
             messageChainRelationAnalysisCVoutList = self.checkForDuplicatesInListsofList(messageChainRelationAnalysisCVoutList)
             for analysis in messageChainRelationAnalysisCVoutList:
                 relationAnalysisMessageChainCVoutListCSVout.writerow(analysis)
-                                                               
+#                                                                
             print("Done")
         except Exception as ex:
             print(ex)

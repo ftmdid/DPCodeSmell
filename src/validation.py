@@ -95,16 +95,16 @@ def getRequestedItemFiles(fileName, requestedItem):
 if __name__ == '__main__':
     
     #projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'DemoProjects/numpy')
-    projectName="keras"
+    projectName="numpy"
     pythonFiles= help.getAllPythonFilesInProject(projectName)
     
     print("There are "+str(len(pythonFiles)) + " in total")
     
     badSmellDetection = BS.BadSmell()
-     
+    
     validationFolder = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation/ToolValidation'
  
-    #getLargeClassInfoInProject(pythonFiles, badSmellDetection, validationFolder)
+    getLargeClassInfoInProject(pythonFiles, badSmellDetection, validationFolder)
          
   
     #getClassFilesInProject(pythonFiles, validationFolder)

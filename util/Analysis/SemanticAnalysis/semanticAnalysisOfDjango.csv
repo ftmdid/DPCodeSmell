@@ -5,6 +5,16 @@ Issue ID,Issue Body,issue User,commitID,Commit Subject,Semantic Confidence Level
 13176,Fixed #31674 -- Made technical 500 debug page respect __suppress_context__.,377018b6ff,7dfe03f86d,Sorted display of options in Func.__repr__().,2
 13176,Fixed #31674 -- Made technical 500 debug page respect __suppress_context__.,377018b6ff,a118287bca,Fixed #28284 -- Prevented Paginator's unordered object list warning from evaluating a QuerySet.,2
 13176,Fixed #31674 -- Made technical 500 debug page respect __suppress_context__.,377018b6ff,b5393028bf,Fixed #27767 -- Added distinct argument to ArrayAgg.,2
+12708,Fixed #29224 -- Fixed removing index_together indexes if exists unique_together constraint on the same fields.,533b208775,c32d8f33d8,Fixed #31926 -- Fixed recreating queryset with FilteredRelation when using a pickled Query.,2
+12708,Fixed #29224 -- Fixed removing index_together indexes if exists unique_together constraint on the same fields.,65296b3be3,c32d8f33d8,Fixed #31926 -- Fixed recreating queryset with FilteredRelation when using a pickled Query.,2
+12708,Fixed #29224 -- Fixed removing index_together indexes if exists unique_together constraint on the same fields.,0154965392,c32d8f33d8,Fixed #31926 -- Fixed recreating queryset with FilteredRelation when using a pickled Query.,2
+12237,"Fixed #30892 -- Fixed slugify() and admin's URLify.js for ""İ"".",b2bd08bb7a,b2bd08bb7a,"Fixed #30892 -- Fixed slugify() and admin's URLify.js for ""İ"".",2
+12237,"Fixed #30892 -- Fixed slugify() and admin's URLify.js for ""İ"".",b2bd08bb7a,7b3c06cd72,Fixed #30817 -- Clarified return value of Sitemap.items().,2
+12237,"Fixed #30892 -- Fixed slugify() and admin's URLify.js for ""İ"".",7c4f05fae2,b2bd08bb7a,"Fixed #30892 -- Fixed slugify() and admin's URLify.js for ""İ"".",2
+12237,"Fixed #30892 -- Fixed slugify() and admin's URLify.js for ""İ"".",7c4f05fae2,7b3c06cd72,Fixed #30817 -- Clarified return value of Sitemap.items().,2
+12237,"Fixed #30892 -- Fixed slugify() and admin's URLify.js for ""İ"".",2d0d6620e6,b2bd08bb7a,"Fixed #30892 -- Fixed slugify() and admin's URLify.js for ""İ"".",2
+12237,"Fixed #30892 -- Fixed slugify() and admin's URLify.js for ""İ"".",2d0d6620e6,7b3c06cd72,Fixed #30817 -- Clarified return value of Sitemap.items().,2
+11808,Fixed #30651 -- Made __eq__() return NotImplemented for not implemented comparisons.,54ea290e5b,54ea290e5b,Fixed #30651 -- Made __eq__() methods return NotImplemented for not implemented comparisons.,2
 11320,Removed unnecessary line in DebugLexer.tokenize().,6e9c5ee88f,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2
 11320,Removed unnecessary line in DebugLexer.tokenize().,a0df5dea33,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2
 11320,Removed unnecessary line in DebugLexer.tokenize().,71d9876e39,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2
@@ -29,10 +39,58 @@ Issue ID,Issue Body,issue User,commitID,Commit Subject,Semantic Confidence Level
 11320,Removed unnecessary line in DebugLexer.tokenize().,ad9ecc2c20,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2
 11320,Removed unnecessary line in DebugLexer.tokenize().,44169a00c1,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2
 11320,Removed unnecessary line in DebugLexer.tokenize().,136a3ffe21,21aa2a5e78,Removed unnecessary line in DebugLexer.tokenize().,2
+10920,Fixed #30148 -- Logged COPY ... TO statements in connection.queries on PostgreSQL.,673fe2e3ec,673fe2e3ec,Fixed #30148 -- Logged COPY ... TO statements in connection.queries on PostgreSQL.,2
+10920,Fixed #30148 -- Logged COPY ... TO statements in connection.queries on PostgreSQL.,673fe2e3ec,f7408b49a5,Refs #30148 -- Moved logging queries in CursorDebugWrapper to debug_sql() contextmanager.,2
 10870,Fixed #25791 -- Made cached template loader do nothing when DEBUG is on.,8890c533e0,7dfe03f86d,Sorted display of options in Func.__repr__().,2
 10870,Fixed #25791 -- Made cached template loader do nothing when DEBUG is on.,8890c533e0,a118287bca,Fixed #28284 -- Prevented Paginator's unordered object list warning from evaluating a QuerySet.,2
 10870,Fixed #25791 -- Made cached template loader do nothing when DEBUG is on.,8890c533e0,b5393028bf,Fixed #27767 -- Added distinct argument to ArrayAgg.,2
+9813,Fixed #29247 -- Allowed blank model field choice to be defined in nested choices.,21420096c4,163236ea0e,Fixed #30234 -- Disallowed non-upper settings in settings.configure().,2
+9813,Fixed #29247 -- Allowed blank model field choice to be defined in nested choices.,21420096c4,2c0fda7f20,Refs #30057 -- Added more diffsettings tests.,2
+9813,Fixed #29247 -- Allowed blank model field choice to be defined in nested choices.,21420096c4,573f44d62f,Fixed #30057 -- Fixed diffsettings ignoring custom configured settings.,2
+9813,Fixed #29247 -- Allowed blank model field choice to be defined in nested choices.,21420096c4,21420096c4,Fixed #29247 -- Allowed blank model field choice to be defined in nested choices.,2
+9813,Fixed #29247 -- Allowed blank model field choice to be defined in nested choices.,3d19d1428a,163236ea0e,Fixed #30234 -- Disallowed non-upper settings in settings.configure().,2
+9813,Fixed #29247 -- Allowed blank model field choice to be defined in nested choices.,3d19d1428a,2c0fda7f20,Refs #30057 -- Added more diffsettings tests.,2
+9813,Fixed #29247 -- Allowed blank model field choice to be defined in nested choices.,3d19d1428a,573f44d62f,Fixed #30057 -- Fixed diffsettings ignoring custom configured settings.,2
+9813,Fixed #29247 -- Allowed blank model field choice to be defined in nested choices.,3d19d1428a,21420096c4,Fixed #29247 -- Allowed blank model field choice to be defined in nested choices.,2
+9813,Fixed #29247 -- Allowed blank model field choice to be defined in nested choices.,1123f45511,163236ea0e,Fixed #30234 -- Disallowed non-upper settings in settings.configure().,2
+9813,Fixed #29247 -- Allowed blank model field choice to be defined in nested choices.,1123f45511,2c0fda7f20,Refs #30057 -- Added more diffsettings tests.,2
+9813,Fixed #29247 -- Allowed blank model field choice to be defined in nested choices.,1123f45511,573f44d62f,Fixed #30057 -- Fixed diffsettings ignoring custom configured settings.,2
+9813,Fixed #29247 -- Allowed blank model field choice to be defined in nested choices.,1123f45511,21420096c4,Fixed #29247 -- Allowed blank model field choice to be defined in nested choices.,2
+9688,Fixed #22449 -- Colorized output of test results,ec710220dd,eb002e7892,Fixed #29135 -- Prevented get_object/list_or_404() from hiding AttributeError raised by QuerySet filtering.,2
 5658,"Fixed #25349 - ModelForm bug that occurs when saving None value to a ForeignKey with null=True, blank=False and required=False.",375e1cfe2b,375e1cfe2b,"Fixed #25349 -- Allowed a ModelForm to unset a fields with blank=True, required=False.",2
+4849,Fixed #24968 -- Removed bad horizontal scrollbar appearing on admin changelist page.,64033fd085,262d4db8c4,Fixed #24897 -- Allowed using choices longer than 1 day with DurationField,2
+4723,Fixed #24873 -- Prevented Prefetch objects from being overwritten.,74261bc593,34d88944f4,Fixed #25812 -- Restored the ability to use custom formats with the date template filter.,2
+4723,Fixed #24873 -- Prevented Prefetch objects from being overwritten.,74261bc593,8b7bd62ae5,Refs #24978 -- Amended test filename to avoid checkout warnings on Windows.,2
+4723,Fixed #24873 -- Prevented Prefetch objects from being overwritten.,74261bc593,74261bc593,Fixed #24873 -- Prevented nested Prefetch objects from being overwritten.,2
+3985,Fixed #24197 -- Handled staticfiles settings changes during tests,2730dad0d7,69db1c7455,Fixed #25231 -- Added recording of squashed migrations in the migrate command.,2
+3985,Fixed #24197 -- Handled staticfiles settings changes during tests,2730dad0d7,2730dad0d7,Fixed #24197 -- Added clearing of staticfiles caches on settings changes during tests,2
+3985,Fixed #24197 -- Handled staticfiles settings changes during tests,2730dad0d7,4696cd9671,Fixed #22477 -- Removed contrib middleware from the global settings defaults.,2
+3985,Fixed #24197 -- Handled staticfiles settings changes during tests,2730dad0d7,a3e0d7753d,Adding tests for check_migrations.,2
+3985,Fixed #24197 -- Handled staticfiles settings changes during tests,2730dad0d7,0ac13ecceb,Remove check_migrations from the runserver command and use the new checks framework to check for unapplied migrations. Don't check for migrations if the DATABASES setting is empty.,2
+3985,Fixed #24197 -- Handled staticfiles settings changes during tests,7d48e077b5,69db1c7455,Fixed #25231 -- Added recording of squashed migrations in the migrate command.,2
+3985,Fixed #24197 -- Handled staticfiles settings changes during tests,7d48e077b5,2730dad0d7,Fixed #24197 -- Added clearing of staticfiles caches on settings changes during tests,2
+3985,Fixed #24197 -- Handled staticfiles settings changes during tests,7d48e077b5,4696cd9671,Fixed #22477 -- Removed contrib middleware from the global settings defaults.,2
+3985,Fixed #24197 -- Handled staticfiles settings changes during tests,7d48e077b5,a3e0d7753d,Adding tests for check_migrations.,2
+3985,Fixed #24197 -- Handled staticfiles settings changes during tests,7d48e077b5,0ac13ecceb,Remove check_migrations from the runserver command and use the new checks framework to check for unapplied migrations. Don't check for migrations if the DATABASES setting is empty.,2
+3160,Typo,bf0dff4bed,5e208d579d,Fixed #20433: Extract catalog compilation code from javascript_catalog view.,2
+3160,Typo,21a1fddcc4,5e208d579d,Fixed #20433: Extract catalog compilation code from javascript_catalog view.,2
+3160,Typo,5d16456991,5e208d579d,Fixed #20433: Extract catalog compilation code from javascript_catalog view.,2
+3160,Typo,cafcc22b01,5e208d579d,Fixed #20433: Extract catalog compilation code from javascript_catalog view.,2
+3160,Typo,d1a5fe07ed,5e208d579d,Fixed #20433: Extract catalog compilation code from javascript_catalog view.,2
+3160,Typo,112c6e987d,5e208d579d,Fixed #20433: Extract catalog compilation code from javascript_catalog view.,2
+3160,Typo,17b14d4819,5e208d579d,Fixed #20433: Extract catalog compilation code from javascript_catalog view.,2
+3160,Typo,731f6be262,5e208d579d,Fixed #20433: Extract catalog compilation code from javascript_catalog view.,2
+3160,Typo,1dafebaed1,5e208d579d,Fixed #20433: Extract catalog compilation code from javascript_catalog view.,2
+3160,Typo,e9f647e11f,5e208d579d,Fixed #20433: Extract catalog compilation code from javascript_catalog view.,2
+3160,Typo,8df158048c,5e208d579d,Fixed #20433: Extract catalog compilation code from javascript_catalog view.,2
+3160,Typo,e1f1bda3c7,5e208d579d,Fixed #20433: Extract catalog compilation code from javascript_catalog view.,2
+3160,Typo,b0b73b3e0e,5e208d579d,Fixed #20433: Extract catalog compilation code from javascript_catalog view.,2
+3160,Typo,24cb41b8c7,5e208d579d,Fixed #20433: Extract catalog compilation code from javascript_catalog view.,2
+3160,Typo,7f06e44f99,5e208d579d,Fixed #20433: Extract catalog compilation code from javascript_catalog view.,2
+3160,Typo,26659f2782,5e208d579d,Fixed #20433: Extract catalog compilation code from javascript_catalog view.,2
+3160,Typo,a3b6e4e7d3,5e208d579d,Fixed #20433: Extract catalog compilation code from javascript_catalog view.,2
+3160,Typo,b6f085aa43,5e208d579d,Fixed #20433: Extract catalog compilation code from javascript_catalog view.,2
+3160,Typo,9af47730da,5e208d579d,Fixed #20433: Extract catalog compilation code from javascript_catalog view.,2
 2976,Fixed #23060 -- UnicodeDecodeError in debug templatetag,c9ece2e6b9,0d23450e81,Fixed #19802 -- Fixed HttpResponse.set_cookie() with unicode data on Python 2.,2
 2976,Fixed #23060 -- UnicodeDecodeError in debug templatetag,c9ece2e6b9,08451f17d0,Fixed #23060 -- Prevented UnicodeDecodeError in debug templatetag,2
 2976,Fixed #23060 -- UnicodeDecodeError in debug templatetag,0e4d79c4f0,0d23450e81,Fixed #19802 -- Fixed HttpResponse.set_cookie() with unicode data on Python 2.,2
