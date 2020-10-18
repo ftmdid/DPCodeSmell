@@ -11,3 +11,7 @@ Levenstein: https://pypi.org/project/python-Levenshtein/
 Request: sudo pip install requests
 
 Matplotlib: pip install -U matplotlib
+
+wget
+
+zipfile

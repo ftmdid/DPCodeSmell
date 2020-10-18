@@ -105,6 +105,14 @@ def calculateNumberOfChildren(classDictionary):
 pythonFile="/Users/neda/Desktop/workspace/BadSmells/util/Zip/numpy/allPythonFiles.py" 
 dit=getDIT(pythonFile)
 ancestorClassesForEachClass=dit #Ancestor of each class
+#calculateNumberOfChildren(dit)
+for k,v in dit.items():
+    #print(k,v)
+    if len(v)>3:
+        print(k,v)
+        
+for each in calculateNumberOfChildren(dit):
+    print(each)
 
 
 

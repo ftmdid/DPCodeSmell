@@ -1,18 +1,4 @@
 
-def downloadProjectInASpecificCommit(projectName, commitID):
-    outputDirectory = os.path.dirname(os.path.dirname(__file__)) + '/util/Zip'
-    projectFolder = os.path.join(outputDirectory, projectName)
-    if not os.path.isdir(projectFolder):
-        os.mkdir(projectFolder)
-    url = "https://github.com/numpy/numpy/archive/" + commitID + ".zip"
-    wget.download(url, out=outputDirectory)
-    for item in os.listdir(outputDirectory):
-        if item.endswith(".zip"):
-            fileName = os.path.join(outputDirectory, os.path.basename(item))
-            with zipfile.ZipFile(os.path.join(fileName), "r") as zipObj:
-                zipObj.extractall(os.path.join(outputDirectory, projectName))
-            zipObj.close()
-            os.remove(fileName)
 
 '''
 Created on Oct 10, 2020
@@ -66,42 +52,59 @@ if __name__ == '__main__':
 #     analysis5.makeSemanticAndSyntacticAnalysis()
 
 #----------------------------------------------------------------------#
-# 
+ 
+#  
 #     projectName="numpy"   
-#     relat=relation.Relation(projectName)   
-#     relat.checkForRelation()  
-
+#     relat=relation.Relation(projectName)  
+#     relat.checkForRelation(projectName)
+ 
 #     projectName="django"   
 #     relation2=relation.Relation(projectName)   
-#     relation2.checkForRelation()  
-#      
+#     relation2.checkForRelation(projectName)  
+
+#         
 #     projectName="zulip"   
 #     relation3=relation.Relation(projectName)   
-#     relation3.checkForRelation()  
-#      
+#     relation3.checkForRelation(projectName)  
+#         
 #     projectName="keras"   
 #     relation4=relation.Relation(projectName)   
-#     relation4.checkForRelation()  
-#      
+#     relation4.checkForRelation(projectName)  
+#         
 #     projectName="models"   
 #     relation5=relation.Relation(projectName)   
-#     relation5.checkForRelation()
+#     relation5.checkForRelation(projectName)
    
+    '''
 
-    import wget
-    import os
-    import zipfile
-    projectName="numpy"
-    commitID="8eb6424"
-    downloadProjectInASpecificCommit(projectName, commitID)
-    
-    
-    from src.FileOperations import FileOperations
-    import shutil
-    projectName = "numpy"
-    fileOp=FileOperations(projectName)
-    projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)) + '/util/Zip', projectName)
-    
+    def downloadProjectInASpecificCommit(projectName, commitID):
+        outputDirectory = os.path.dirname(os.path.dirname(__file__)) + '/util/Zip'
+        projectFolder = os.path.join(outputDirectory, projectName)
+        if not os.path.isdir(projectFolder):
+            os.mkdir(projectFolder)
+        url = "https://github.com/numpy/numpy/archive/" + commitID + ".zip"
+        wget.download(url, out=outputDirectory)
+        for item in os.listdir(outputDirectory):
+            if item.endswith(".zip"):
+                fileName = os.path.join(outputDirectory, os.path.basename(item))
+                with zipfile.ZipFile(os.path.join(fileName), "r") as zipObj:
+                    zipObj.extractall(os.path.join(outputDirectory, projectName))
+                zipObj.close()
+                os.remove(fileName)
+        import wget
+        import os
+        import zipfile
+        projectName="numpy"
+        commitID="8eb6424"
+        downloadProjectInASpecificCommit(projectName, commitID)
+        
+        
+        from src.FileOperations import FileOperations
+        import shutil
+        projectName = "numpy"
+        fileOp=FileOperations(projectName)
+        projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)) + '/util/Zip', projectName)
+        
     
     pythonFile = fileOp.createOnePythonFile(projectPath)
     
@@ -114,7 +117,7 @@ if __name__ == '__main__':
     
    # os.remove(os.path.join(projectPath,'allPythonFiles.py'))
       
-    
+    ''' 
     
     print("Done with Downloading!")
     

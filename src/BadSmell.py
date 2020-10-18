@@ -36,7 +36,7 @@ class BadSmell(object):
                         if line != '\n':
                             classes[current_class]['end'] = lineno - 1
                             current_class = None
-                    if line.lstrip().startswith('class') and (":" in line):
+                    if line.lstrip().startswith('class ') and (":" in line):
                         if "(" and ")" in line:
                             current_class=line.split('class ')[1].lstrip().split('(')[0]
                             classes[current_class] = {'start': lineno}
