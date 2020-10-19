@@ -14,6 +14,42 @@ import string
 from Levenshtein import distance
 import src.FileOperations as FO
 
+
+import nltk, string
+from sklearn.feature_extraction.text import TfidfVectorizer
+from nltk.stem import WordNetLemmatizer
+from nltk.corpus import stopwords
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('wordnet')
+
+stemmer = nltk.stem.porter.PorterStemmer()
+remove_punctuation_map = dict((ord(char), None) for char in string.punctuation)
+
+def stem_tokens(tokens):
+    stopWords= set(stopwords.words('english'))
+    lowered= [word.lower()for word in tokens]
+    removedStopWords= [r for r in lowered if not r in stopWords]
+    lemmatizer=WordNetLemmatizer()
+    tokens = [lemmatizer.lemmatize(word) for word in removedStopWords]
+    return [stemmer.stem(item) for item in tokens]
+
+'''remove punctuation, lowercase, stem'''
+def normalize(text):
+    return stem_tokens(nltk.word_tokenize(text.lower().translate(remove_punctuation_map)))
+
+
+
+
+#vectorizer = TfidfVectorizer(tokenizer=normalize, stop_words='english')
+vectorizer = TfidfVectorizer(tokenizer=normalize, stop_words=None)
+
+
+def cosine_sim(text1, text2):
+    tfidf = vectorizer.fit_transform([text1, text2])
+    return ((tfidf * tfidf.T).A)[0,1]
+
+
 class SemanticAnalysis(object):
     '''
     classdocs
@@ -62,10 +98,13 @@ class SemanticAnalysis(object):
     #   return Counter(words)
                 
         noPunct = [word for word in words if word not in string.punctuation]
-        #lowered= [word.lower()for word in noPunct]
-        #lemmatizer=WordNetLemmatizer()
-        #lemmatizedWords = [lemmatizer.lemmatize(word) for word in removedStopWords]
-        return Counter(noPunct)
+        lowered= [word.lower()for word in noPunct]
+        stopWords= set(stopwords.words('english'))
+        removedStopWords= [r for r in lowered if not r in stopWords]
+        lemmatizer=WordNetLemmatizer()
+        lemmatizedWords = [lemmatizer.lemmatize(word) for word in removedStopWords]
+        return Counter(lemmatizedWords)
+        #return Counter(noPunct)
        
     '''
         Code is referenced from: 
@@ -115,32 +154,38 @@ class SemanticAnalysis(object):
             projectPath = os.path.dirname(os.path.dirname(__file__))+ '/util/Analysis/similiarities'   
             csvfile='similiaritiesOf'+self.projectName+'.csv'
             csvout = csv.writer(open(os.path.join(projectPath,csvfile), 'w+'))
-            csvout.writerow(['Issue ID', 'Issue Body','issue User', 'commitID','Commit Subject',"cosine similiarity", "Levenstein Distance"]) 
+            csvout.writerow(['Issue ID', 'Issue Body','issue User', 'commitID','Commit Subject',"cosine similiarity", "Levenstein Distance","cosine similiarity2"]) 
                 
           
             import datetime
             begin_time = datetime.datetime.now() 
             print(begin_time)
             
-            for i in range(0,len(issuesList)):
-            #for i in range(0,300):
+            #for i in range(0,len(issuesList)): #446 issues in total in django
+            for i in range(0,50):
                 bodyInIssue=issuesList[i][1]  #title not body  
-                
-                vectorForIssue=self.textToVector(str(bodyInIssue))
-                
-                for j in range(0,len(commitsList)):
-                #for j in range(0,300):
+             
+                vectorForIssue=self.textToVector(str(bodyInIssue).lower())
+               
+                #for j in range(0,len(commitsList)): #28840 commits in total in django
+                for j in range(0,100):
                     subjectInCommit=commitsList[j][8]
-                    vectorForCommit =self.textToVector(str(subjectInCommit))
-                    cosineSimiliarity=self.getCosine(vectorForIssue, vectorForCommit)
-                    #cosineSimiliarity=get_jaccord_sim(bodyInIssue, subjectInCommit)
+                
+                    vectorForCommit =self.textToVector(str(subjectInCommit).lower())
+                    cosineSimiliarity=self.getCosine(vectorForIssue, vectorForCommit)  
                     levensteinDistance= distance(bodyInIssue, subjectInCommit)
-                    print("issue number: "+str(i))
-                    if cosineSimiliarity>=0.5:
-                        print("Cosine Similiarity: " +str(cosineSimiliarity))
-                        print("Issue number: "+str(i), "--->","Commit number: "+str(j))
-                        csvout.writerow([issuesList[i][0],issuesList[i][1],issuesList[i][3],commitsList[j][0],commitsList[j][8], cosineSimiliarity,levensteinDistance])
-    
+                    
+                
+                     
+                    #print("issue number: "+str(i))
+                    cosineSimiliarity2=(cosine_sim(bodyInIssue, subjectInCommit))
+                    csvout.writerow([issuesList[i][0],issuesList[i][1],issuesList[i][3],commitsList[j][0],commitsList[j][8], cosineSimiliarity,levensteinDistance, cosineSimiliarity2])
+#                    
+#                     if cosineSimiliarity>=0.5 or cosineSimiliarity2>=0.5:
+#                         print("Cosine Similiarity: " +str(cosineSimiliarity))
+#                         print("Issue number: "+str(i), "--->","Commit number: "+str(j))
+#                         csvout.writerow([issuesList[i][0],issuesList[i][1],issuesList[i][3],commitsList[j][0],commitsList[j][8], cosineSimiliarity,levensteinDistance,cosineSimiliarity2])
+#                      
             endTime=datetime.datetime.now()
             executionTime=endTime - begin_time
             print(executionTime)

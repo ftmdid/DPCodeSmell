@@ -31,18 +31,14 @@ if __name__ == '__main__':
     #projectName='Django'
     
 #     
-#     projectName='django'
-#     anlysis=analysis.Analysis(projectName)
-#     anlysis.makeSemanticAndSyntacticAnalysis()
-#     
-#     projectName='numpy'
-#     analysis2=analysis.Analysis(projectName)
-#     analysis2.makeSemanticAndSyntacticAnalysis()
-#     
+    projectName='django'
+    anlysis=analysis.Analysis(projectName)
+    anlysis.makeSemanticAndSyntacticAnalysis()
+ 
 #     projectName='zulip'
 #     analysis3=analysis.Analysis(projectName)
 #     analysis3.makeSemanticAndSyntacticAnalysis()
-#      
+      
 #     projectName='keras'
 #     analysis4=analysis.Analysis(projectName)
 #     analysis4.makeSemanticAndSyntacticAnalysis()
@@ -50,6 +46,12 @@ if __name__ == '__main__':
 #     projectName='models'
 #     analysis5=analysis.Analysis(projectName)
 #     analysis5.makeSemanticAndSyntacticAnalysis()
+# 
+#      
+#     projectName='numpy'
+#     analysis2=analysis.Analysis(projectName)
+#     analysis2.makeSemanticAndSyntacticAnalysis()
+#    
 
 #----------------------------------------------------------------------#
  
