@@ -3,60 +3,56 @@ Created on Jun 9, 2020
 
 @author: Neda
 '''
-import ast
-import tokenize
-def getClassListInAPythonFile(pythonFile):
+
+def getClassLinesOfAPythonFile(pythonFile):
     '''
         python file is a file that includes all files of a specific commit
     '''
-    try:    
+    try:
         classList=[]
-        with tokenize.open(pythonFile) as fle:
-            parsedFile = ast.parse(fle.read(), pythonFile)
-            for item in ast.walk(parsedFile):
-                if isinstance(item, ast.ClassDef):
-                    lineNo=item.lineno
-                    with open(pythonFile,'r') as f: # read a specific line from a text file
-                        linesVariables=f.readlines()
-                        classLine=linesVariables[lineNo-1]
-                        classList.append(classLine)
-                        f.close()
-                fle.close()
-            return classList
+        with open(pythonFile) as fileToRead:
+            fileLines=fileToRead.readlines()
+            for line in fileLines:
+                if line.lstrip().startswith('class ') and (":" in line):
+                    classList.append(line)
+        fileToRead.close()
+        return classList
     except Exception as ex:
         print(ex)       
     
-def calculateDIT(className, classList):  
-    count=2 # 
+def getParentsOfClass(txt, classList):  
     classDict={} 
-
-    if '(' and ')' in className:
-        clsName=className.split('class')[1].lstrip().split("(")[0]
-        classDict[clsName]=[]
-        count+=1
-        superClass= className.split("(")[1].split(")")[0]
-        
-        superClassList=[]
-        if not ("," in superClass):
-            if "." in superClass:
-                superClass=superClass.split(".")[0]
-            classDict[clsName].append(superClass)
-            if not getClassNameFromList(superClass, classList):
-                calculateDIT(superClass,classList)
-        else:
-            superClassList=superClass.split(",")
-            for item in superClassList:
-                count+=1
-                if "." in superClass:
-                    item=item.split(".")[0]
-                classDict[clsName].append(item)
-                if not getClassNameFromList(item, classList):
-                    calculateDIT(item,classList)
-                
+    if "(" and ")" in txt:
+        nameOfClass=txt.split('class ')[1].lstrip().split("(")[0]
+        classDict[nameOfClass]=[]
+        lineOfSuperClass=txt.split("(")[1].split(")")[0].strip()
+        if lineOfSuperClass:
+            if "." in lineOfSuperClass:
+                superClasses=lineOfSuperClass.split(".")
+                for each in superClasses:
+                    getParentsOfClass("class "+each, classList)
+            else:
+                if not lineOfSuperClass in classDict[nameOfClass]:
+                    classDict[nameOfClass].append(lineOfSuperClass)
+                    
+                    getParentsOfClass("class "+lineOfSuperClass, classList)
     else:
-        clsName=className.split('class')[1].lstrip().split(":")[0]
-        classDict[clsName]=[]
-    return [count,classDict]
+        for each in classList:
+            if ":" in txt:
+                nameOfClass=txt.split("class ")[1].split(":")[0].strip()
+            else: 
+                nameOfClass=txt.split("class ")[1].strip()
+            classDict[nameOfClass]=[]
+            if each.startswith(txt):
+                if "(" in each:
+                    superClass = each.split("(")[0]
+                    if superClass==txt:
+                        getParentsOfClass(each, classList)
+                else:
+                    superClass=each.split(":")[0]
+                    if superClass==txt:
+                        getParentsOfClass(each, classList)
+    return classDict
            
     
 
@@ -67,20 +63,22 @@ def getClassNameFromList(className, classList):
     return False 
     
 def getDIT(pythonFile):
-    allClassDictForChildren={}
-    classList= getClassListInAPythonFile(pythonFile)
+    classList= getClassLinesOfAPythonFile(pythonFile)
+    superClassDict={}
     for each in classList:
-        result=calculateDIT(each,classList)
-        #depthOfInheritanceTree=result[0]  # count of dit
-        clsName=list(result[1])[0]
-        values=result[1][clsName]
-        allClassDictForChildren[clsName]=values
+        result=getParentsOfClass(each,classList)
+        for k, v in result.items():
+            if k not in superClassDict.keys():
+                superClassDict[k]=v
+            else:
+                if not v in superClassDict[k]:
+                    for item in v:
+                        superClassDict[k].append(item)
 
-    return allClassDictForChildren
+    return superClassDict
 
 def calculateNumberOfChildren(classDictionary):
     children={}
-    numberOfChildren={}
     for i in classDictionary.values():
 
         if len(i)==1:
@@ -97,19 +95,35 @@ def calculateNumberOfChildren(classDictionary):
                     if each in v:
                         children[each].append(k)
         
-                            
-    for k, v in children.items():
-        numberOfChildren[k]=len(children[k])
-    return [children, numberOfChildren]
+    return children
 
-pythonFile="/Users/neda/Desktop/workspace/BadSmells/util/Zip/numpy/allPythonFiles.py" 
-dit=getDIT(pythonFile)
+
+
+if __name__ == '__main__':
+    pythonFile="/Users/neda/Desktop/workspace/BadSmells/util/Zip/numpy/allPythonFiles.py" 
+    #calculateDepthOfInheritance(pythonFile)
+    parentDict=getDIT(pythonFile)
+    childrenDict= calculateNumberOfChildren(parentDict)
+#     for k, v in parentDict.items():
+#         print(k,v)
+    for k,v in childrenDict.items():
+        print(k,v)
+
+
+'''
+
 ancestorClassesForEachClass=dit #Ancestor of each class
-#calculateNumberOfChildren(dit)
-for k,v in dit.items():
-    print(k,v)
-    
-#         
+childrens=calculateNumberOfChildren(dit)
+for k,v in dit.items(): # k is the name of class, v is the number of parent class
+    for key, value in childrens.items():
+        if k.lstrip().rstrip()==key.lstrip().rstrip():
+            print(k,len(v), len(value))
+        else:
+            print(k, len(v),0)
+     
+'''    
+
+# print("Number of children : ")
 # for each in calculateNumberOfChildren(dit):
 #     print(each)
 

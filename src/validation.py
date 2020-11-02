@@ -10,7 +10,9 @@ import os
 import src.BadSmell as BS
 import csv
 import src.helper as help
+import src.parallelInheritance as inheritance
 
+import src.defectAnalysis as defectAnalysis
 
 
 def getMethodFilesInProject(pythonFiles, validationFolder):
@@ -90,7 +92,7 @@ def getRequestedItemFiles(fileName, requestedItem):
             print("Exception occurred in getRequestedItemFiles method")
                 
 
-
+# def getParallelInheritanceHiearchOfAFile():
 
 if __name__ == '__main__':
     
@@ -104,7 +106,44 @@ if __name__ == '__main__':
     
     validationFolder = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation/ToolValidation'
  
-    getLargeClassInfoInProject(pythonFiles, badSmellDetection, validationFolder)
+    parallelInheritanceHiearchyValidationForTool = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation/ToolValidation/parallelInheritanceHiearchyValidationForTool.csv'
+    parallelInheritanceHiearchyForToolCSVfileOut = csv.writer(open(os.path.join(validationFolder, parallelInheritanceHiearchyValidationForTool), 'w+'))
+    parallelInheritanceHiearchyForToolCSVfileOut.writerow(['Class Name', 'Number of Parent Classes', 'Number of Children Classes' ,'Parent Classes','Children of Class'])
+
+    parallelInheritanceHiearchySmellListDict={}
+    pythonFile="/Users/neda/Desktop/workspace/BadSmells/util/Zip/numpy/allPythonFiles.py" 
+    parents=inheritance.getDIT(pythonFile)
+   
+    childrens=inheritance.calculateNumberOfChildren(parents)
+    
+    keysList=list(set(list(parents.keys())+list(childrens.keys())))
+    #print(keysList)
+    
+    
+  
+    for key in keysList:
+        if key in parents.keys():
+            if key in childrens.keys():
+                if len(parents[key])==0:
+                    parallelInheritanceHiearchySmellListDict[key]=[key, 1,len(childrens[key]),'object',childrens[key]]
+                else:
+                    parallelInheritanceHiearchySmellListDict[key]=[key, len(parents[key]),len(childrens[key]),parents[key],childrens[key]]
+            else:
+                if len(parents[key])==0:
+                    parallelInheritanceHiearchySmellListDict[key]=[key, 1,0,False,'object','']
+                else:
+                    parallelInheritanceHiearchySmellListDict[key]=[key, len(parents[key]),0,parents[key],'']
+        if key in childrens.keys() and not(key in parents.keys()):
+            parallelInheritanceHiearchySmellListDict[key]=[key, 1,len(childrens[key]),'object',childrens[key]]
+        
+       
+        
+     
+    for k, v in parallelInheritanceHiearchySmellListDict.items():
+        parallelInheritanceHiearchyForToolCSVfileOut.writerow(v)
+        #print(k,v)
+#    
+    #getLargeClassInfoInProject(pythonFiles, badSmellDetection, validationFolder)
          
   
     #getClassFilesInProject(pythonFiles, validationFolder)

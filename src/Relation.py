@@ -69,7 +69,7 @@ class Relation(object):
     def getcommitIDsFromSyntacticvsSemanticAnalysisFile(self,buggedCommitsList):
         commitIDList=[]
         for each in buggedCommitsList:
-            commitID = each[3]
+            commitID = each[0] # 0 is the commit id index in buggedCommitsList 
             commitIDList.append(commitID)
         
         return commitIDList
@@ -79,102 +79,116 @@ class Relation(object):
         return listToBeChecked
     
     def analyzeLargeClassSmell(self,filesListWithBugFixedCommitsDict, projectName,projectPath,smell):            
-        relationAnalysisLargeClassCSVfile = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/BadSmells/LargeClass/LargeClassRelationAnalysisOf'+self.projectName+'.csv'
-        relationAnalysisLargeClassCSVout = csv.writer(open(os.path.join(projectPath, relationAnalysisLargeClassCSVfile), 'w+'))
-        relationAnalysisLargeClassCSVout.writerow(('CommitID' ,'File Name','Class Name' ,'isLargeClass', 'Index of File In Folder', 'Index of Bug Fixed Commit In File',"Number of Files In Folder", "Folder"))
-       
-        largeClassRelationAnalysisCSVoutList=[]
-        for fileName in filesListWithBugFixedCommitsDict.keys():     
-            filesInFolder=filesListWithBugFixedCommitsDict[fileName]
-            bugFixedCommitFileDir=  os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+self.projectName.lower()+"/"+ fileName.split("@")[0] +"/"+fileName
-            bugFixedCommitIndexInItsFolder=filesInFolder.index(bugFixedCommitFileDir)
-            largeClassDict = {}
-            for fileInTheFolder in filesInFolder:
-                largeClassDict = smell.checkForLargeClass(fileInTheFolder)
-                if largeClassDict:
-                    for k, v in largeClassDict.items():
-                        if str(v['isLargeClass']) == "True":
-                            fileIndex = filesInFolder.index(fileInTheFolder)
-                            rootName = fileInTheFolder.split("@")[0] 
-        #                   commitID=fileName.split('@')[1]
-                            largeClassRelationAnalysisCSVoutList.append([fileName.split('@')[1],fileInTheFolder,k, "Yes", str(fileIndex), str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
-            
-        largeClassRelationAnalysisCSVoutList=self.checkForDuplicatesInListsofList((largeClassRelationAnalysisCSVoutList))
-        for analysis in largeClassRelationAnalysisCSVoutList:
-            relationAnalysisLargeClassCSVout.writerow(analysis)
-        print("Done with large class analysis for "+projectName)
+        try:
+            print("Started on large class bad smell analysis for "+projectName)
+            relationAnalysisLargeClassCSVfile = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/BadSmells/LargeClass/LargeClassRelationAnalysisOf'+self.projectName+'.csv'
+            relationAnalysisLargeClassCSVout = csv.writer(open(os.path.join(projectPath, relationAnalysisLargeClassCSVfile), 'w+'))
+            relationAnalysisLargeClassCSVout.writerow(('CommitID' ,'File Name','Class Name' ,'isLargeClass', 'Index of File In Folder', 'Index of Bug Fixed Commit In File',"Number of Files In Folder", "Folder"))
+           
+            largeClassRelationAnalysisCSVoutList=[]
+            for fileName in filesListWithBugFixedCommitsDict.keys():     
+                filesInFolder=filesListWithBugFixedCommitsDict[fileName]
+                bugFixedCommitFileDir=  os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+self.projectName.lower()+"/"+ fileName.split("@")[0] +"/"+fileName
+                bugFixedCommitIndexInItsFolder=filesInFolder.index(bugFixedCommitFileDir)
+                largeClassDict = {}
+                for fileInTheFolder in filesInFolder:
+                    largeClassDict = smell.checkForLargeClass(fileInTheFolder)
+                    if largeClassDict:
+                        for k, v in largeClassDict.items():
+                            if str(v['isLargeClass']) == "True":
+                                fileIndex = filesInFolder.index(fileInTheFolder)
+                                rootName = fileInTheFolder.split("@")[0] 
+            #                   commitID=fileName.split('@')[1]
+                                largeClassRelationAnalysisCSVoutList.append([fileName.split('@')[1],fileInTheFolder,k, "Yes", str(fileIndex), str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
+                
+            largeClassRelationAnalysisCSVoutList=self.checkForDuplicatesInListsofList((largeClassRelationAnalysisCSVoutList))
+            for analysis in largeClassRelationAnalysisCSVoutList:
+                relationAnalysisLargeClassCSVout.writerow(analysis)
+            print("Large class bad smell analysis for "+projectName + " is done!")
+        except Exception as ex:
+            print(ex)
+            print("Exception occurred in Relation.analyzeLargeClassSmell() method")   
         
     def analyzeLongParameterClassSmell(self,filesListWithBugFixedCommitsDict, projectName,projectPath,smell):  
-                
-        relationAnalysisLongParameterListCSVfile = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/BadSmells/LongParameterList/LongParameterListRelationAnalysisOf'+self.projectName+'.csv'
-        relationAnalysisLongParameterListCSVout = csv.writer(open(os.path.join(projectPath, relationAnalysisLongParameterListCSVfile), 'w+'))
-        relationAnalysisLongParameterListCSVout.writerow(('CommitID', 'File Name','Method Name' ,'isLongParameterList', 'Index of File In Folder','Index of Bug Fixed Commit In File', "Number of Files In Folder", "Folder"))
-       
-                   
-        longParameterListDict={}
-        fileIndex = 0
-        longParameterListRelationAnalysisCSVoutList=[]
-
-            #for fileName, filesInRootOfFileName in filesListWithBugFixedCommitsDict.items():  # key=fileName, value=filesInRootOfFileName
-        for fileName in filesListWithBugFixedCommitsDict.keys():  # key=fileName, value=filesInRootOfFileName
-                
-            filesInFolder=filesListWithBugFixedCommitsDict[fileName]
-            bugFixedCommitFileDir=  os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+self.projectName.lower()+"/"+ fileName.split("@")[0] +"/"+fileName
-            bugFixedCommitIndexInItsFolder=filesInFolder.index(bugFixedCommitFileDir)
-          
+        try:
+            print("Started on long parameter list bad smell analysis for "+projectName)       
+            relationAnalysisLongParameterListCSVfile = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/BadSmells/LongParameterList/LongParameterListRelationAnalysisOf'+self.projectName+'.csv'
+            relationAnalysisLongParameterListCSVout = csv.writer(open(os.path.join(projectPath, relationAnalysisLongParameterListCSVfile), 'w+'))
+            relationAnalysisLongParameterListCSVout.writerow(('CommitID', 'File Name','Method Name' ,'isLongParameterList', 'Index of File In Folder','Index of Bug Fixed Commit In File', "Number of Files In Folder", "Folder"))
+           
+                       
+            longParameterListDict={}
+            fileIndex = 0
+            longParameterListRelationAnalysisCSVoutList=[]
+    
+                #for fileName, filesInRootOfFileName in filesListWithBugFixedCommitsDict.items():  # key=fileName, value=filesInRootOfFileName
+            for fileName in filesListWithBugFixedCommitsDict.keys():  # key=fileName, value=filesInRootOfFileName
+                    
+                filesInFolder=filesListWithBugFixedCommitsDict[fileName]
+                bugFixedCommitFileDir=  os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+self.projectName.lower()+"/"+ fileName.split("@")[0] +"/"+fileName
+                bugFixedCommitIndexInItsFolder=filesInFolder.index(bugFixedCommitFileDir)
               
-            for fileInTheFolder in filesInFolder:     
-                longParameterListDict=smell.checkForLongParameterList(fileInTheFolder)
-                if longParameterListDict:
-                    for k, v in longParameterListDict.items():
-                        if str(v['isLongParameterList'])=="True":
-                            fileIndex = filesInFolder.index(fileInTheFolder)
-                            rootName = fileInTheFolder.split("@")[0] 
-                            longParameterListRelationAnalysisCSVoutList.append([fileName.split('@')[1], fileInTheFolder,k,"Yes", str(fileIndex),str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
-             
-                   
-        longParameterListRelationAnalysisCSVoutList=self.checkForDuplicatesInListsofList(longParameterListRelationAnalysisCSVoutList)
-        for analysis in longParameterListRelationAnalysisCSVoutList:
-            relationAnalysisLongParameterListCSVout.writerow(analysis)
-        print("Done with large class analysis for "+projectName)
+                  
+                for fileInTheFolder in filesInFolder:     
+                    longParameterListDict=smell.checkForLongParameterList(fileInTheFolder)
+                    if longParameterListDict:
+                        for k, v in longParameterListDict.items():
+                            if str(v['isLongParameterList'])=="True":
+                                fileIndex = filesInFolder.index(fileInTheFolder)
+                                rootName = fileInTheFolder.split("@")[0] 
+                                longParameterListRelationAnalysisCSVoutList.append([fileName.split('@')[1], fileInTheFolder,k,"Yes", str(fileIndex),str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
+                 
+                       
+            longParameterListRelationAnalysisCSVoutList=self.checkForDuplicatesInListsofList(longParameterListRelationAnalysisCSVoutList)
+            for analysis in longParameterListRelationAnalysisCSVoutList:
+                relationAnalysisLongParameterListCSVout.writerow(analysis)
+            print("Long parameter list bad smell analysis for "+projectName +" is done!")
+        except Exception as ex:
+            print(ex)
+            print("Exception occurred in Relation.analyzeLongParameterClassSmell() method")                             
+
 
     def analyzeMessageChainsSmell(self,filesListWithBugFixedCommitsDict, projectName,projectPath,smell):
-             
-        relationAnalysisMessageChainCVoutListCSVfile = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/BadSmells/MessageChain/MessageChainRelationAnalysisOf'+self.projectName+'.csv'
-        relationAnalysisMessageChainCVoutListCSVout = csv.writer(open(os.path.join(projectPath, relationAnalysisMessageChainCVoutListCSVfile), 'w+'))
-        relationAnalysisMessageChainCVoutListCSVout.writerow(('CommitID', 'File Name','Message Chain Line' ,'isMessageChain', 'Index of File In Folder','Index of Bug Fixed Commit In File', "Number of Files In Folder", "Folder"))
-      
-           
-        fileIndex = 0
-        messageChainRelationAnalysisCVoutList=[]
-        for fileName in filesListWithBugFixedCommitsDict.keys():  # key=fileName, value=filesInRootOfFileName
-                 
-            filesInFolder=filesListWithBugFixedCommitsDict[fileName]
-            bugFixedCommitFileDir=  os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+self.projectName.lower()+"/"+ fileName.split("@")[0] +"/"+fileName
-            bugFixedCommitIndexInItsFolder=filesInFolder.index(bugFixedCommitFileDir)
+        try:
+            print("Started on message chain bad smell analysis for "+projectName)    
+            relationAnalysisMessageChainCVoutListCSVfile = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/BadSmells/MessageChain/MessageChainRelationAnalysisOf'+self.projectName+'.csv'
+            relationAnalysisMessageChainCVoutListCSVout = csv.writer(open(os.path.join(projectPath, relationAnalysisMessageChainCVoutListCSVfile), 'w+'))
+            relationAnalysisMessageChainCVoutListCSVout.writerow(('CommitID', 'File Name','Message Chain Line' ,'isMessageChain', 'Index of File In Folder','Index of Bug Fixed Commit In File', "Number of Files In Folder", "Folder"))
+          
+               
+            fileIndex = 0
+            messageChainRelationAnalysisCVoutList=[]
+            for fileName in filesListWithBugFixedCommitsDict.keys():  # key=fileName, value=filesInRootOfFileName
+                     
+                filesInFolder=filesListWithBugFixedCommitsDict[fileName]
+                bugFixedCommitFileDir=  os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+self.projectName.lower()+"/"+ fileName.split("@")[0] +"/"+fileName
+                bugFixedCommitIndexInItsFolder=filesInFolder.index(bugFixedCommitFileDir)
+    
+                messageChainDict={}
+                for fileInTheFolder in filesInFolder:
+                        
+                    messageChainDict= smell.checkForMessageChain(fileInTheFolder)
+                    if messageChainDict:
+                        for k, v in messageChainDict.items():
+                            if str(v["isMessageChain"])=="True":
+                                rootName = fileInTheFolder.split("@")[0] 
+                                messageChainRelationAnalysisCVoutList.append([fileName.split('@')[1],fileInTheFolder,k, "Yes", str(fileIndex), str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
+    
+            messageChainRelationAnalysisCVoutList = self.checkForDuplicatesInListsofList(messageChainRelationAnalysisCVoutList)
+            for analysis in messageChainRelationAnalysisCVoutList:
+                relationAnalysisMessageChainCVoutListCSVout.writerow(analysis)
+            print("Message chain bad smell analysis for "+projectName + " is done")
+        except Exception as ex:
+            print(ex)
+            print("Exception occurred in Relation.analyzeMessageChainsSmell() method")                             
 
-            messageChainDict={}
-            for fileInTheFolder in filesInFolder:
-                    
-                messageChainDict= smell.checkForMessageChain(fileInTheFolder)
-                if messageChainDict:
-                    for k, v in messageChainDict.items():
-                        if str(v["isMessageChain"])=="True":
-                            rootName = fileInTheFolder.split("@")[0] 
-                            messageChainRelationAnalysisCVoutList.append([fileName.split('@')[1],fileInTheFolder,k, "Yes", str(fileIndex), str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
 
-        messageChainRelationAnalysisCVoutList = self.checkForDuplicatesInListsofList(messageChainRelationAnalysisCVoutList)
-        for analysis in messageChainRelationAnalysisCVoutList:
-            relationAnalysisMessageChainCVoutListCSVout.writerow(analysis)
-        print("Done with message chain  analysis for "+projectName)
-      
-
-    def checkForRelation(self,projectName):
+    def checkForRelation(self):
         try:
              
             smell=BS.BadSmell()
              
-            projectPath = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis'
+            projectPath = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/SemanticVsSyntacticAnalysis'
             csvfile = 'SemanticVsSyntacticAnalysisOf'+self.projectName+'.csv'
             '''
                 buggedCommits=['Issue ID', 'Issue Body','issue User', 'commitID','Commit Subject',"Semantic Confidence Level","Syntactic Confidence Level"]
@@ -200,11 +214,11 @@ class Relation(object):
                 rootName = os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+self.projectName.lower()+"/"+ each.split("@")[0]
                 filesListWithBugFixedCommitsDict[each] = self.checkFilesWithinRoot(rootName)
              
-            self.analyzeLargeClassSmell(filesListWithBugFixedCommitsDict, projectName,projectPath,smell)
-            self.analyzeLongParameterClassSmell(filesListWithBugFixedCommitsDict, projectName, projectPath, smell)
-            self.analyzeMessageChainsSmell(filesListWithBugFixedCommitsDict, projectName, projectPath, smell)
+            self.analyzeLargeClassSmell(filesListWithBugFixedCommitsDict, self.projectName,projectPath,smell)
+            self.analyzeLongParameterClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
+            self.analyzeMessageChainsSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
                                                                       
-            print("Done")
+            print("Checking for Relation between smells and defects for "+self.projectName+" is done")
         except Exception as ex:
             print(ex)
             print("Exception occurred in Relation.checkForRelation() method")                             

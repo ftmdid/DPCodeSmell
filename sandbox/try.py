@@ -14,48 +14,23 @@ Created on Oct 9, 2020
 #         pass
 #     def setSth(self):
 #         pass
-#         
-# classAObject=A()
-# strForCalculation="aaa"
-# result=classAObject.calculateHowManyCowsCanFitOnTheMoon().doLocalCalculation().doNonLocalCalculation(strForCalculation).setSth().doNonLocalCalculation(strForCalculation).calculateHowManyCowsCanFitOnTheMoon()
-# print(result)
-import random
-
-class Robot:
-    
-    def __init__(self, name):
-        self.name = name
-        self.health_level = random.random() 
-        
-    def say_hi(self):
-        print("Hi, I am " + self.name)
-        
-    def needs_a_doctor(self):
-        if self.health_level < 0.8:
-            return True
-        else:
-            return False
-        
-class PhysicianRobot(Robot):
-
-    def say_hi(self):
-        print("Everything will be okay! ") 
-        print(self.name + " takes care of you!")
+#  
+import re
+#subject="Fixed 537484: .class file is missing and your code should also have some defects in it."
+subject= "Refs #30422 -- Added test for removing temporary files in MultiPartParser when StopUpload is raised."
+subject=subject.lower()
+p = re.compile('bug[\#?]*[0-9]+ | bug?id=[0-9]+ | \[[0-9]+\]')
+matched=False
+#if re.search('bug *?[0-9]+ | 'bug *?#*? *?[0-9]+',subject):
 
 
-    def heal(self, robo):
-        robo.health_level = random.uniform(robo.health_level, 1)
-        print(robo.name + " has been healed by " + self.name + "!")
+pattern=r'bug[\#?]*[0-9]+ | bug *?[0-9]+ | [bug]? *?id *?= *?[0-9]+ | \[*[0-9]+\]*'
+if re.search(pattern,subject):
+    matched=True
+print(matched)
 
-doc = PhysicianRobot("Dr. Frankenstein")        
 
-rob_list = []
-for i in range(5):
-    x = Robot("Marvin" + str(i))
-    if x.needs_a_doctor():
-        print("health_level of " + x.name + " before healing: ", x.health_level)
-        doc.heal(x)
-        print("health_level of " + x.name + " after healing: ", x.health_level)
-    rob_list.append((x.name, x.health_level))
-    
-print(rob_list)
+
+
+
+

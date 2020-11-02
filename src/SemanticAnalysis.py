@@ -11,43 +11,12 @@ import re
 import sys
 import math
 import string
-from Levenshtein import distance
 import src.FileOperations as FO
+import nltk
 
-
-import nltk, string
-from sklearn.feature_extraction.text import TfidfVectorizer
-from nltk.stem import WordNetLemmatizer
-from nltk.corpus import stopwords
 nltk.download('punkt')
 nltk.download('stopwords')
 nltk.download('wordnet')
-
-stemmer = nltk.stem.porter.PorterStemmer()
-remove_punctuation_map = dict((ord(char), None) for char in string.punctuation)
-
-def stem_tokens(tokens):
-    stopWords= set(stopwords.words('english'))
-    lowered= [word.lower()for word in tokens]
-    removedStopWords= [r for r in lowered if not r in stopWords]
-    lemmatizer=WordNetLemmatizer()
-    tokens = [lemmatizer.lemmatize(word) for word in removedStopWords]
-    return [stemmer.stem(item) for item in tokens]
-
-'''remove punctuation, lowercase, stem'''
-def normalize(text):
-    return stem_tokens(nltk.word_tokenize(text.lower().translate(remove_punctuation_map)))
-
-
-
-
-#vectorizer = TfidfVectorizer(tokenizer=normalize, stop_words='english')
-vectorizer = TfidfVectorizer(tokenizer=normalize, stop_words=None)
-
-
-def cosine_sim(text1, text2):
-    tfidf = vectorizer.fit_transform([text1, text2])
-    return ((tfidf * tfidf.T).A)[0,1]
 
 
 class SemanticAnalysis(object):
@@ -95,16 +64,8 @@ class SemanticAnalysis(object):
     def textToVector(self,text):
         WORD = re.compile(r"\w+")
         words=WORD.findall(text)
-    #   return Counter(words)
-                
         noPunct = [word for word in words if word not in string.punctuation]
-        lowered= [word.lower()for word in noPunct]
-        stopWords= set(stopwords.words('english'))
-        removedStopWords= [r for r in lowered if not r in stopWords]
-        lemmatizer=WordNetLemmatizer()
-        lemmatizedWords = [lemmatizer.lemmatize(word) for word in removedStopWords]
-        return Counter(lemmatizedWords)
-        #return Counter(noPunct)
+        return Counter(noPunct)
        
     '''
         Code is referenced from: 
@@ -123,10 +84,16 @@ class SemanticAnalysis(object):
         filteredIssueFilePath=os.path.join(projectPath,'issues/filtered/filteredIssuesOf'+self.projectName+'.csv')
         filteredIssueFile = csv.writer(open(filteredIssueFilePath,'w+'))
         filteredIssueFile.writerow(('id', 'Title', 'Body',"User", 'Label','Created At', 'Updated At'))
+        filteredIssuesList=[]
         for i  in range(0,len(issuesList)):
-            if ('bug') in issuesList[i][4].lower() or (('bug') in issuesList[i][1].lower()) or (('bug') in issuesList[i][2].lower()):
-                filteredIssueFile.writerow(issuesList[i])
-        return filteredIssueFilePath
+            #if ('bug') in issuesList[i][4].lower() or (('bug') in issuesList[i][1].lower()) or (('bug') in issuesList[i][2].lower()):
+            if re.search("^bug", issuesList[i][1].lower()) or re.search("^bug", issuesList[i][2].lower()) or (('bug') in issuesList[i][4].lower()) :    
+                if not issuesList[i]  in filteredIssuesList:
+                    filteredIssuesList.append(issuesList[i])
+        for each in filteredIssuesList:
+            filteredIssueFile.writerow(each)
+        print("Done with filtering issues that has bug keyword in it!")
+        return filteredIssueFilePath,filteredIssuesList
     
     def calculateSimiliaritiesBetweenIssueAndCommits(self):
         projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__))+ '/util')
@@ -154,41 +121,24 @@ class SemanticAnalysis(object):
             projectPath = os.path.dirname(os.path.dirname(__file__))+ '/util/Analysis/similiarities'   
             csvfile='similiaritiesOf'+self.projectName+'.csv'
             csvout = csv.writer(open(os.path.join(projectPath,csvfile), 'w+'))
-            csvout.writerow(['Issue ID', 'Issue Body','issue User', 'commitID','Commit Subject',"cosine similiarity", "Levenstein Distance","cosine similiarity2"]) 
+            csvout.writerow(['Issue ID', 'Issue Body','issue User', 'commitID','Commit Subject',"Author of Commit","Committer Name","cosine similiarity"]) 
                 
-          
-            import datetime
-            begin_time = datetime.datetime.now() 
-            print(begin_time)
-            
-            #for i in range(0,len(issuesList)): #446 issues in total in django
-            for i in range(0,50):
+            for i in range(0,len(issuesList)): #446 issues in total in django
                 bodyInIssue=issuesList[i][1]  #title not body  
-             
                 vectorForIssue=self.textToVector(str(bodyInIssue).lower())
                
-                #for j in range(0,len(commitsList)): #28840 commits in total in django
-                for j in range(0,100):
+                for j in range(0,len(commitsList)): #28840 commits in total in django
                     subjectInCommit=commitsList[j][8]
-                
                     vectorForCommit =self.textToVector(str(subjectInCommit).lower())
                     cosineSimiliarity=self.getCosine(vectorForIssue, vectorForCommit)  
-                    levensteinDistance= distance(bodyInIssue, subjectInCommit)
                     
-                
-                     
-                    #print("issue number: "+str(i))
-                    cosineSimiliarity2=(cosine_sim(bodyInIssue, subjectInCommit))
-                    csvout.writerow([issuesList[i][0],issuesList[i][1],issuesList[i][3],commitsList[j][0],commitsList[j][8], cosineSimiliarity,levensteinDistance, cosineSimiliarity2])
-#                    
-#                     if cosineSimiliarity>=0.5 or cosineSimiliarity2>=0.5:
-#                         print("Cosine Similiarity: " +str(cosineSimiliarity))
-#                         print("Issue number: "+str(i), "--->","Commit number: "+str(j))
-#                         csvout.writerow([issuesList[i][0],issuesList[i][1],issuesList[i][3],commitsList[j][0],commitsList[j][8], cosineSimiliarity,levensteinDistance,cosineSimiliarity2])
-#                      
-            endTime=datetime.datetime.now()
-            executionTime=endTime - begin_time
-            print(executionTime)
+                    if cosineSimiliarity>=0.5:
+                        print("Cosine Similiarity: " +str(cosineSimiliarity))
+                        print("Issue number: "+str(i), "--->","Commit number: "+str(j))
+                        #print(issuesList[i][1])
+                        #print(commitsList[j][8])
+                        csvout.writerow([issuesList[i][0],issuesList[i][1],issuesList[i][3],commitsList[j][0],commitsList[j][8],commitsList[j][2],commitsList[j][5], cosineSimiliarity])
+                    
             print("Similiarity between Commits and Issues are calculated,Done!")
             
         except FileNotFoundError or TypeError as ex:
