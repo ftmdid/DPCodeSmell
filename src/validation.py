@@ -108,41 +108,15 @@ if __name__ == '__main__':
  
     parallelInheritanceHiearchyValidationForTool = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation/ToolValidation/parallelInheritanceHiearchyValidationForTool.csv'
     parallelInheritanceHiearchyForToolCSVfileOut = csv.writer(open(os.path.join(validationFolder, parallelInheritanceHiearchyValidationForTool), 'w+'))
-    parallelInheritanceHiearchyForToolCSVfileOut.writerow(['Class Name', 'Number of Parent Classes', 'Number of Children Classes' ,'Parent Classes','Children of Class'])
+    parallelInheritanceHiearchyForToolCSVfileOut.writerow(['Class Name', 'Depth of Inheritance', 'Number of Children' ,'Is Parallel Inheritance Hiearchy Smell'])
 
     parallelInheritanceHiearchySmellListDict={}
     pythonFile="/Users/neda/Desktop/workspace/BadSmells/util/Zip/numpy/allPythonFiles.py" 
-    parents=inheritance.getDIT(pythonFile)
-   
-    childrens=inheritance.calculateNumberOfChildren(parents)
-    
-    keysList=list(set(list(parents.keys())+list(childrens.keys())))
-    #print(keysList)
-    
-    
-  
-    for key in keysList:
-        if key in parents.keys():
-            if key in childrens.keys():
-                if len(parents[key])==0:
-                    parallelInheritanceHiearchySmellListDict[key]=[key, 1,len(childrens[key]),'object',childrens[key]]
-                else:
-                    parallelInheritanceHiearchySmellListDict[key]=[key, len(parents[key]),len(childrens[key]),parents[key],childrens[key]]
-            else:
-                if len(parents[key])==0:
-                    parallelInheritanceHiearchySmellListDict[key]=[key, 1,0,False,'object','']
-                else:
-                    parallelInheritanceHiearchySmellListDict[key]=[key, len(parents[key]),0,parents[key],'']
-        if key in childrens.keys() and not(key in parents.keys()):
-            parallelInheritanceHiearchySmellListDict[key]=[key, 1,len(childrens[key]),'object',childrens[key]]
-        
-       
-        
+    parallelInheritanceHiearchySmellListDict= inheritance.calculateParallelInheritanceHiearchySmell(pythonFile)
      
-    for k, v in parallelInheritanceHiearchySmellListDict.items():
-        parallelInheritanceHiearchyForToolCSVfileOut.writerow(v)
-        #print(k,v)
-#    
+    for k, _ in parallelInheritanceHiearchySmellListDict.items():
+        parallelInheritanceHiearchyForToolCSVfileOut.writerow([k, parallelInheritanceHiearchySmellListDict[k]['dit'],parallelInheritanceHiearchySmellListDict[k]['noc'],parallelInheritanceHiearchySmellListDict[k]['isPIHSmell']])
+       
     #getLargeClassInfoInProject(pythonFiles, badSmellDetection, validationFolder)
          
   

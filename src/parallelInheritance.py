@@ -14,6 +14,7 @@ def getClassLinesOfAPythonFile(pythonFile):
             fileLines=fileToRead.readlines()
             for line in fileLines:
                 if line.lstrip().startswith('class ') and (":" in line):
+
                     classList.append(line)
         fileToRead.close()
         return classList
@@ -54,15 +55,8 @@ def getParentsOfClass(txt, classList):
                         getParentsOfClass(each, classList)
     return classDict
            
-    
-
-def getClassNameFromList(className, classList):
-    for each in classList:
-        if className in each:
-            return  each
-    return False 
-    
-def getDIT(pythonFile):
+   
+def getParentsOfClassOfAFile(pythonFile):
     classList= getClassLinesOfAPythonFile(pythonFile)
     superClassDict={}
     for each in classList:
@@ -77,55 +71,69 @@ def getDIT(pythonFile):
 
     return superClassDict
 
-def calculateNumberOfChildren(classDictionary):
-    children={}
-    for i in classDictionary.values():
-
-        if len(i)==1:
-            children[i[0]]=[]
-            for k,v in classDictionary.items():
-                if i[0] in v:
-                    children[i[0]].append(k)
-        elif len(i)>1:
-            for each in i: 
-                if not each in children.keys():
-                    children[each]=[]
-                for k,v in classDictionary.items():
-                   
-                    if each in v:
-                        children[each].append(k)
+def getNumberOfChildrenOfAFile(parentsDict):
+    
+    children = {}
+    for key in parentsDict.keys():
+        children[key]=[]
+        for k,_ in parentsDict.items():
+            valueList= parentsDict[k]
+            if len(valueList)==1 and (',' in valueList[0]):
+                valueList=[ item.lstrip().rstrip() for item in valueList[0].split(",")]
+            if key in valueList:
+                children[key].append(k)
         
     return children
 
+def calculateDIT(className, parentsDict, count):        
+    if className in parentsDict.keys():
+        if not (len(parentsDict[className])==1 and parentsDict[className][0]=='object'):
+            count +=len(parentsDict[className])
+            parentsList= parentsDict[className]
+            if len(parentsList)>=1:
+                for i in range(0, len(parentsList)):
+                    if (parentsList[i]!='object'):
+                        count = calculateDIT(parentsList[i], parentsDict, count)
+    return count
+                    
+def calculateNumberOfChildren(className, childrensDict, count):
+    if className in childrensDict.keys():
+            count +=len(childrensDict[className])
+            childrensList= childrensDict[className]
+            if len(childrensList)>=1:
+                for i in range(0, len(childrensList)):
+                    count = calculateNumberOfChildren(childrensList[i], childrensDict, count)
+    return count   
 
+def calculateParallelInheritanceHiearchySmell(pythonFile):
+
+    pihSmellListDict={}
+    parents=getParentsOfClassOfAFile(pythonFile)
+
+    childrens= getNumberOfChildrenOfAFile(parents)
+  
+    
+    keysList=list(set(list(parents.keys())+list(childrens.keys())))
+    for key in keysList:
+        dit = calculateDIT(key, parents, 1)
+        noc = calculateNumberOfChildren(key, childrens, 0)
+        pihSmell= False
+        if dit>3 or noc>4:
+            pihSmell= True
+        pihSmellListDict[key]={'dit':dit,'noc':noc,'isPIHSmell':pihSmell}
+    return pihSmellListDict
+    
+            
+            
 
 if __name__ == '__main__':
     pythonFile="/Users/neda/Desktop/workspace/BadSmells/util/Zip/numpy/allPythonFiles.py" 
-    #calculateDepthOfInheritance(pythonFile)
-    parentDict=getDIT(pythonFile)
-    childrenDict= calculateNumberOfChildren(parentDict)
-#     for k, v in parentDict.items():
+    pihSmellListDict = calculateParallelInheritanceHiearchySmell(pythonFile)
+#     for k, v in  pihSmellListDict.items():
 #         print(k,v)
-    for k,v in childrenDict.items():
-        print(k,v)
 
 
-'''
 
-ancestorClassesForEachClass=dit #Ancestor of each class
-childrens=calculateNumberOfChildren(dit)
-for k,v in dit.items(): # k is the name of class, v is the number of parent class
-    for key, value in childrens.items():
-        if k.lstrip().rstrip()==key.lstrip().rstrip():
-            print(k,len(v), len(value))
-        else:
-            print(k, len(v),0)
-     
-'''    
-
-# print("Number of children : ")
-# for each in calculateNumberOfChildren(dit):
-#     print(each)
 
 
 
