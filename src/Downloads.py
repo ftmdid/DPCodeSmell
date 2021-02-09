@@ -148,24 +148,24 @@ class Downloads(object):
 
 
 if __name__ == '__main__':
-    #projectName='zulip'
+    projectName='zulip'
     #projectName='keras'
     #projectName='numpy'
     #projectName='models'
     #projectName="django"
-    projectName="scikit-learn"
+    #projectName="scikit-learn"
     downloads=Downloads(projectName)
     #projectUrl="https://api.github.com/repos/keras-team/keras/issues?state=closed&page=&per_page=100"
     #projectUrl="https://api.github.com/repos/zulip/zulip/issues?state=closed&page=&per_page=100"
     #projectUrl="https://api.github.com/repos/django/django/issues?state=closed&page=&per_page=100"
     #projectUrl="https://api.github.com/repos/numpy/numpy/issues?state=closed&page=&per_page=100"
     #projectUrl= "https://api.github.com/repos/tensorflow/models/issues?state=closed&page=&per_page=100"
-    projectUrl = "https://api.github.com/repos/scikit-learn/scikit-learn/issues?state=closed&page=&per_page=100"
-    numberOfPages=165
-    #downloads.downloadGitHubPythonProject()
+    #projectUrl = "https://api.github.com/repos/scikit-learn/scikit-learn/issues?state=closed&page=&per_page=100"
+    #numberOfPages=165
+    downloads.downloadGitHubPythonProject()
     #downloads.downloadCommits()
     #downloads.downloadModifiedPythonFiles()
-    downloads.downloadIssuesFromIssueTrackingSys(projectUrl, numberOfPages)
+    #downloads.downloadIssuesFromIssueTrackingSys(projectUrl, numberOfPages)
     
     print("Done with Downloading!")
  

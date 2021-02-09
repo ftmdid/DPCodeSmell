@@ -1,0 +1,88 @@
+id,Title,Body,User,Label,Created At,Updated At
+12641,"bugfix: hardcoded User, fails with custom User model","In django/contrib/auth/forms.py:
+I think hardcoded 'User' should not be used to avoid failure with custom User model: ""Manager isn't available; User has been swapped for ..""
+Instead get_user_model() is correct.
+This function is in the top part of a forms.py assigned as 
+UserModel = get_user_model()
+.... so I have changed:
+User -> UserModel
+
+Best regards,
+Mirek",zvolsky,None,2020-03-29T14:41:52Z,2020-03-30T05:36:52Z
+10517,Fixed #29138 -- Add ModelAdmin.autocomplete_fields support for ForeignKeys that use to_field,"Bug fix for [29138](https://code.djangoproject.com/ticket/29138); creating [PR as requested](https://code.djangoproject.com/ticket/29138#comment:10).
+
+NOTE: one of the unit tests doesn't pass due to a DisallowedModelAdminToField error being raised; I'm not sure how to resolve this issue as I'm not familiar with `to_field_allowed`
+
+For reference, I originally submitted this fix based on `stable/2.1.x` (see [10494](https://github.com/django/django/pull/10494)); changing the base to `master` caused too many conflicts so I'm resubmitting a new one.",ConstantinoSchillebeeckx,None,2018-10-16T18:50:36Z,2018-10-16T20:20:31Z
+10494,Fixed #29138 -- Added ModelAdmin.autocomplete_fields support for ForeignKeys that use to_field.,"Bug fix for [29138](https://code.djangoproject.com/ticket/29138); creating [PR as requested](https://code.djangoproject.com/ticket/29138#comment:10).
+
+> **Note** I've been able to update all unit tests and create some new ones, however I haven't been able to leverage `to_field_allowed` to prevent data leaks. I've tried to implement it (see ​here), however I can't get it to play nicely with the unit tests. When uncommented, the `id_field` isn't properly being considered as to_field_allowed. I'm not familiar with this function, so could use some help troubleshooting.",ConstantinoSchillebeeckx,None,2018-10-08T18:41:52Z,2019-10-30T10:58:47Z
+10371,Bugfix: Support Python 3.7 for 1.11,"I know that 1.11 should only get security bugfixes and does not officially support python 3.7, but please consider including this two character fix into the next patch release, it would make the work of many people easier.
+
+Bug ticket: https://code.djangoproject.com/ticket/28814
+
+Fix for:
+
+```
+  File "".../site-packages/django/contrib/admin/widgets.py"", line 152
+    '%s=%s' % (k, v) for k, v in params.items(),
+    ^
+SyntaxError: Generator expression must be parenthesized
+```
+
+And yes it's really only two square brackets missing!",dunkelstern,None,2018-09-06T11:02:14Z,2018-09-12T15:36:05Z
+9125,bug#28198. Fixed attributes which are duplicated in parent and child classes ,bug#28198. Fixed attributes. Now all attributes which are in parent and child classes will be removed from first one during child initialization,denys-tarykin,None,2017-09-22T08:55:08Z,2017-09-22T08:56:50Z
+9123,bug#28198. Fixed attributes.,bug#28198. Fixed attributes. Now all attributes which are in parent and child classes will be removed from first one during child initialization,denys-tarykin,None,2017-09-21T12:06:06Z,2017-09-21T12:26:24Z
+9118,bug#28198. Fixed attributes. Now all attributes which are in parent a…,bug#28198. Fixed attributes. Now all attributes which are in parent and child classes will be removed from first one during child initialization,denys-tarykin,None,2017-09-20T14:09:50Z,2017-11-16T09:39:51Z
+9104,bug#28198. Fixed logic that set default value for deferred fields,"All deferred fields were skipped during model initialization process, even they have default value ",denys-tarykin,None,2017-09-18T11:10:42Z,2017-09-21T12:03:01Z
+7720,BugFix: --database option not works,"Because of system checks before loading the module
+So, we need to disable system checks as I committed.",salehi,None,2016-12-20T02:38:55Z,2016-12-21T22:25:16Z
+7719,BugFix: --database not working due to systemchecks,#NAME?,salehi,None,2016-12-20T02:29:56Z,2016-12-20T02:40:43Z
+6762,Bug fix for postgres array indices,"Hey guys, this is my first attempt at contribution, hopefully I'll get it right.
+
+I've encountered a bug when trying to filter on an annotated function call (the function is my own, written in plpgpsql).
+The test case I've provided, which fails without my fix, is somewhat odd, but I could not find a general example of an annotation function that returns an array.
+
+I think my fix might be too over-reaching, it can be maybe fixed by surrounding the SQL before the array index in parenthesis.
+
+Thanks!
+",yotamofek,None,2016-06-12T02:03:14Z,2016-08-04T18:20:53Z
+6408,Refs #21608 -- Fixed wrong cache key in cache session backend.,"Bug introduced in commit https://github.com/django/django/commit/3389c5ea229884a1943873fe7e7ffc2800cefc22
+",jdufresne,None,2016-04-03T22:11:40Z,2016-04-04T11:47:12Z
+4486,bugfix: support defaults which are unhashable (e.g. JsonField default={}...,"bugfix: support defaults which are unhashable.
+As an example now JsonField(default={}) causes an exception while executing the migration.
+",ronkonigsberg,None,2015-04-13T12:03:40Z,2015-05-06T00:30:38Z
+4474,Bug 24611: call field.get_db_prep_save() when updating remote field from...,"... model instance
+",jwineinger,None,2015-04-09T18:50:24Z,2015-04-13T16:18:53Z
+4227,Fixed #24439 -- Remove make_object_list as needed.,"Bug fix to https://code.djangoproject.com/ticket/24439#ticket
+",jambonrose,None,2015-03-02T18:22:38Z,2015-03-02T18:34:10Z
+3019,bugfix 19139: Make OpenLayersWidget respect GeoModelAdmin's modifiable attribute,"ref https://code.djangoproject.com/ticket/19139
+",fcurella,None,2014-08-04T16:17:06Z,2014-09-12T06:50:01Z
+1007,Bugfixes around utils.functional.allow_lazy,"Includes fixes for the following tickets:
+- https://code.djangoproject.com/ticket/20221
+- https://code.djangoproject.com/ticket/20222
+- https://code.djangoproject.com/ticket/20223
+- https://code.djangoproject.com/ticket/20231
+
+Here's the two main points that this PR change:
+- Introduce `keep_lazy` as a replacement for `allow_lazy`, which allows it to be used with normal decorator syntax.
+- Fix the issue of lazy strings not being marked safe by introducing a `safe` decorator that marks the output of functions as safe, and using that decorator on the lazy-enabled version of functions.
+",bmispelon,None,2013-04-10T10:20:24Z,2014-06-12T13:12:43Z
+780,Add a unit test to exercise chunking behavior,"Bug #18972 https://code.djangoproject.com/ticket/18972 reports that the math used by django.core.servers.basehttp.ServerHandler.write to break large data into chunks before writing is incorrect.This issue is valid, but since an array slice whose end exceeds the array's length automatically truncates, nothing actually breaks because of this mistake.
+
+@doda has contributed a patch to address the problem, but no unit tests accompany it.
+
+This commit adds a unit test that exercises the chunking code, proves that no data is currently lost, and allows for easy refactoring of the chunking code.
+",datagrok,None,2013-02-23T16:45:25Z,2014-07-13T16:47:07Z
+528,Bug #17428: Admin formfield validation uses form model instead of registered model.,"The model specified in ModelForm.Meta should not limit the
+available fields. This solution uses the same modelform factory used by
+the ModelAdmin.get_form method, which adds the registered model's
+fields.
+
+https://code.djangoproject.com/ticket/17428
+
+This is my first django core contribution, submitted during the Stockholm sprint. Please double check that I don't break anything. I expect it to be rejected ;)
+",per42,None,2012-11-17T20:42:23Z,2014-06-16T06:47:00Z
+250,Bugfix/16455 postgis2 optimized,"Optimized code to do extra actions when really needed.
+originally made by fcurella.
+",kamikaze,None,2012-08-06T00:40:07Z,2014-07-20T01:27:40Z

@@ -68,9 +68,9 @@ def getAllPythonFilesInProject(projectName):
                     pythonFiles.append(join(path, name)) #pythonFiles that has all the python files in numpy project
         
     return pythonFiles
-# countFilesFolderForValidation()
+#countFilesFolderForValidation()
 
-#projectName='django'  
-#print(len(getAllPythonFilesInProject(projectName)))
-#print(getTotalLinesInAProject(projectName))
-    
+projectName='zulip'  
+print(len(getAllPythonFilesInProject(projectName)))
+print(getTotalLinesInAProject(projectName))
+     
