@@ -83,7 +83,7 @@ class Relation(object):
             print("Started on large class bad smell analysis for "+projectName)
             relationAnalysisLargeClassCSVfile = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/BadSmells/LargeClass/LargeClassRelationAnalysisOf'+self.projectName+'.csv'
             relationAnalysisLargeClassCSVout = csv.writer(open(os.path.join(projectPath, relationAnalysisLargeClassCSVfile), 'w+'))
-            relationAnalysisLargeClassCSVout.writerow(('CommitID' ,'File Name','Class Name' ,'isLargeClass', 'Index of File In Folder', 'Index of Bug Fixed Commit In File',"Number of Files In Folder", "Folder"))
+            relationAnalysisLargeClassCSVout.writerow(('CommitID' ,'File Name','Class Name' ,'isLargeClass', 'Index of File In Folder', 'Index of Bug Fixed Commit In File','Diff',"Number of Files In Folder", "Folder"))
            
             largeClassRelationAnalysisCSVoutList=[]
             for fileName in filesListWithBugFixedCommitsDict.keys():     
@@ -95,12 +95,13 @@ class Relation(object):
                     largeClassDict = smell.checkForLargeClass(fileInTheFolder)
                     if largeClassDict:
                         for k, v in largeClassDict.items():
-                            if str(v['isLargeClass']) == "True":
+                            #if str(v['isLargeClass']) == "True":
                                 fileIndex = filesInFolder.index(fileInTheFolder)
                                 rootName = fileInTheFolder.split("@")[0] 
             #                   commitID=fileName.split('@')[1]
-                                largeClassRelationAnalysisCSVoutList.append([fileName.split('@')[1],fileInTheFolder,k, "Yes", str(fileIndex), str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
-                
+                                #largeClassRelationAnalysisCSVoutList.append([fileName.split('@')[1],fileInTheFolder,k, "Yes", str(fileIndex), str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
+                                largeClassRelationAnalysisCSVoutList.append([fileName.split('@')[1],fileInTheFolder,k, str(v['isLargeClass']), str(fileIndex), str(bugFixedCommitIndexInItsFolder),str(bugFixedCommitIndexInItsFolder-fileIndex) ,str(len(filesInFolder)), rootName])
+                            
             largeClassRelationAnalysisCSVoutList=self.checkForDuplicatesInListsofList((largeClassRelationAnalysisCSVoutList))
             for analysis in largeClassRelationAnalysisCSVoutList:
                 relationAnalysisLargeClassCSVout.writerow(analysis)
@@ -133,10 +134,11 @@ class Relation(object):
                     longParameterListDict=smell.checkForLongParameterList(fileInTheFolder)
                     if longParameterListDict:
                         for k, v in longParameterListDict.items():
-                            if str(v['isLongParameterList'])=="True":
-                                fileIndex = filesInFolder.index(fileInTheFolder)
-                                rootName = fileInTheFolder.split("@")[0] 
-                                longParameterListRelationAnalysisCSVoutList.append([fileName.split('@')[1], fileInTheFolder,k,"Yes", str(fileIndex),str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
+                            #if str(v['isLongParameterList'])=="True":
+                            fileIndex = filesInFolder.index(fileInTheFolder)
+                            rootName = fileInTheFolder.split("@")[0] 
+                            #longParameterListRelationAnalysisCSVoutList.append([fileName.split('@')[1], fileInTheFolder,k,"Yes", str(fileIndex),str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
+                            longParameterListRelationAnalysisCSVoutList.append([fileName.split('@')[1], fileInTheFolder,k,str(v['isLongParameterList']), str(fileIndex),str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
                  
                        
             longParameterListRelationAnalysisCSVoutList=self.checkForDuplicatesInListsofList(longParameterListRelationAnalysisCSVoutList)
@@ -214,9 +216,9 @@ class Relation(object):
                 rootName = os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+self.projectName.lower()+"/"+ each.split("@")[0]
                 filesListWithBugFixedCommitsDict[each] = self.checkFilesWithinRoot(rootName)
              
-            self.analyzeLargeClassSmell(filesListWithBugFixedCommitsDict, self.projectName,projectPath,smell)
+            #self.analyzeLargeClassSmell(filesListWithBugFixedCommitsDict, self.projectName,projectPath,smell)
             self.analyzeLongParameterClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
-            self.analyzeMessageChainsSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
+            #self.analyzeMessageChainsSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
                                                                       
             print("Checking for Relation between smells and defects for "+self.projectName+" is done")
         except Exception as ex:

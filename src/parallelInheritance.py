@@ -56,7 +56,7 @@ def getParentsOfClass(txt, classList):
     return classDict
            
    
-def getParentsOfClassOfAFile(pythonFile):
+def getParentsOfClassInAFile(pythonFile):
     classList= getClassLinesOfAPythonFile(pythonFile)
     superClassDict={}
     for each in classList:
@@ -71,19 +71,40 @@ def getParentsOfClassOfAFile(pythonFile):
 
     return superClassDict
 
-def getNumberOfChildrenOfAFile(parentsDict):
+# def getNumberOfChildrenOfAClass(parentsDict):
+#     
+#     children = {}
+#     for key in parentsDict.keys():
+#         if key=="BaseIntelFCompiler":
+#             print("Burdayim")
+#         children[key]=[]
+#         for k,_ in parentsDict.items():
+#             valueList= parentsDict[k]
+#             if len(valueList)==1 and (',' in valueList[0]):
+#                 valueList=[ item.lstrip().rstrip() for item in valueList[0].split(",")]
+#             if key in valueList:
+#                 children[key].append(k)
+#         
+#     return children
+
+def getNumberOfChildrenOfAClass(parentsDict):
     
     children = {}
     for key in parentsDict.keys():
+        if key=="BaseIntelFCompiler":
+            print("Burdayim")
         children[key]=[]
-        for k,_ in parentsDict.items():
-            valueList= parentsDict[k]
-            if len(valueList)==1 and (',' in valueList[0]):
-                valueList=[ item.lstrip().rstrip() for item in valueList[0].split(",")]
-            if key in valueList:
-                children[key].append(k)
+        result=checkForKey(key, parentsDict.items())
+        if result:
+            children[key].append(result)
+        
         
     return children
+
+def  checkForKey(key, dictItems):
+    for k, v in dictItems:
+        if key in v:
+            return k    
 
 def calculateDIT(className, parentsDict, count):        
     if className in parentsDict.keys():
@@ -108,9 +129,10 @@ def calculateNumberOfChildren(className, childrensDict, count):
 def calculateParallelInheritanceHiearchySmell(pythonFile):
 
     pihSmellListDict={}
-    parents=getParentsOfClassOfAFile(pythonFile)
+    parents=getParentsOfClassInAFile(pythonFile)
+    #print(parents)
 
-    childrens= getNumberOfChildrenOfAFile(parents)
+    childrens= getNumberOfChildrenOfAClass(parents)
   
     
     keysList=list(set(list(parents.keys())+list(childrens.keys())))
