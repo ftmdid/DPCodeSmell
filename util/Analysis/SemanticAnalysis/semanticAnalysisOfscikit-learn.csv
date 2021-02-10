@@ -1,0 +1,169 @@
+commitID,Commit Subject,Issue ID,Issue Title,issue User,Semantic Confidence Level
+ca0065d3b,BUG exchanging _safe_accumulator_op for np.average (#18537),18537,BUG exchanging _safe_accumulator_op for np.average,maikia,1
+8b68ea165,DOC specify default of error_score in cross_validate (#14488),16480,cross_validate,ChaWaelkens,1
+576775d6d,FIX Correctly sets MDS pairwise attribute (#18278),18278,FIX Correctly sets MDS pairwise attribute,thomasjpfan,1
+989613e5c,DEP Deprecate n_classes_ in GradientBoostingRegressor (#17702),17673,Deprecate n_classes_ in GradientBoostingRegressor,glemaitre,1
+9fc7bceca,BUG Do not overwrite X when copy_X=True and Gram='auto' (#17914),17914,BUG Do not overwrite X when copy_X=True and Gram='auto',thomasjpfan,1
+d1f0d1917,BUG Fixes stacker compatibility with estimators without n_features_in_ (#17357),17357,BUG Fixes stacker compatibility with estimators without n_features_in_,thomasjpfan,1
+88b1fa6f0,MNT Small refactor for cross_validate (#17867),16480,cross_validate,ChaWaelkens,1
+b0c03d128,BUG fix SparseCoder to follow scikit-learn API and allow cloning (#17679),17679,BUG fix SparseCoder to follow scikit-learn API and allow cloning,sdpython,1
+b0c03d128,BUG fix SparseCoder to follow scikit-learn API and allow cloning (#17679),16346,BUG fix SparseCoder to follow scikit-learn API,glemaitre,1
+211ab3e8a,DOC Avoid atypical usage of cross_validate (#17600),16480,cross_validate,ChaWaelkens,1
+43c0efa1b,BUG Fixes cython code for ppc arch (#17201),17201,BUG Fixes cython code for ppc arch,thomasjpfan,1
+a0c76ce3c,MNT Remove sklearn logger default StreamHandler (#16451),16451,Remove sklearn logger default StreamHandler,cdeil,1
+946fddec7,BUG Fix instability issue of ARDRegression (with speedup) (#16849),16849,BUG Fix instability issue of ARDRegression (with speedup),NicolasHug,1
+b9692a6be,"BUG Fixes kernel PCA raising ""invalid value encountered in mul… (#16718)",16718,"BUG Fixes kernel PCA raising ""invalid value encountered in mul…",gui-miotto,1
+a203b9e1c,BUG Ignores tags when estimator is a class in parametrize_with_checks (#16709),16709,BUG Ignores tags when estimator is a class in parametrize_with_checks,thomasjpfan,1
+862a726ca,BUG remove $ math env due to latex error (#16674),16674,BUG remove $ math env due to latex error,glemaitre,1
+45bc7d98b,BUG fix the math issue in latex compilation (#16673),16673,BUG fix the math issue in latex compilation,glemaitre,1
+b8c402722,BUG avoid nan variance with sparse input in StandardScaler (#16466),16466,BUG avoid nan variance with sparse input in StandardScaler,glemaitre,1
+4c29be44f,"FIX Predicted standard deviation values of Gaussian Processes are only within [0, 1] (#15782)",15612,"Predicted standard deviation values of Gaussian Processes are only within [0, 1]",Amir-Arsalan,1
+bbb1e3b6e,BUG ensure that name is properly stored in the precision/recall display (#16505),16505,BUG ensure that name is properly stored in the precision/recall display,glemaitre,1
+0ad7481bb,BUG ensure that estimator_name is properly stored in the ROC display (#16500),16500,BUG ensure that estimator_name is properly stored in the ROC display,glemaitre,1
+7366a5a4c,BUG fix behaviour in confusion_matrix with with empty array-like as input (#16442),16442,BUG fix behaviour in confusion_matrix with with empty array-like as input,parsons-kyle-89,2
+ae0dcddce,BUG Fixes benchmark script for early stopping (#16476),16476,BUG Fixes benchmark script for early stopping,thomasjpfan,1
+01c9ef3da,BUG Clips mutual_info_score below (#16362),16362,BUG Clips mutual_info_score below,thomasjpfan,1
+cc2fbeddf,BUG max_depth=1 should be decision stump in HistGradientBoosti… (#16182),16182,BUG max_depth=1 should be decision stump in HistGradientBoosti…,SanthoshBala18,2
+fd12d5684,BUG take n_components strictly greater than fraction of explai… (#15669),15669,BUG take n_components strictly greater than fraction of explai…,krishnachaitanya7,1
+4d5407c89,Make test_sag_regressor_computed_correctly deterministic (#16003),16003,Make test_sag_regressor_computed_correctly deterministic,ogrisel,1
+9accce551,BUG Adds attributes back to check_is_fitted (#15947),15947,BUG Adds attributes back to check_is_fitted,thomasjpfan,1
+a68ba9730,BUG ensure that parallel/sequential give the same permutation importances (#15933),15933,BUG ensure that parallel/sequential give the same permutation importances,glemaitre,1
+a5542e949,BUG fix pip3 ubuntu update by suffixing file (#15928),15928,BUG fix pip3 ubuntu update by suffixing file,glemaitre,1
+a83b8e0d4,DOC Fix yticklabels order in permutation importances example (#15799),15799,Fix yticklabels order in permutation importances example,ogrisel,1
+e81884f91,TST Fix leak in tmp folders in LFW test when pillow is missing (#15676),15676,TST Fix leak in tmp folders in LFW test when pillow is missing,ogrisel,1
+ac7081c51,FIX plot_roc_curve/plot_precision_recall_curve now work with pipeline (#15606),15606,FIX plot_roc_curve/plot_precision_recall_curve now work with pipeline,qinhanmin2014,1
+53082e92a,BUG: do not filter searchindex for pdf doc generation (#15433),15433,BUG: do not filter searchindex for pdf doc generation,thomasjpfan,1
+c997e9b3e,BUG: Fix literal comparison (#15260),15260,BUG: Fix literal comparison,larsoner,1
+c52b6e128,Amg arpack workaround fix (#14647),14647,Amg arpack workaround fix,amueller,1
+b580ad5df,BUG Fix zero division error in GBDTs (#14024),14024,BUG Fix zero division error in GBDTs,NicolasHug,1
+e35f04020,[MRG] Fixes get_feature_names results when using drop functionality (#13894),13894,[MRG] Fixes get_feature_names results when using drop functionality,jamesmyatt,1
+c7ce6757d,Fix for AttributeError thrown when calling metrics.pairwise_distances with binary metrics and Y is None (#13864),13853,AttributeError thrown when calling metrics.pairwise_distances with binary metrics and Y is None,jlmelville,1
+eb1f5f29d,FIX broken sdist (#13862),13862,FIX broken sdist,ogrisel,1
+1fe00b589,[MRG + 1] Fix pprint ellipsis (#13436),13436,[MRG + 1] Fix pprint ellipsis,NicolasHug,1
+19c8af6d6,ENH/FIX Replace jaccard_similarity_score by sane jaccard_score (#13151),13151,ENH/FIX Replace jaccard_similarity_score by sane jaccard_score,jnothman,1
+414065770,[MRG+2] Fix LDA predict_proba()  (#11796),11796,[MRG+2] Fix LDA predict_proba() ,agamemnonc,1
+42073c2cc,[MRG] Fixed NMF IndexError (#11667),11667,[MRG] Fixed NMF IndexError,zjpoh,1
+4f5dd77d1,BUG: fix check_array on pandas Series with custom dtype (eg categorical) (#12706),12706,BUG: fix check_array on pandas Series with custom dtype (eg categorical),jorisvandenbossche,1
+1414efb78,DOC: start section for the 0.20.2 bugfix notes (#12664),8203,Bugfix,BasilBeirouti,1
+62117f482,Bug with string dtype in OneHotEncoder with handle_unknown='ignore' (#12471),12471,Bug with string dtype in OneHotEncoder with handle_unknown='ignore',GMarzinotto,1
+819d8ef8b,[MRG] Fix diagonal in DBSCAN with precomputed sparse neighbors graph (#12105),12105,[MRG] Fix diagonal in DBSCAN with precomputed sparse neighbors graph,TomDLT,1
+42072255e,DOC start section for the 0.20.1 bugfix notes (#12170),8203,Bugfix,BasilBeirouti,1
+7d72720ee,[MRG] Crash when using SGDClassifier with early stopping in a parallel grid search (#12122),12122,[MRG] Crash when using SGDClassifier with early stopping in a parallel grid search,ogrisel,1
+6b38970fc,ENH Expose errors_score in cross_validate and cross_val_score (#11583),16480,cross_validate,ChaWaelkens,1
+47d3b3c30,[MRG] TST: avoid DeprecationWarning on latest joblib (#11625),11625,[MRG] TST: avoid DeprecationWarning on latest joblib,GaelVaroquaux,1
+06ac22d06,BUG: Fixes _BaseCompostion._set_params broken where there are no estimators (#11333),11333,BUG: Fixes _BaseCompostion._set_params broken where there are no estimators,thomasjpfan,1
+06ac22d06,BUG: Fixes _BaseCompostion._set_params broken where there are no estimators (#11333),11332,_BaseCompostion._set_params broken where there are no estimators,jnothman,1
+73fc2e461,BUG: fix KD Tree node construction (#11556),11556,BUG: fix KD Tree node construction,jakevdp,1
+6ade12a55,[MRG+2] Tree MAE fix to ensure sample_weights are used during impurity calculation (#11464),11464,[MRG+2] Tree MAE fix to ensure sample_weights are used during impurity calculation,JohnStott,2
+97a15dbad,"Fix LogisticRegression with warm_start, multinomial and binary data (#10986)",10986,"Fix LogisticRegression with warm_start, multinomial and binary data",aishgrt1,2
+4e166e298,BUG: ColumnTransformer with remainder='passthrough' and array-like of strings as columns (#11184),11184,BUG: ColumnTransformer with remainder='passthrough' and array-like of strings as columns,jorisvandenbossche,1
+1755b893d,[MRG+2] Fix edge case of tied CV scores in RFECV (#9222),9222,[MRG+2] Fix edge case of tied CV scores in RFECV,nickypie,1
+d9c212297,ENH add option to cross_validate to return estimators fitted on each split (#9686),16480,cross_validate,ChaWaelkens,1
+011c0b3de,[MRG+1] Allow vector pseudocounts Multinomial NB (#10346) (#10350),10350,[MRG+1] Allow vector pseudocounts Multinomial NB (#10346),TobiasMadsen,1
+102620f8d,[MRG] FIX bug in nested set_params usage (#9999),9999,[MRG] FIX bug in nested set_params usage,jnothman,1
+3a48f0ab7,[MRG+1] Raise error when SparseSeries is passed into classification metrics (#7373),7373,[MRG+1] Raise error when SparseSeries is passed into classification metrics,nielsenmarkus11,2
+1701fcf55,[MRG + 1] enable metric = 'cosine' for tsne computation (#9623),9623,[MRG + 1] enable metric = 'cosine' for tsne computation,oliblum90,2
+fb642163a,[MRG+1] Affinity propagation edge cases (#9612) (#9635),9635,[MRG+1] Affinity propagation edge cases (#9612),jsamoocha,1
+aae87002b,FIX force pipeline steps to be list not a tuple (#9604),9221,force pipeline steps to be list not a tuple,agramfort,1
+9e9b78dfa,[MRG+1] Resolve the problem with cross_val_predict(method=) when passing X or y as list (#9600),9600,[MRG+1] Resolve the problem with cross_val_predict(method=) when passing X or y as list,rrkarim,1
+52fe914c1,[MRG] DOC correct the link in model_selection.cross_validate (#9537),16480,cross_validate,ChaWaelkens,1
+fbca098c6,Modifies model_selection.cross_validate docstring (#9534),16480,cross_validate,ChaWaelkens,1
+90607f166,[MRG+1] BUG Fix the shrinkage implementation in NearestCentroid (#9219),9219,[MRG+1] BUG Fix the shrinkage implementation in NearestCentroid,qinhanmin2014,1
+e33e84dbf,[MRG] FIX Examples use int / int without __future__.division (#9426),9421,Examples use int / int without __future__.division,jnothman,1
+7b7960ef8,[MRG + 1] Fix wrong error message in StratifiedKFold (#9396),9381,Wrong error message in StratifiedKFold,amueller,1
+055d17b30,[MRG+1] FIX out of bounds array access in SAGA (#9376),9376,[MRG+1] FIX out of bounds array access in SAGA,jnothman,1
+924a4661e,[MRG + 1] Too few arguments in formatting call (#9298),9280,Too few arguments in formatting call,jnothman,1
+b9be8583a,covariance.graph_lasso does not pass eps to linear_model.lars_path (#9346),9344,covariance.graph_lasso does not pass eps to linear_model.lars_path,jnothman,1
+cf67fa43d,"FIX makedirs(..., exists_ok) not available in Python 2 (#9284)",9279,"makedirs(..., exists_ok) not available in Python 2",jnothman,1
+0dc22798e,[MRG+1] Fix semi_supervised (#9239),9239,[MRG+1] Fix semi_supervised,musically-ut,1
+e3392406e,[MRG+1] Added support for multiclass Matthews correlation coefficient (#8094),8094,[MRG+1] Added support for multiclass Matthews correlation coefficient,Erotemic,1
+925a017c8,[MRG] FIX Hash collisions in the FeatureHasher (#7565),7513,Hash collisions in the FeatureHasher,rth,1
+b429868d0,[MRG+1] Fixes issue #3367 -> MCD fails on data with singular covariance matrix (#8328),8328,[MRG+1] Fixes issue #3367 -> MCD fails on data with singular covariance matrix,ThatGeoGuy,1
+57415c461,[MRG] Fix gradient descent in TSNE (#8768),8768,[MRG] Fix gradient descent in TSNE,deto,1
+668a24c9e,[MRG + 1] Return correct ridge parameter alpha_ and lambda_ for Bayesian ridge regression (#8567),8567,[MRG + 1] Return correct ridge parameter alpha_ and lambda_ for Bayesian ridge regression,gedeck,2
+4ab99c75b,[MRG+1] FIX Correct depth formula in iforest  (#8576),8576,[MRG+1] FIX Correct depth formula in iforest ,pzbw,1
+b4a12b18a,[MRG + 1] Correct typo in cross decomposition example (Fixes #8307) (#8578),8578,[MRG + 1] Correct typo in cross decomposition example (Fixes #8307),ja9harper,1
+2cd1220eb,[MRG+1] Fixes incorrect output when input is precomputed sparse matrix in DBSCAN. (#8339),8339,[MRG+1] Fixes incorrect output when input is precomputed sparse matrix in DBSCAN.,Akshay0724,1
+4493d3705,[MRG+1] Fix pickling bug  due to multiple inheritance & __getstate__ (#8324),8324,[MRG+1] Fix pickling bug  due to multiple inheritance & __getstate__,HolgerPeters,1
+fb65a0a4b,[MRG+1] FIX AdaBoost ZeroDivisionError in proba #7501 (#8371),7501,AdaBoost ZeroDivisionError,mfeurer,1
+8beaf3278,DOC add missing bugfix to what's new,8203,Bugfix,BasilBeirouti,1
+38d59c7b5,[MRG+2] ENH: used SelectorMixin in BaseRandomizedLinearModel (#8263),8263,[MRG+2] ENH: used SelectorMixin in BaseRandomizedLinearModel,dalmia,1
+4907029b1,[MRG+3] FIX Memory leak in MAE; Use safe_realloc; Acquire GIL only when raising; Propagate all errors to python interpreter level (#7811) (#8002),8002,[MRG+3] FIX Memory leak in MAE; Use safe_realloc; Acquire GIL only when raising; Propagate all errors to python interpreter level (#7811),raghavrv,1
+ab1c4d46c,[MRG+1] Catch cases for different class size in MLPClassifier with warm start (#7976)  (#8035),8035,[MRG+1] Catch cases for different class size in MLPClassifier with warm start (#7976) ,vincentpham1991,1
+4f3c60c82,[MRG+2] FIX IsolationForest(max_features=0.8).predict(X) fails input validation (#5757),5732,IsolationForest(max_features=0.8).predict(X) fails input validation,betatim,1
+6a01e8967,"[MRG + 1] Fix perplexity method by adding _unnormalized_transform method, Issue #7954 (#7992)",7992,"[MRG + 1] Fix perplexity method by adding _unnormalized_transform method, Issue #7954",garyForeman,1
+b6941847d,[MRG + 1] FIX bug where passing numpy array for weights raises error (Issue #7983) (#7989),7989,[MRG + 1] FIX bug where passing numpy array for weights raises error (Issue #7983),vincentpham1991,1
+63583fe65,"BUG: for several datasets, ``download_if_missing`` keyword was ignored. (#7944)",7944,"BUG: for several datasets, ``download_if_missing`` keyword was ignored.",rgommers,1
+680a5b8a9,[MRG + 1] DOC Add whatsnew for the 3 model_selection bugfixes (#7868),8203,Bugfix,BasilBeirouti,1
+5230382ae,[MRG + 1] Fix numerical instability in LassoLars when alpha=0 (#7778) (#7849),7849,[MRG + 1] Fix numerical instability in LassoLars when alpha=0 (#7778),jmontoyam,2
+31ee1a8e6,[MRG + 2] FIX LogisticRegressionCV to correctly handle string labels (#5874),5874,[MRG + 2] FIX LogisticRegressionCV to correctly handle string labels,raghavrv,1
+9667ff292,[MRG + 2] Fixed parameter setting in SelectFromModel (#7764),7764,[MRG + 2] Fixed parameter setting in SelectFromModel,amueller,1
+41e1b8f17,[MRG+1] label binarizer not used consistently in CalibratedClassifierCV (#7799),7799,[MRG+1] label binarizer not used consistently in CalibratedClassifierCV,srivatsan-ramesh,1
+73d3f03cf,[MRG + 1] FIX raise an error message when n_groups > number of groups (#7681) (#7683),7683,[MRG + 1] FIX raise an error message when n_groups > number of groups (#7681),polmauri,2
+ad6f0941d,[MRG+2] switch to multinomial composition for mixture sampling (#7702),7702,[MRG+2] switch to multinomial composition for mixture sampling,ljwolf,1
+ee3e61754,[MRG+2] adding multilabel support for score_func (#7676),7676,[MRG+2] adding multilabel support for score_func,affanv14,2
+74e4c422b,FIX #6420: Cloning decision tree estimators breaks criterion objects (#7680),6420,Cloning decision tree estimators breaks criterion objects,panisson,1
+3619bd386,BUGFIX _store train_scores only if return_train_score is True (#7535),8203,Bugfix,BasilBeirouti,1
+32d1236f4,[MRG+2] FIX adaboost estimators not randomising correctly (#7411),7411,[MRG+2] FIX adaboost estimators not randomising correctly,jnothman,1
+31a4691d7,[MRG+1] fix sampling in stratified shuffle split (#6472),6472,[MRG+1] fix sampling in stratified shuffle split,amueller,1
+49d126fd8,[MRG + 1] FIX use high precision cumsum and check it is stable enough (#7331),7331,[MRG + 1] FIX use high precision cumsum and check it is stable enough,jnothman,1
+19d6d925e,"[MRG+1] Fix for ""_transform_selected"" not copying when ""selected='all'"" (#7201)",7201,"[MRG+1] Fix for ""_transform_selected"" not copying when ""selected='all'""",caioaao,1
+0cffdfa61,BUG fixed a typo in ``sklearn.gmm`` (#7182),7182,BUG fixed a typo in ``sklearn.gmm``,superbobry,1
+12d5f0783,[MR] Speed issues in sample_without_replacement - bugfix (#7104),8203,Bugfix,BasilBeirouti,1
+0e074a009,Fix bug in mini batch kmeans example,6047,Bug in mini batch kmeans example,zhengqm,1
+eb464fbc9,Merge pull request #5730 from hdmetor/bugfix/5720,8203,Bugfix,BasilBeirouti,1
+e3423b989,FIX Minor bugfixes and downward-compatibility/python3 issue,8203,Bugfix,BasilBeirouti,1
+fead69a4a,Bugfix : type in cd changed for read only memmap compatibility,8203,Bugfix,BasilBeirouti,1
+c97ad1d5f,Merge pull request #4592 from clorenz7/bugfix/gauss_proc_eps_issue,8203,Bugfix,BasilBeirouti,1
+7be35c8aa,Merge pull request #1 from scikit-learn/master,2871,Merge pull request #1 from scikit-learn/master,RWalecki,1
+7be35c8aa,Merge pull request #1 from scikit-learn/master,2870,Merge pull request #1 from scikit-learn/master,RWalecki,1
+cb219b425,add 0.16.1 bugfixes to whatsnew.,8203,Bugfix,BasilBeirouti,1
+c9510ed19,Fixing bug in assert_raise_message #4559,4559,Bug in assert_raise_message,amueller,1
+46f9fc2ff,BUG: Correct check for local import,4095,BUG: Correct check for local import,jjhelmus,1
+43e8c371d,Merge pull request #4054 from tttthomasssss/bugfix-4051-affinity-prop,8203,Bugfix,BasilBeirouti,1
+87edc22ee,BUG: only symmetrize matrix when it is not already symmetric,4021,BUG: only symmetrize matrix when it is not already symmetric,jakevdp,1
+6039b1864,Merge pull request #3824 from nmayorov/rfecv_bugfix,8203,Bugfix,BasilBeirouti,1
+e324fdd28,bug fix for t-SNE (issue #3526) with new inputs,3532,bug fix for t-SNE (issue #3526),makokal,1
+9d1c72321,BUG: fix windows pointer size problem,3385,BUG: fix windows pointer size problem,GaelVaroquaux,1
+e54af6398,BUG: avoid NaNs throwing off class probabilities,2941,BUG: avoid NaNs throwing off class probabilities,perimosocordiae,1
+3ee7b7242,BUG: OneVsOneClassifier was broken with string labels,2674,BUG: OneVsOneClassifier was broken with string labels,GaelVaroquaux,1
+dea7bbb2e,BUG: typo fixes in sklearn.mixture.gmm,2614,BUG: typo fixes in sklearn.mixture.gmm,zyv,1
+15647659d,"BUG: Compare strings for equality, not identity.",2558,"BUG: Compare strings for equality, not identity.",Jorge-C,1
+34a3d474d,Merge branch 'glbugfixes',8203,Bugfix,BasilBeirouti,1
+b9ca03657,BUG: remove remaining utf-8 characters in docstrings.,2405,BUG: remove remaining utf-8 characters in docstrings.,cournape,1
+7164e33a8,BUG: add new preprocessing module to setup.py,2264,BUG: add new preprocessing module to setup.py,jakevdp,1
+376c57044,BUG: use correct algorithm for callable metric,2164,BUG: use correct algorithm for callable metric,jakevdp,1
+b9673abd5,example yahoo stock issue fix,2117,example yahoo stock issue fix,ccoovrey,1
+8668d0290,BUG: set random state in LogisticRegression,1982,BUG: set random state in LogisticRegression,schwarty,1
+8c71062a7,Fix setup.py to resolve numpy requirement during pre-install. This should allow 'pip install numpy cython scipy scikit-learn' to install scikit.,1925,Fix setup.py to resolve numpy requirement,jaquesgrobler,1
+29ed16883,BUG fix compute_class_weights issue in SGD,1756,BUG fix compute_class_weights issue in SGD,larsmans,1
+ae86c22d1,BUG: Fix path in doc cleaning,1369,BUG: Fix path in doc cleaning,AlexandreAbraham,1
+c4e978b38,metrics.py: bugfix in precision_recall_curve and added tests,8203,Bugfix,BasilBeirouti,1
+244e8a68f,Merge pull request #1187 from ogrisel/bugfix-logistic-ovr-probabilities,8203,Bugfix,BasilBeirouti,1
+c59a7dd06,"ENH updated whatsnew for bugfix, removed warning box, tightened test.",8203,Bugfix,BasilBeirouti,1
+f09a2f687,Merge pull request #921 from fhoeni/scaler_bugfix,8203,Bugfix,BasilBeirouti,1
+9abb2c7c0,Python 2.6 bugfix for plot_rbf_parameters.py,8203,Bugfix,BasilBeirouti,1
+f20995006,"BugFix, matrix was not flagged as sparse.",8203,Bugfix,BasilBeirouti,1
+5d0a63d51,bugfix: lstsq coefficients output needed to be transposed added: sparse linear regression supports now multiple-outcome,8203,Bugfix,BasilBeirouti,1
+0cfd28383,BUG: fibonacci heap implementation,651,BUG: fibonacci heap implementation,jakevdp,1
+94dc28092,ENH: update joblib to release 0.6.2: bugfix,8203,Bugfix,BasilBeirouti,1
+67a72ebe8,BUG promote type-safety in murmurhash,574,BUG promote type-safety in murmurhash,larsmans,1
+c00d86f86,hopefully the last bugfix in MSE,8203,Bugfix,BasilBeirouti,1
+57fa06835,"fix: inc n_left, n_right before variance computation; hopefully the last bugfix for MSE...",8203,Bugfix,BasilBeirouti,1
+614d12eb8,MSE bugfix (MSE.eval used to weight variances by n_left and n_right).,8203,Bugfix,BasilBeirouti,1
+91f6faf03,arrayfuncs solve_triangular and EPIC creeping bugfix,8203,Bugfix,BasilBeirouti,1
+b8c175992,bugfix: sparse_format can be omitted,8203,Bugfix,BasilBeirouti,1
+ee146547c,bugfix: bad Scaler example.,8203,Bugfix,BasilBeirouti,1
+12c577fef,bugfix,8203,Bugfix,BasilBeirouti,1
+5141451b3,temporary test fix for refit instability in linear SVC: a bugfix branch will be open to reproduce the issue,8203,Bugfix,BasilBeirouti,1
+a99078063,BUGFIX in sparse.SGDRegressor added more tests for SGDRegression,8203,Bugfix,BasilBeirouti,1
+11b1b7932,bugfix in plot_loss_functions (import loss functions). added dense SGD to documentation.,8203,Bugfix,BasilBeirouti,1
+017311df7,Bugfixing in setup.py,8203,Bugfix,BasilBeirouti,1
+86d104875,port latest bugfix and optims from dense CD to sparse CD,8203,Bugfix,BasilBeirouti,1
+2c57f5598,More refactoring and bugfixing with liblinear.,8203,Bugfix,BasilBeirouti,1
+de451f7f4,Refinement and bugfixing in the liblinear bindings.,8203,Bugfix,BasilBeirouti,1
+263a4544d,More refactoring and bugfixing with liblinear.,8203,Bugfix,BasilBeirouti,1
+0e1b7922a,Refinement and bugfixing in the liblinear bindings.,8203,Bugfix,BasilBeirouti,1
+811563a66,FIX: more bugfixing in sparse.svm.,8203,Bugfix,BasilBeirouti,1
+ec5eca31c,More bugfixes for blas detection in setup.py,8203,Bugfix,BasilBeirouti,1
+b6015fb9f,"* Convert the online_em.py script to a class, OnGMM * Add tests for OnGMM * Small bugfixes in _c_densitites (convert general exception to ImportException when wrong ctypes version found), setup (remove the name attribute to avoid warning when installing)",8203,Bugfix,BasilBeirouti,1

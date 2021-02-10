@@ -1,0 +1,100 @@
+commitID,Commit Subject,Issue ID,Issue Title,issue User,Semantic Confidence Level,Syntactic Confidence Level
+576775d6d,FIX Correctly sets MDS pairwise attribute (#18278),18278,FIX Correctly sets MDS pairwise attribute,thomasjpfan,1,1
+d1f0d1917,BUG Fixes stacker compatibility with estimators without n_features_in_ (#17357),17357,BUG Fixes stacker compatibility with estimators without n_features_in_,thomasjpfan,1,1
+b0c03d128,BUG fix SparseCoder to follow scikit-learn API and allow cloning (#17679),17679,BUG fix SparseCoder to follow scikit-learn API and allow cloning,sdpython,1,1
+b0c03d128,BUG fix SparseCoder to follow scikit-learn API and allow cloning (#17679),16346,BUG fix SparseCoder to follow scikit-learn API,glemaitre,1,1
+43c0efa1b,BUG Fixes cython code for ppc arch (#17201),17201,BUG Fixes cython code for ppc arch,thomasjpfan,1,1
+946fddec7,BUG Fix instability issue of ARDRegression (with speedup) (#16849),16849,BUG Fix instability issue of ARDRegression (with speedup),NicolasHug,1,1
+b9692a6be,"BUG Fixes kernel PCA raising ""invalid value encountered in mul… (#16718)",16718,"BUG Fixes kernel PCA raising ""invalid value encountered in mul…",gui-miotto,1,1
+45bc7d98b,BUG fix the math issue in latex compilation (#16673),16673,BUG fix the math issue in latex compilation,glemaitre,1,1
+4c29be44f,"FIX Predicted standard deviation values of Gaussian Processes are only within [0, 1] (#15782)",15612,"Predicted standard deviation values of Gaussian Processes are only within [0, 1]",Amir-Arsalan,1,2
+7366a5a4c,BUG fix behaviour in confusion_matrix with with empty array-like as input (#16442),16442,BUG fix behaviour in confusion_matrix with with empty array-like as input,parsons-kyle-89,2,1
+ae0dcddce,BUG Fixes benchmark script for early stopping (#16476),16476,BUG Fixes benchmark script for early stopping,thomasjpfan,1,1
+cc2fbeddf,BUG max_depth=1 should be decision stump in HistGradientBoosti… (#16182),16182,BUG max_depth=1 should be decision stump in HistGradientBoosti…,SanthoshBala18,2,0
+a5542e949,BUG fix pip3 ubuntu update by suffixing file (#15928),15928,BUG fix pip3 ubuntu update by suffixing file,glemaitre,1,1
+a83b8e0d4,DOC Fix yticklabels order in permutation importances example (#15799),15799,Fix yticklabels order in permutation importances example,ogrisel,1,1
+e81884f91,TST Fix leak in tmp folders in LFW test when pillow is missing (#15676),15676,TST Fix leak in tmp folders in LFW test when pillow is missing,ogrisel,1,1
+ac7081c51,FIX plot_roc_curve/plot_precision_recall_curve now work with pipeline (#15606),15606,FIX plot_roc_curve/plot_precision_recall_curve now work with pipeline,qinhanmin2014,1,1
+c997e9b3e,BUG: Fix literal comparison (#15260),15260,BUG: Fix literal comparison,larsoner,1,1
+c52b6e128,Amg arpack workaround fix (#14647),14647,Amg arpack workaround fix,amueller,1,1
+b580ad5df,BUG Fix zero division error in GBDTs (#14024),14024,BUG Fix zero division error in GBDTs,NicolasHug,1,1
+e35f04020,[MRG] Fixes get_feature_names results when using drop functionality (#13894),13894,[MRG] Fixes get_feature_names results when using drop functionality,jamesmyatt,1,1
+c7ce6757d,Fix for AttributeError thrown when calling metrics.pairwise_distances with binary metrics and Y is None (#13864),13853,AttributeError thrown when calling metrics.pairwise_distances with binary metrics and Y is None,jlmelville,1,1
+eb1f5f29d,FIX broken sdist (#13862),13862,FIX broken sdist,ogrisel,1,1
+1fe00b589,[MRG + 1] Fix pprint ellipsis (#13436),13436,[MRG + 1] Fix pprint ellipsis,NicolasHug,1,2
+19c8af6d6,ENH/FIX Replace jaccard_similarity_score by sane jaccard_score (#13151),13151,ENH/FIX Replace jaccard_similarity_score by sane jaccard_score,jnothman,1,1
+414065770,[MRG+2] Fix LDA predict_proba()  (#11796),11796,[MRG+2] Fix LDA predict_proba() ,agamemnonc,1,1
+42073c2cc,[MRG] Fixed NMF IndexError (#11667),11667,[MRG] Fixed NMF IndexError,zjpoh,1,1
+4f5dd77d1,BUG: fix check_array on pandas Series with custom dtype (eg categorical) (#12706),12706,BUG: fix check_array on pandas Series with custom dtype (eg categorical),jorisvandenbossche,1,1
+1414efb78,DOC: start section for the 0.20.2 bugfix notes (#12664),8203,Bugfix,BasilBeirouti,1,2
+819d8ef8b,[MRG] Fix diagonal in DBSCAN with precomputed sparse neighbors graph (#12105),12105,[MRG] Fix diagonal in DBSCAN with precomputed sparse neighbors graph,TomDLT,1,1
+42072255e,DOC start section for the 0.20.1 bugfix notes (#12170),8203,Bugfix,BasilBeirouti,1,2
+06ac22d06,BUG: Fixes _BaseCompostion._set_params broken where there are no estimators (#11333),11333,BUG: Fixes _BaseCompostion._set_params broken where there are no estimators,thomasjpfan,1,1
+06ac22d06,BUG: Fixes _BaseCompostion._set_params broken where there are no estimators (#11333),11332,_BaseCompostion._set_params broken where there are no estimators,jnothman,1,1
+73fc2e461,BUG: fix KD Tree node construction (#11556),11556,BUG: fix KD Tree node construction,jakevdp,1,1
+6ade12a55,[MRG+2] Tree MAE fix to ensure sample_weights are used during impurity calculation (#11464),11464,[MRG+2] Tree MAE fix to ensure sample_weights are used during impurity calculation,JohnStott,2,1
+97a15dbad,"Fix LogisticRegression with warm_start, multinomial and binary data (#10986)",10986,"Fix LogisticRegression with warm_start, multinomial and binary data",aishgrt1,2,1
+1755b893d,[MRG+2] Fix edge case of tied CV scores in RFECV (#9222),9222,[MRG+2] Fix edge case of tied CV scores in RFECV,nickypie,1,1
+102620f8d,[MRG] FIX bug in nested set_params usage (#9999),9999,[MRG] FIX bug in nested set_params usage,jnothman,1,1
+3a48f0ab7,[MRG+1] Raise error when SparseSeries is passed into classification metrics (#7373),7373,[MRG+1] Raise error when SparseSeries is passed into classification metrics,nielsenmarkus11,2,0
+1701fcf55,[MRG + 1] enable metric = 'cosine' for tsne computation (#9623),9623,[MRG + 1] enable metric = 'cosine' for tsne computation,oliblum90,2,1
+aae87002b,FIX force pipeline steps to be list not a tuple (#9604),9221,force pipeline steps to be list not a tuple,agramfort,1,1
+90607f166,[MRG+1] BUG Fix the shrinkage implementation in NearestCentroid (#9219),9219,[MRG+1] BUG Fix the shrinkage implementation in NearestCentroid,qinhanmin2014,1,1
+e33e84dbf,[MRG] FIX Examples use int / int without __future__.division (#9426),9421,Examples use int / int without __future__.division,jnothman,1,1
+7b7960ef8,[MRG + 1] Fix wrong error message in StratifiedKFold (#9396),9381,Wrong error message in StratifiedKFold,amueller,1,2
+055d17b30,[MRG+1] FIX out of bounds array access in SAGA (#9376),9376,[MRG+1] FIX out of bounds array access in SAGA,jnothman,1,1
+924a4661e,[MRG + 1] Too few arguments in formatting call (#9298),9280,Too few arguments in formatting call,jnothman,1,1
+cf67fa43d,"FIX makedirs(..., exists_ok) not available in Python 2 (#9284)",9279,"makedirs(..., exists_ok) not available in Python 2",jnothman,1,2
+0dc22798e,[MRG+1] Fix semi_supervised (#9239),9239,[MRG+1] Fix semi_supervised,musically-ut,1,1
+925a017c8,[MRG] FIX Hash collisions in the FeatureHasher (#7565),7513,Hash collisions in the FeatureHasher,rth,1,1
+b429868d0,[MRG+1] Fixes issue #3367 -> MCD fails on data with singular covariance matrix (#8328),8328,[MRG+1] Fixes issue #3367 -> MCD fails on data with singular covariance matrix,ThatGeoGuy,1,1
+57415c461,[MRG] Fix gradient descent in TSNE (#8768),8768,[MRG] Fix gradient descent in TSNE,deto,1,1
+668a24c9e,[MRG + 1] Return correct ridge parameter alpha_ and lambda_ for Bayesian ridge regression (#8567),8567,[MRG + 1] Return correct ridge parameter alpha_ and lambda_ for Bayesian ridge regression,gedeck,2,1
+4ab99c75b,[MRG+1] FIX Correct depth formula in iforest  (#8576),8576,[MRG+1] FIX Correct depth formula in iforest ,pzbw,1,1
+b4a12b18a,[MRG + 1] Correct typo in cross decomposition example (Fixes #8307) (#8578),8578,[MRG + 1] Correct typo in cross decomposition example (Fixes #8307),ja9harper,1,2
+2cd1220eb,[MRG+1] Fixes incorrect output when input is precomputed sparse matrix in DBSCAN. (#8339),8339,[MRG+1] Fixes incorrect output when input is precomputed sparse matrix in DBSCAN.,Akshay0724,1,1
+4493d3705,[MRG+1] Fix pickling bug  due to multiple inheritance & __getstate__ (#8324),8324,[MRG+1] Fix pickling bug  due to multiple inheritance & __getstate__,HolgerPeters,1,1
+fb65a0a4b,[MRG+1] FIX AdaBoost ZeroDivisionError in proba #7501 (#8371),7501,AdaBoost ZeroDivisionError,mfeurer,1,1
+8beaf3278,DOC add missing bugfix to what's new,8203,Bugfix,BasilBeirouti,1,1
+4907029b1,[MRG+3] FIX Memory leak in MAE; Use safe_realloc; Acquire GIL only when raising; Propagate all errors to python interpreter level (#7811) (#8002),8002,[MRG+3] FIX Memory leak in MAE; Use safe_realloc; Acquire GIL only when raising; Propagate all errors to python interpreter level (#7811),raghavrv,1,1
+4f3c60c82,[MRG+2] FIX IsolationForest(max_features=0.8).predict(X) fails input validation (#5757),5732,IsolationForest(max_features=0.8).predict(X) fails input validation,betatim,1,1
+6a01e8967,"[MRG + 1] Fix perplexity method by adding _unnormalized_transform method, Issue #7954 (#7992)",7992,"[MRG + 1] Fix perplexity method by adding _unnormalized_transform method, Issue #7954",garyForeman,1,2
+b6941847d,[MRG + 1] FIX bug where passing numpy array for weights raises error (Issue #7983) (#7989),7989,[MRG + 1] FIX bug where passing numpy array for weights raises error (Issue #7983),vincentpham1991,1,2
+680a5b8a9,[MRG + 1] DOC Add whatsnew for the 3 model_selection bugfixes (#7868),8203,Bugfix,BasilBeirouti,1,2
+5230382ae,[MRG + 1] Fix numerical instability in LassoLars when alpha=0 (#7778) (#7849),7849,[MRG + 1] Fix numerical instability in LassoLars when alpha=0 (#7778),jmontoyam,2,2
+31ee1a8e6,[MRG + 2] FIX LogisticRegressionCV to correctly handle string labels (#5874),5874,[MRG + 2] FIX LogisticRegressionCV to correctly handle string labels,raghavrv,1,2
+9667ff292,[MRG + 2] Fixed parameter setting in SelectFromModel (#7764),7764,[MRG + 2] Fixed parameter setting in SelectFromModel,amueller,1,2
+73d3f03cf,[MRG + 1] FIX raise an error message when n_groups > number of groups (#7681) (#7683),7683,[MRG + 1] FIX raise an error message when n_groups > number of groups (#7681),polmauri,2,2
+ee3e61754,[MRG+2] adding multilabel support for score_func (#7676),7676,[MRG+2] adding multilabel support for score_func,affanv14,2,0
+74e4c422b,FIX #6420: Cloning decision tree estimators breaks criterion objects (#7680),6420,Cloning decision tree estimators breaks criterion objects,panisson,1,1
+3619bd386,BUGFIX _store train_scores only if return_train_score is True (#7535),8203,Bugfix,BasilBeirouti,1,1
+32d1236f4,[MRG+2] FIX adaboost estimators not randomising correctly (#7411),7411,[MRG+2] FIX adaboost estimators not randomising correctly,jnothman,1,1
+31a4691d7,[MRG+1] fix sampling in stratified shuffle split (#6472),6472,[MRG+1] fix sampling in stratified shuffle split,amueller,1,1
+49d126fd8,[MRG + 1] FIX use high precision cumsum and check it is stable enough (#7331),7331,[MRG + 1] FIX use high precision cumsum and check it is stable enough,jnothman,1,2
+19d6d925e,"[MRG+1] Fix for ""_transform_selected"" not copying when ""selected='all'"" (#7201)",7201,"[MRG+1] Fix for ""_transform_selected"" not copying when ""selected='all'""",caioaao,1,1
+0cffdfa61,BUG fixed a typo in ``sklearn.gmm`` (#7182),7182,BUG fixed a typo in ``sklearn.gmm``,superbobry,1,1
+12d5f0783,[MR] Speed issues in sample_without_replacement - bugfix (#7104),8203,Bugfix,BasilBeirouti,1,1
+0e074a009,Fix bug in mini batch kmeans example,6047,Bug in mini batch kmeans example,zhengqm,1,1
+e3423b989,FIX Minor bugfixes and downward-compatibility/python3 issue,8203,Bugfix,BasilBeirouti,1,1
+fead69a4a,Bugfix : type in cd changed for read only memmap compatibility,8203,Bugfix,BasilBeirouti,1,1
+cb219b425,add 0.16.1 bugfixes to whatsnew.,8203,Bugfix,BasilBeirouti,1,2
+c9510ed19,Fixing bug in assert_raise_message #4559,4559,Bug in assert_raise_message,amueller,1,1
+e324fdd28,bug fix for t-SNE (issue #3526) with new inputs,3532,bug fix for t-SNE (issue #3526),makokal,1,1
+9d1c72321,BUG: fix windows pointer size problem,3385,BUG: fix windows pointer size problem,GaelVaroquaux,1,1
+dea7bbb2e,BUG: typo fixes in sklearn.mixture.gmm,2614,BUG: typo fixes in sklearn.mixture.gmm,zyv,1,1
+8c71062a7,Fix setup.py to resolve numpy requirement during pre-install. This should allow 'pip install numpy cython scipy scikit-learn' to install scikit.,1925,Fix setup.py to resolve numpy requirement,jaquesgrobler,1,1
+29ed16883,BUG fix compute_class_weights issue in SGD,1756,BUG fix compute_class_weights issue in SGD,larsmans,1,1
+ae86c22d1,BUG: Fix path in doc cleaning,1369,BUG: Fix path in doc cleaning,AlexandreAbraham,1,1
+c4e978b38,metrics.py: bugfix in precision_recall_curve and added tests,8203,Bugfix,BasilBeirouti,1,1
+9abb2c7c0,Python 2.6 bugfix for plot_rbf_parameters.py,8203,Bugfix,BasilBeirouti,1,2
+94dc28092,ENH: update joblib to release 0.6.2: bugfix,8203,Bugfix,BasilBeirouti,1,1
+c00d86f86,hopefully the last bugfix in MSE,8203,Bugfix,BasilBeirouti,1,1
+57fa06835,"fix: inc n_left, n_right before variance computation; hopefully the last bugfix for MSE...",8203,Bugfix,BasilBeirouti,1,1
+614d12eb8,MSE bugfix (MSE.eval used to weight variances by n_left and n_right).,8203,Bugfix,BasilBeirouti,1,1
+12c577fef,bugfix,8203,Bugfix,BasilBeirouti,1,1
+5141451b3,temporary test fix for refit instability in linear SVC: a bugfix branch will be open to reproduce the issue,8203,Bugfix,BasilBeirouti,1,1
+a99078063,BUGFIX in sparse.SGDRegressor added more tests for SGDRegression,8203,Bugfix,BasilBeirouti,1,1
+11b1b7932,bugfix in plot_loss_functions (import loss functions). added dense SGD to documentation.,8203,Bugfix,BasilBeirouti,1,1
+86d104875,port latest bugfix and optims from dense CD to sparse CD,8203,Bugfix,BasilBeirouti,1,1
+ec5eca31c,More bugfixes for blas detection in setup.py,8203,Bugfix,BasilBeirouti,1,1
+b6015fb9f,"* Convert the online_em.py script to a class, OnGMM * Add tests for OnGMM * Small bugfixes in _c_densitites (convert general exception to ImportException when wrong ctypes version found), setup (remove the name attribute to avoid warning when installing)",8203,Bugfix,BasilBeirouti,1,1

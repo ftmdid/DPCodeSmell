@@ -1,0 +1,24 @@
+commitID,Commit Subject,Issue ID,Issue Title,issue User,Semantic Confidence Level,Syntactic Confidence Level
+d4557be2,Minor bug fixes,6695,bug fix,seemuch,1,1
+a9eaf98e,struct2depth inference.py bug fix (#7342),6695,bug fix,seemuch,1,1
+febaae9a,Some improvements and bug fixes to Controller: 1. Fix a bug that checkpoint will be saved after every training loop. 2. Only create the training and eval summaries writers if the corresponding `train_fn` and `eval_fn` are passed. 3. Flush the summary writers after training and eval finish. 4. Add a Controller test.,6695,bug fix,seemuch,1,2
+cad067d8,Bug fix of cifar10_eval.py (#6928),6928,Bug fix of cifar10_eval.py,youngleox,1,1
+cad067d8,Bug fix of cifar10_eval.py (#6928),6695,bug fix,seemuch,1,1
+0f6f656f,bug fix (#6695),6695,bug fix,seemuch,1,1
+6f881f77,bug fixes and clean ups,6695,bug fix,seemuch,1,1
+08ad2455,bug fix and python3 compatability,6695,bug fix,seemuch,1,1
+08ad2455,bug fix and python3 compatability,5472,bug fix and python3 compatability,JonathanJuhl,1,1
+7cb88e17,minor bug fix,6695,bug fix,seemuch,1,1
+1730eed4,Bug fix on flag name in wide_deep.py (#3777),6695,bug fix,seemuch,1,1
+1730eed4,Bug fix on flag name in wide_deep.py (#3777),3777,Bug fix on flag name in wide_deep.py,nkconnor,1,1
+cd850550,from six.moves import xrange (en masse) YET AGAIN,3103,from six.moves import xrange,cclauss,2,0
+ffb8041e,from six.moves import xrange (en masse) AGAIN,3103,from six.moves import xrange,cclauss,2,0
+c7df5a3d,BUG: Fix inception imagenet download script (#2299),2299,BUG: Fix inception imagenet download script,scottclowe,1,1
+848cc592,from six.moves import xrange (en masse),3103,from six.moves import xrange,cclauss,2,0
+89f5e4e0,bug fix for failing demo,6695,bug fix,seemuch,1,1
+6e0e8c51,Transformer:  from six.moves import xrange for,3103,from six.moves import xrange,cclauss,2,0
+58cb61b5,Compression: from six.moves import xrange for Python 3,3103,from six.moves import xrange,cclauss,2,1
+86d26fb1,from six.moves import xrange for,3103,from six.moves import xrange,cclauss,2,0
+812bc2e7,bugfix for rnn tutorial on Python3,2259,bugfix for rnn tutorial on Python3,skwbc,1,1
+58fb6d7e,Adv_Txt: from six.moves import xrange for Python 3 (#2177),3103,from six.moves import xrange,cclauss,2,1
+c6c78fb4,"Fixing link in README, updates to notebook variable names, small notebook bug fixes",6695,bug fix,seemuch,1,1

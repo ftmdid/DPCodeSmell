@@ -1,0 +1,22 @@
+commitID,Commit Subject,Issue ID,Issue Title,issue User,Semantic Confidence Level,Syntactic Confidence Level
+1400e7b3,fixed callback warning error (#12098),12069,Callback warning error,psinger,1,1
+839d3dd0,bug fix - run_internal_graph() (#9599),9599,bug fix - run_internal_graph(),farizrahman4u,1,1
+94a0f34f,bug fix on pandas DataFrame support (#8494),8494,bug fix on pandas DataFrame support,icyblade,1,1
+2766074d,Bug fix + test : Initializing states for ConvLSTM2D (#6564),6564,Bug fix + test : Initializing states for ConvLSTM2D,farizrahman4u,1,1
+4f9e7bf9,Bug fix in recurrent layer (#6393),6393,Bug fix in recurrent layer,Danielhiversen,1,1
+86b12f6f,"bug fix, cast batch_sizes as a list to support indexing (#6057)",6057,"bug fix, cast batch_sizes as a list to support indexing",slaterb1,2,0
+b260333e,Bug fix: ocr example; python 3 (#6060),6060,Bug fix: ocr example; python 3,farizrahman4u,1,1
+b9fc5625,"bugfix: recursive layers, merge_test.py reproduces bug (#5972) (#6034)",6034,"bugfix: recursive layers, merge_test.py reproduces bug (#5972)",ahundt,1,1
+60deb6e2,Bug fixes : Theano shape inference (#5827),5827,Bug fixes : Theano shape inference,farizrahman4u,1,1
+7e071cd7,Bug fix : Model.from_config (#5730),5730,Bug fix : Model.from_config,farizrahman4u,1,1
+04ea01f3,"Bug fix of Bidirectional(LSTM(..., stateful=True)) (#4424)",4424,"Bug fix of Bidirectional(LSTM(..., stateful=True))",yukoba,1,1
+5266fdac,Bugfix to CIFAR pickle reading code in Python 3 (#4319),4319,Bugfix to CIFAR pickle reading code in Python 3,kencoken,1,2
+49386e8d,Bug fix when target is a SparseTensor. (#4200),4200,Bug fix when target is a SparseTensor.,igormq,1,1
+80fbbc3a,Bug fix in zca_whitening (#4181),4181,Bug fix in zca_whitening,alexander-rakhlin,1,1
+f59736a0,Bug fix : RNNs (#3550),3550,Bug fix : RNNs,farizrahman4u,1,1
+55447cbb,Bug fix : squeeze (#3433),3433,Bug fix : squeeze,farizrahman4u,1,1
+1b158ff4,Bug fix + test - Sequential.pop() (#3252),3252,Bug fix + test - Sequential.pop(),farizrahman4u,1,1
+63059f60,Bug fix to set correct uses_learning_phase flag,2217,Bug fix to set correct uses_learning_phase flag,the-moliver,1,1
+cee4f72a,Bug fix - Siamese,1216,Bug fix - Siamese,farizrahman4u,1,1
+de2884af,Bug fix - Cos,1211,Bug fix - Cos,farizrahman4u,1,1
+38a32289,"Bug fixes: “TypeError: Cannot cast ufunc subtract output from dtype('float64') to dtype('uint8') with casting rule 'same_kind'” in keras/preprocessing/image.py, line 239, when using data augmentation.",819,Bug fixes:,xingdi-eric-yuan,1,1
