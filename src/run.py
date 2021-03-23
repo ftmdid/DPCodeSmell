@@ -84,15 +84,15 @@ if __name__ == '__main__':
     relation2=relation.Relation(projectName)   
     relation2.checkForRelation() 
     print("Finished bad smell analysis on "+projectName) 
-    '''
+'''
 
-    
+    #'''
     projectName="zulip"   
     print("Started bad smell analysis on "+projectName)
     relation3=relation.Relation(projectName)   
     relation3.checkForRelation()  
     print("Finished bad smell analysis on "+projectName) 
-    
+    #'''
     '''
     projectName="scikit-learn"   
     print("Started bad smell analysis on "+projectName)
@@ -106,7 +106,7 @@ if __name__ == '__main__':
     relation4=relation.Relation(projectName)   
     relation4.checkForRelation()  
     print("Finished bad smell analysis on "+projectName) 
-   '''
+    '''
     '''
     projectName="models"   
     print("Started bad smell analysis on "+projectName)

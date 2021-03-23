@@ -3,7 +3,29 @@ Created on Jun 9, 2020
 
 @author: Neda
 '''
+import itertools
+from builtins import isinstance
 
+# def getClassLinesOfAPythonFile(pythonFile):
+#     '''
+#         python file is a file that includes all files of a specific commit
+#     '''
+#     try:
+#         classList=[]
+#         with open(pythonFile) as fileToRead:
+#             fileLines=fileToRead.readlines()
+#             count=0
+#             for line in fileLines:
+#                 if line.lstrip().startswith('class '):
+#                     print(line.lstrip())
+#                     count +=1
+#                     print(count)
+#                 if line.lstrip().startswith('class ') and (":" in line):
+#                     classList.append(line)
+#         fileToRead.close()
+#         return classList
+#     except Exception as ex:
+#         print(ex)       
 def getClassLinesOfAPythonFile(pythonFile):
     '''
         python file is a file that includes all files of a specific commit
@@ -11,15 +33,25 @@ def getClassLinesOfAPythonFile(pythonFile):
     try:
         classList=[]
         with open(pythonFile) as fileToRead:
-            fileLines=fileToRead.readlines()
-            for line in fileLines:
-                if line.lstrip().startswith('class ') and (":" in line):
-
-                    classList.append(line)
+            fileLines=fileToRead.read()
+            #lines=fileLines.splitlines()
+            import ast
+            tree= ast.parse(fileLines)
+            for item in ast.walk(tree):
+                if isinstance(item, ast.ClassDef):
+                    classList.append(item.line)
+#             count=0
+#             for line in fileLines:
+#                 if line.lstrip().startswith('class ')and (":" in line):
+#                     print(line.lstrip())
+#                     count +=1
+#                     print(count)
+#                 if line.lstrip().startswith('class ') and (":" in line):
+#                     classList.append(line)
         fileToRead.close()
         return classList
     except Exception as ex:
-        print(ex)       
+        print(ex)  
     
 def getParentsOfClass(txt, classList):  
     classDict={} 
@@ -71,40 +103,20 @@ def getParentsOfClassInAFile(pythonFile):
 
     return superClassDict
 
-# def getNumberOfChildrenOfAClass(parentsDict):
-#     
-#     children = {}
-#     for key in parentsDict.keys():
-#         if key=="BaseIntelFCompiler":
-#             print("Burdayim")
-#         children[key]=[]
-#         for k,_ in parentsDict.items():
-#             valueList= parentsDict[k]
-#             if len(valueList)==1 and (',' in valueList[0]):
-#                 valueList=[ item.lstrip().rstrip() for item in valueList[0].split(",")]
-#             if key in valueList:
-#                 children[key].append(k)
-#         
-#     return children
-
 def getNumberOfChildrenOfAClass(parentsDict):
-    
+     
     children = {}
     for key in parentsDict.keys():
-        if key=="BaseIntelFCompiler":
-            print("Burdayim")
+#         if key=="BaseIntelFCompiler":
+#             print("Burdayim")
         children[key]=[]
-        result=checkForKey(key, parentsDict.items())
-        if result:
-            children[key].append(result)
-        
-        
+        for k,valueList in parentsDict.items():
+            if len(valueList)==1 and (',' in valueList[0]):
+                valueList=[ item.lstrip().rstrip() for item in valueList[0].split(",")]
+            if key in valueList:
+                children[key].append(k)
+         
     return children
-
-def  checkForKey(key, dictItems):
-    for k, v in dictItems:
-        if key in v:
-            return k    
 
 def calculateDIT(className, parentsDict, count):        
     if className in parentsDict.keys():
@@ -130,19 +142,24 @@ def calculateParallelInheritanceHiearchySmell(pythonFile):
 
     pihSmellListDict={}
     parents=getParentsOfClassInAFile(pythonFile)
-    #print(parents)
+    print(len(parents))
 
     childrens= getNumberOfChildrenOfAClass(parents)
   
     
     keysList=list(set(list(parents.keys())+list(childrens.keys())))
+    print(len(keysList))
     for key in keysList:
+        if key=="CPUInfoBase":
+            print("yere")
         dit = calculateDIT(key, parents, 1)
-        noc = calculateNumberOfChildren(key, childrens, 0)
+        #noc = calculateNumberOfChildren(key, childrens, 0)
+        noc = len(childrens[key])
         pihSmell= False
         if dit>3 or noc>4:
             pihSmell= True
         pihSmellListDict[key]={'dit':dit,'noc':noc,'isPIHSmell':pihSmell}
+        #print(pihSmellListDict)
     return pihSmellListDict
     
             

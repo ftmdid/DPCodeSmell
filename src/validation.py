@@ -105,7 +105,7 @@ if __name__ == '__main__':
     badSmellDetection = BS.BadSmell()
     
     validationFolder = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation/ToolValidation'
-    '''
+    
     parallelInheritanceHiearchyValidationForTool = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation/ToolValidation/parallelInheritanceHiearchyValidationForTool.csv'
     parallelInheritanceHiearchyForToolCSVfileOut = csv.writer(open(os.path.join(validationFolder, parallelInheritanceHiearchyValidationForTool), 'w+'))
     parallelInheritanceHiearchyForToolCSVfileOut.writerow(['Class Name', 'Depth of Inheritance', 'Number of Children' ,'Is Parallel Inheritance Hiearchy Smell'])
@@ -116,7 +116,7 @@ if __name__ == '__main__':
      
     for k, _ in parallelInheritanceHiearchySmellListDict.items():
         parallelInheritanceHiearchyForToolCSVfileOut.writerow([k, parallelInheritanceHiearchySmellListDict[k]['dit'],parallelInheritanceHiearchySmellListDict[k]['noc'],parallelInheritanceHiearchySmellListDict[k]['isPIHSmell']])
-    ''' 
+    
     #getLargeClassInfoInProject(pythonFiles, badSmellDetection, validationFolder)
          
   
@@ -124,7 +124,7 @@ if __name__ == '__main__':
                  
     #getMethodFilesInProject(pythonFiles, validationFolder)
     
-    getLongParameterListSmellsInProject(pythonFiles, badSmellDetection, validationFolder)
+    #getLongParameterListSmellsInProject(pythonFiles, badSmellDetection, validationFolder)
  
 #     messageChainValidationForTool = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation/ToolValidation/messageChainValidationForTool.csv'
 #     messageChainValidationForToolCSVfileOut = csv.writer(open(os.path.join(validationFolder, messageChainValidationForTool), 'w+'))
