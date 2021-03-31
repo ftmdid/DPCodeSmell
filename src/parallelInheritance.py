@@ -3,7 +3,6 @@ Created on Jun 9, 2020
 
 @author: Neda
 '''
-import itertools
 from builtins import isinstance
 
 # def getClassLinesOfAPythonFile(pythonFile):
@@ -34,142 +33,211 @@ def getClassLinesOfAPythonFile(pythonFile):
         classList=[]
         with open(pythonFile) as fileToRead:
             fileLines=fileToRead.read()
-            #lines=fileLines.splitlines()
+            lines=fileLines.splitlines()
             import ast
             tree= ast.parse(fileLines)
             for item in ast.walk(tree):
                 if isinstance(item, ast.ClassDef):
-                    classList.append(item.line)
-#             count=0
-#             for line in fileLines:
-#                 if line.lstrip().startswith('class ')and (":" in line):
-#                     print(line.lstrip())
-#                     count +=1
-#                     print(count)
-#                 if line.lstrip().startswith('class ') and (":" in line):
-#                     classList.append(line)
+                    className=lines[item.lineno-1].lstrip()
+            
+                    classList.append(className)
         fileToRead.close()
         return classList
     except Exception as ex:
         print(ex)  
+        
+def getAllClassesInACommit(classLine):
+    classesInACommit=[]
+    for each in classLine:
+        if "(" and ")" in each:
+            child=each.split('class ')[1].split("(")[0].lstrip().rstrip()
+            if child not in classesInACommit:
+                classesInACommit.append(child)
+            if ("." not in each) and ("," not in each): 
+                parent= each.split("(")[1].split(")")[0]
+                if parent and (parent not in classesInACommit):
+                    classesInACommit.append(parent)
+            elif ("." in each) and ("," not in each):
+                parent=each.split("(")[1].split(")")[0].split(".")[1]
+                if parent and (parent not in classesInACommit):
+                    classesInACommit.append(parent)
+                parentsOfParent=each.split("(")[1].split(")")[0].split(".")[0]
+                if parentsOfParent and (parentsOfParent not in classesInACommit):
+                    classesInACommit.append(parentsOfParent)
+            elif ("." not in each) and ("," in each):
+                parents=each.split("(")[1].split(")")[0].split(",")
+                for parent in parents:
+                    if parent and (parent not in classesInACommit):
+                        classesInACommit.append(parent)
+            elif ("." in each) and ("," in each):
+                parents=each.split("(")[1].split(")")[0].split(",")
+                for parent in parents:
+                    if "." in parent:
+                        if parent.split(".")[1] and (parent.split(".")[1] not in classesInACommit):
+                            classesInACommit.append(parent.split(".")[1])
+                        if parent.split(".")[0]  and (parent.split(".")[0] not in classesInACommit):
+                            classesInACommit.append(parent.split(".")[0])
+        else:
+            if not each.split('class ')[1].split(":")[0].lstrip().rstrip() in classesInACommit:
+                classesInACommit.append(each.split('class ')[1].split(":")[0].lstrip().rstrip())
+
+    return classesInACommit
     
-def getParentsOfClass(txt, classList):  
-    classDict={} 
-    if "(" and ")" in txt:
-        nameOfClass=txt.split('class ')[1].lstrip().split("(")[0]
-        classDict[nameOfClass]=[]
-        lineOfSuperClass=txt.split("(")[1].split(")")[0].strip()
-        if lineOfSuperClass:
-            if "." in lineOfSuperClass:
-                superClasses=lineOfSuperClass.split(".")
-                for each in superClasses:
-                    getParentsOfClass("class "+each, classList)
-            else:
-                if not lineOfSuperClass in classDict[nameOfClass]:
-                    classDict[nameOfClass].append(lineOfSuperClass)
-                    
-                    getParentsOfClass("class "+lineOfSuperClass, classList)
-    else:
-        for each in classList:
-            if ":" in txt:
-                nameOfClass=txt.split("class ")[1].split(":")[0].strip()
-            else: 
-                nameOfClass=txt.split("class ")[1].strip()
-            classDict[nameOfClass]=[]
-            if each.startswith(txt):
-                if "(" in each:
-                    superClass = each.split("(")[0]
-                    if superClass==txt:
-                        getParentsOfClass(each, classList)
-                else:
-                    superClass=each.split(":")[0]
-                    if superClass==txt:
-                        getParentsOfClass(each, classList)
-    return classDict
-           
-   
-def getParentsOfClassInAFile(pythonFile):
-    classList= getClassLinesOfAPythonFile(pythonFile)
-    superClassDict={}
+def getParentsOfAClassesInACommit(classList):
+    parentOfClassDict={}
     for each in classList:
-        result=getParentsOfClass(each,classList)
-        for k, v in result.items():
-            if k not in superClassDict.keys():
-                superClassDict[k]=v
-            else:
-                if not v in superClassDict[k]:
-                    for item in v:
-                        superClassDict[k].append(item)
-
-    return superClassDict
-
-def getNumberOfChildrenOfAClass(parentsDict):
-     
-    children = {}
-    for key in parentsDict.keys():
-#         if key=="BaseIntelFCompiler":
-#             print("Burdayim")
-        children[key]=[]
-        for k,valueList in parentsDict.items():
-            if len(valueList)==1 and (',' in valueList[0]):
-                valueList=[ item.lstrip().rstrip() for item in valueList[0].split(",")]
-            if key in valueList:
-                children[key].append(k)
-         
-    return children
-
+        if "(" and ")" in each:
+            child=each.split('class ')[1].split("(")[0].lstrip().rstrip()
+            parentOfClassDict[child]=[]
+            if ("." not in each) and ("," not in each): 
+                parent= each.split("(")[1].split(")")[0]
+                if parent!=child:
+                    parentOfClassDict[child].append(parent)
+            elif ("." in each) and ("," not in each):
+                parent=each.split("(")[1].split(")")[0].split(".")[1]
+                if parent!=child:
+                    parentOfClassDict[child].append(parent)
+                parentOfClassDict[parent]=[]
+                if parent!=each.split("(")[1].split(")")[0].split(".")[0]:
+                    parentOfClassDict[parent].append(each.split("(")[1].split(")")[0].split(".")[0])
+            elif ("." not in each) and ("," in each):
+                parents=each.split("(")[1].split(")")[0].split(",")
+                for parent in parents:
+                    if child!=parent:
+                        parentOfClassDict[child].append(parent)
+            elif ("." in each) and ("," in each):
+                parents=each.split("(")[1].split(")")[0].split(",")
+                for parent in parents:
+                    if "." in parent:
+                        if child!=parent.split(".")[1]:
+                            parentOfClassDict[child].append(parent.split(".")[1])
+                        parentOfClassDict[parent.split(".")[1]]=[]
+                        if parent.split(".")[1]!=parent.split(".")[0]:
+                            parentOfClassDict[parent.split(".")[1]].append(parent.split(".")[0])
+        else:
+            child=each.split('class ')[1].split(":")[0].lstrip().rstrip()
+            parentOfClassDict[child]=['object']
+    return parentOfClassDict
+                
 def calculateDIT(className, parentsDict, count):        
     if className in parentsDict.keys():
-        if not (len(parentsDict[className])==1 and parentsDict[className][0]=='object'):
-            count +=len(parentsDict[className])
-            parentsList= parentsDict[className]
-            if len(parentsList)>=1:
-                for i in range(0, len(parentsList)):
-                    if (parentsList[i]!='object'):
-                        count = calculateDIT(parentsList[i], parentsDict, count)
+        parents=parentsDict[className]
+        if (len(parents)==1) and (parents[0]=='object'):
+            count =1
+        elif (len(parents)==1) and (parents==['']):
+            count=1
+        elif (len(parents)>=1):
+            count += calculateDIT(parents[0], parentsDict, count)  
+            # if  (len(parents)==1):
+                # count += calculateDIT(parents[0], parentsDict, count)  
+            # else:
+                # for i in range(0, len(parents)):
+                    # if (parents[i]!='object'):
+                        # count += calculateDIT(parents[i], parentsDict, count)
+         
+                         
     return count
-                    
-def calculateNumberOfChildren(className, childrensDict, count):
-    if className in childrensDict.keys():
-            count +=len(childrensDict[className])
-            childrensList= childrensDict[className]
-            if len(childrensList)>=1:
-                for i in range(0, len(childrensList)):
-                    count = calculateNumberOfChildren(childrensList[i], childrensDict, count)
-    return count   
+           
+  
+#def calculateNumberOfChildren(className, classLines) 
 
+def getNumberOfChildrenOfClassesInACommit(keys, classLines):
+    childClassesDict={}
+    for key in keys:
+        childClasses=[]
+        for eachClassLine in classLines:
+            if "(" and ")" in eachClassLine:
+                if "," in eachClassLine:
+                    parentClasses = eachClassLine.split("(")[1].split(")")[0].split(",")
+                    for parent in parentClasses:
+                        if "." in parent:
+                            parent = parent.split(".")[1]
+                            if parent==key:
+                                childClasses.append(eachClassLine.split("(")[0].split("class ")[1].lstrip().rstrip())
+                        else:
+                            if parent==key:
+                                childClasses.append(eachClassLine.split("(")[0].split("class ")[1].lstrip().rstrip())
+                else:
+                    parentClass=eachClassLine.split("(")[1].split(")")[0]
+                    if "." in parentClass:
+                        parentClass= parentClass.split(".")[1]
+                        if parentClass==key:
+                            childClasses.append(parentClass)
+                    else:
+                        if parentClass==key:
+                            childClasses.append(parentClass)
+        childClassesDict[key]=childClasses
+    return childClassesDict
+
+def calculateNumberOfChildren(key, classLines):
+    childClasses=[]
+    for eachClassLine in classLines:
+        if "(" and ")" in eachClassLine:
+            if "," in eachClassLine:
+                parentClasses = eachClassLine.split("(")[1].split(")")[0].split(",")
+                for parent in parentClasses:
+                    if "." in parent:
+                        if parent.split(".")[1]==key:
+                            childClasses.append(eachClassLine.split("(")[0].split("class ")[1].lstrip().rstrip())
+                        elif parent.split(".")[0]==key:
+                            childClasses.append(parent.split(".")[1])
+                    else:
+                        if parent==key:
+                            childClasses.append(eachClassLine.split("(")[0].split("class ")[1].lstrip().rstrip())
+            else:
+                parentClass=eachClassLine.split("(")[1].split(")")[0]
+                if "." in parentClass:
+                    if parentClass.split(".")[1]==key:
+                        childClasses.append(eachClassLine.split("(")[0].split("class ")[1].lstrip().rstrip())
+                    elif parentClass.split(".")[0]==key:
+                        childClasses.append(parentClass.split(".")[1])
+                elif "[" and "]" in parentClass:
+                    if parentClass.split("[")[0]==key:
+                        childClasses.append(eachClassLine.split("(")[0].split("class ")[1].lstrip().rstrip())
+    
+                else:
+                    if parentClass==key:
+                        childClasses.append(eachClassLine.split("(")[0].split("class ")[1].lstrip().rstrip())
+    
+    childClasses = list(dict.fromkeys(childClasses))
+    return len(childClasses)
+                
+    
 def calculateParallelInheritanceHiearchySmell(pythonFile):
 
     pihSmellListDict={}
-    parents=getParentsOfClassInAFile(pythonFile)
-    print(len(parents))
-
-    childrens= getNumberOfChildrenOfAClass(parents)
-  
     
-    keysList=list(set(list(parents.keys())+list(childrens.keys())))
-    print(len(keysList))
+    classLines= getClassLinesOfAPythonFile(pythonFile)
+    
+    parents= getParentsOfAClassesInACommit(classLines)
+    
+    
+    keysList=getAllClassesInACommit(classLines)
+    
+    
     for key in keysList:
-        if key=="CPUInfoBase":
-            print("yere")
-        dit = calculateDIT(key, parents, 1)
-        #noc = calculateNumberOfChildren(key, childrens, 0)
-        noc = len(childrens[key])
-        pihSmell= False
-        if dit>3 or noc>4:
-            pihSmell= True
-        pihSmellListDict[key]={'dit':dit,'noc':noc,'isPIHSmell':pihSmell}
-        #print(pihSmellListDict)
+        if key!='object':
+            dit = calculateDIT(key, parents, 1)
+            
+            noc = calculateNumberOfChildren(key, classLines)
+            
+            #print("class= "+key+" dit= "+str(dit)+" noc= "+str(noc))
+        
+            pihSmell= False
+            if dit>3 or noc>4:
+                pihSmell= True
+            pihSmellListDict[key]={'dit':dit,'noc':noc,'isPIHSmell':pihSmell}
+            #print(pihSmellListDict)
+            
     return pihSmellListDict
-    
+
             
             
 
 if __name__ == '__main__':
     pythonFile="/Users/neda/Desktop/workspace/BadSmells/util/Zip/numpy/allPythonFiles.py" 
     pihSmellListDict = calculateParallelInheritanceHiearchySmell(pythonFile)
-#     for k, v in  pihSmellListDict.items():
-#         print(k,v)
+ 
 
 
 
