@@ -4,14 +4,11 @@ Created on Mar 27, 2019
 @author: Neda
 '''
 
-import ast
-import inspect
-import os
-import importlib.util
 import re
 import src.runOperations as op
 import src.pythonMethods as pyMethods
-from src.FileOperations import FileOperations
+import src.parallelInheritance as pih
+
 
 class BadSmell(object):
     '''
@@ -214,7 +211,34 @@ class BadSmell(object):
         except Exception as ex:
             print(ex)
             print("Exception occurrred in BadSmell.checkLongParameter List in :"+fileName)
-     
+    
+    def checkForParallelInheritanceHiearchy(self,fileInTheFolder, projectName):
+        commitID=op.find_between(fileInTheFolder, "@", "@")
+        pythonFile=pih.downloadProjectInASpecificCommit(projectName, commitID)
+        pihSmellListDictForThisCommit=pih.calculateParallelInheritanceHiearchySmell(pythonFile)
+        parallelInheritanceHiearchyList={}
+        try:
+            classList=[]
+            with open(fileInTheFolder) as fileToRead:
+                fileLines=fileToRead.readlines()
+                for line in fileLines:
+                    if line.lstrip().startswith('class ') and (":" in line):
+                        if "(" and ")" in line:
+                            if ":" in line:
+                                classList.append(line.split('(')[0].split('class ')[1].rstrip().lstrip())
+                        elif not ("(" and ")" in line):
+                            if ":" in line:
+                                classList.append(line.split(':')[0].split('class ')[1].rstrip().lstrip())
+            fileToRead.close()
+            for className in classList:
+                for key, value in pihSmellListDictForThisCommit:
+                        if key==className:
+                            parallelInheritanceHiearchyList[className]= value
+            return parallelInheritanceHiearchyList
+        except Exception as ex:
+            print(ex)
+            print("Exception occurrred in BadSmell.checkForParallelInheritanceHiearchy List in :"+fileInTheFolder)
+                
     def checkForMessageChain(self,fileName):
         try:
             messageChainDictForTheFile={}
@@ -250,45 +274,3 @@ class BadSmell(object):
             messageCount=len(methodName)
         else:
             return messageCount
-            
-    def getDepthOfInheritanceTreeOfClass(self, projectName):
-        projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)) + '/util/Zip', projectName)
-        #projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'DemoProjects/numpy')
-        fileOp=FileOperations(projectName)
-        pythonFile = self.fileOp.createOnePythonFile(projectPath) # create allPythonFiles.py in util folder
-        fileOp.checkPythonFile(pythonFile) # This is added due to SyntaxError: from __future__ imports must occur at the beginning of the file
-    
-#         try:
-        #pythonFile="/Users/Neda/OneDrive - Auburn University/PhDworkspace/BadSmells/DemoProjects/numpy/allPythonFiles.py" 
-        _, tail=os.path.split(pythonFile)
-        spec = importlib.util.spec_from_file_location(tail, pythonFile)
-        foo = importlib.util.module_from_spec(spec)
-        print("module is imported")
-        spec.loader.exec_module(foo)   
-        print("module is executed")
-        try:
-            with open(pythonFile) as f:
-                source= f.read()
-                #compile(source,pythonFile,'exec')
-                tree = ast.parse(source)
-                print("module is parsed")
-                for exp in tree.body:
-                    if isinstance(exp, ast.ClassDef): #print exp.name
-                        cls = getattr(foo, exp.name)
-                        print(inspect.getmro(cls))
-                            
-                    f.close()                      
-            
-        except Exception as ex:
-            print(ex)
-            print("Exception occurrred in BadSmell.checkLongParameter List in :"+pythonFile)
-    
-    
-
-
-
-
-
-
-
-#         

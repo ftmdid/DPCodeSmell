@@ -9,6 +9,8 @@ import src.runOperations as op
 from os import walk
 from os.path import join 
 
+
+
 def countFilesFolderForValidation():
     validationFolder = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation'
        
@@ -70,7 +72,6 @@ def getAllPythonFilesInProject(projectName):
     return pythonFiles
 #countFilesFolderForValidation()
 
-projectName='zulip'  
-print(len(getAllPythonFilesInProject(projectName)))
-print(getTotalLinesInAProject(projectName))
-     
+#projectName='zulip'  
+#print(len(getAllPythonFilesInProject(projectName)))
+#print(getTotalLinesInAProject(projectName))    

@@ -228,7 +228,23 @@ def removeCommentsFromString(sourceCode):
     sourceCode=noncomment.split('\n')
     return sourceCode
 
+'''
+    Referenced from: https://stackoverflow.com/questions/3368969/find-string-between-two-substrings
+'''
+def find_between( s, first, last ):
+    try:
+        start = s.index( first ) + len( first )
+        end = s.index( last, start )
+        return s[start:end]
+    except ValueError:
+        return ""
 
+def checkIfFileExistsInFolder(projectPath, commitID):
+    for name in os.listdir(projectPath):
+        if commitID in name:
+            return name
+                       
+    return False  
 
 
 # Total there are 433 Python files, 382 files that have class and function files, 51 files that have _init__ and document or empty files           

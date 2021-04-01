@@ -9,10 +9,10 @@ Created on Sep 15, 2020
 import os
 import src.BadSmell as BS
 import csv
-import src.helper as help
+#import src.helper as help
 import src.parallelInheritance as inheritance
 
-import src.defectAnalysis as defectAnalysis
+#import src.defectAnalysis as defectAnalysis
 
 
 def getMethodFilesInProject(pythonFiles, validationFolder):
@@ -22,7 +22,7 @@ def getMethodFilesInProject(pythonFiles, validationFolder):
     for each in pythonFiles:
         methods = getRequestedItemFiles(each, 'def')
         if methods:
-            for k, v in methods.items():
+            for k, _ in methods.items():
                 methodsListForToolCSVfileOut.writerow([k, methods[k]['start'], each])
                 
 def getClassFilesInProject(pythonFiles, validationFolder):
@@ -32,7 +32,7 @@ def getClassFilesInProject(pythonFiles, validationFolder):
     for each in pythonFiles:
         classes = getRequestedItemFiles(each, 'class')
         if classes:
-            for k, v in classes.items():
+            for k, _ in classes.items():
                 classListForToolCSVfileOut.writerow([k, classes[k]['start'], each])
     
 
@@ -44,7 +44,7 @@ def getLargeClassInfoInProject(pythonFiles, badSmellDetection, validationFolder)
     for each in pythonFiles:
         result = badSmellDetection.checkForLargeClass(each)
         if result:
-            for key, value in result.items():
+            for key, _ in result.items():
                 if str(result[key]['isLargeClass']) == str(True):
                     largeClassValidationForToolCSVfileOut.writerow([key, result[key]['classLOC'], result[key]['classMethodCount'], result[key]['classAttributesCount'], each])
 
@@ -55,7 +55,7 @@ def getLongParameterListSmellsInProject(pythonFiles, badSmellDetection, validati
     for each in pythonFiles:
         result = badSmellDetection.checkForLongParameterList(each)
         if result:
-            for key, value in result.items():
+            for key, _ in result.items():
                 #if str(result[key]['isLongParameterList']) == str(True):
                     #print(result)
                     longParamaterForToolCSVfileOut.writerow([key, result[key]['methodLoc'], result[key]['methodParameterCount'], str(result[key]['isLongParameterList']),each])
@@ -68,7 +68,7 @@ def getRequestedItemFiles(fileName, requestedItem):
         try:
             with open(fileName,'r') as fle:
                 source= fle.readlines()
-                totalLine=len(source)
+                #totalLine=len(source)
                 currentItem = None
                 items={}
                 for lineno, line in enumerate(source, start=0):

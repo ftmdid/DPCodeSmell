@@ -284,8 +284,7 @@ class FileOperations(object):
         except OSError:
             print ('Error: Creating directory. ' + directory)
     
-    def createOnePythonFile(self, projectPath):
-        #projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'DemoProjects/numpy')
+    def createOnePythonFile(self, projectPath, projectName, commitID):
         pythonFiles =[]
         for path, _,files in os.walk(projectPath):
             for name in files:
@@ -296,12 +295,12 @@ class FileOperations(object):
                             pythonFiles.append(os.path.join(path,name))
 
         try:
-
-            newPythonFile= os.path.join(projectPath,'allPythonFiles.py')
+            fileName="allPythonFilesIn_"+projectName+"_withCommitID_"+commitID+".py"
+            newPythonFile= os.path.join(projectPath,fileName)
             if os.path.exists(newPythonFile):
                 os.remove(newPythonFile)
-            else:
-                print("Can not delete the file since it doesn't exists")
+            # else:
+                # print("Can not delete the file since it doesn't exists")
             with open(newPythonFile,'w+') as writer:
                 count=0
                 for each in pythonFiles:
@@ -310,7 +309,7 @@ class FileOperations(object):
                             source = infile.read()+'\n'
                             writer.write(source)
                             count +=1
-                print(count) #-->python files count
+                # print(count) #-->python files count
                 writer.close()
         except Exception as ex:
                     print(ex)

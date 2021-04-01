@@ -8,7 +8,27 @@ Created on Oct 10, 2020
 import src.Downloads as download
 import src.Analysis as analysis
 import src.Relation as relation
+import wget
+import os
+import zipfile
+from pickle import TRUE
 
+def downloadProjectInASpecificCommit(projectName, commitID):
+    
+        outputDirectory = os.path.dirname(os.path.dirname(__file__)) + '/util/Zip'
+        projectFolder = os.path.join(outputDirectory, projectName)
+        if not os.path.isdir(projectFolder):
+            os.mkdir(projectFolder)
+        url = "https://github.com/numpy/numpy/archive/" + commitID + ".zip"
+        wget.download(url, out=outputDirectory)
+        for item in os.listdir(outputDirectory):
+            if item.endswith(".zip"):
+                fileName = os.path.join(outputDirectory, os.path.basename(item))
+                with zipfile.ZipFile(os.path.join(fileName), "r") as zipObj:
+                    zipObj.extractall(os.path.join(outputDirectory, projectName))
+                zipObj.close()
+                os.remove(fileName)
+    
 if __name__ == '__main__':
     
     #projectName='zulip'
@@ -86,13 +106,13 @@ if __name__ == '__main__':
     print("Finished bad smell analysis on "+projectName) 
 '''
 
-    #'''
+    '''
     projectName="zulip"   
     print("Started bad smell analysis on "+projectName)
     relation3=relation.Relation(projectName)   
     relation3.checkForRelation()  
     print("Finished bad smell analysis on "+projectName) 
-    #'''
+    '''
     '''
     projectName="scikit-learn"   
     print("Started bad smell analysis on "+projectName)
@@ -114,56 +134,39 @@ if __name__ == '__main__':
     relation5.checkForRelation()
     print("Finished bad smell analysis on "+projectName) 
     '''
-    '''
+    #'''
     projectName="numpy"   
     print("Started bad smell analysis on "+projectName)
     relat=relation.Relation(projectName)  
     relat.checkForRelation()
     print("Finished bad smell analysis on "+projectName)
-    '''
-    
-    '''
-    def downloadProjectInASpecificCommit(projectName, commitID):
-        outputDirectory = os.path.dirname(os.path.dirname(__file__)) + '/util/Zip'
-        projectFolder = os.path.join(outputDirectory, projectName)
-        if not os.path.isdir(projectFolder):
-            os.mkdir(projectFolder)
-        url = "https://github.com/numpy/numpy/archive/" + commitID + ".zip"
-        wget.download(url, out=outputDirectory)
-        for item in os.listdir(outputDirectory):
-            if item.endswith(".zip"):
-                fileName = os.path.join(outputDirectory, os.path.basename(item))
-                with zipfile.ZipFile(os.path.join(fileName), "r") as zipObj:
-                    zipObj.extractall(os.path.join(outputDirectory, projectName))
-                zipObj.close()
-                os.remove(fileName)
-        import wget
-        import os
-        import zipfile
-        projectName="numpy"
-        commitID="8eb6424"
-        downloadProjectInASpecificCommit(projectName, commitID)
-        
-        
-        from src.FileOperations import FileOperations
-        import shutil
-        projectName = "numpy"
-        fileOp=FileOperations(projectName)
-        projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)) + '/util/Zip', projectName)
-        
-    
-    pythonFile = fileOp.createOnePythonFile(projectPath)
-    
-    for name in os.listdir(projectPath):
-        dirToDel = os.path.join(projectPath, name)
-        if os.path.isdir(dirToDel):
-            shutil.rmtree(dirToDel)
+    #'''
     
 
     
-   # os.remove(os.path.join(projectPath,'allPythonFiles.py'))
-      
-    ''' 
     
+    '''
+    projectName="numpy"
+    commitID="8eb6424"
+    #downloadProjectInASpecificCommit(projectName, commitID)
+    from src.FileOperations import FileOperations
+    import shutil
+    projectName = "numpy"
+    fileOp=FileOperations(projectName)
+    projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)) + '/util/Zip', projectName)
+        
+    # pythonFile = fileOp.createOnePythonFile(projectPath, projectName, commitID)
+    # for name in os.listdir(projectPath):
+        # dirToDel = os.path.join(projectPath, name)
+        # if os.path.isdir(dirToDel):
+            # shutil.rmtree(dirToDel)   
+    
+    '''
+   
+  
+
+          
+       
+        
     print("Done with Downloading!")
     

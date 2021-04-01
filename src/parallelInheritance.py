@@ -3,28 +3,51 @@ Created on Jun 9, 2020
 
 @author: Neda
 '''
-from builtins import isinstance
 
-# def getClassLinesOfAPythonFile(pythonFile):
-#     '''
-#         python file is a file that includes all files of a specific commit
-#     '''
-#     try:
-#         classList=[]
-#         with open(pythonFile) as fileToRead:
-#             fileLines=fileToRead.readlines()
-#             count=0
-#             for line in fileLines:
-#                 if line.lstrip().startswith('class '):
-#                     print(line.lstrip())
-#                     count +=1
-#                     print(count)
-#                 if line.lstrip().startswith('class ') and (":" in line):
-#                     classList.append(line)
-#         fileToRead.close()
-#         return classList
-#     except Exception as ex:
-#         print(ex)       
+import wget
+import os
+import zipfile
+from src.FileOperations import FileOperations
+import shutil
+import src.runOperations as op
+
+    
+def downloadProjectInASpecificCommit(projectName, commitID):
+    
+    fileOp=FileOperations(projectName)
+    outputDirectory = os.path.dirname(os.path.dirname(__file__)) + '/util/Zip'
+    projectFolder = os.path.join(outputDirectory, projectName)
+    isFileExists=op.checkIfFileExistsInFolder(projectFolder, commitID)
+    if isFileExists!=False:
+        pythonFile=isFileExists
+        return os.path.join(projectFolder,pythonFile)
+    
+    if not os.path.isdir(projectFolder):
+        os.mkdir(projectFolder)
+    configFileData= fileOp.readYMLFile()[projectName]['url']
+    url = "https://github.com/"+configFileData + "/archive/" + commitID + ".zip"
+    #url = "https://github.com/numpy/numpy/archive/" + commitID + ".zip"
+    wget.download(url, out=outputDirectory)
+    for item in os.listdir(outputDirectory):
+        if item.endswith(".zip"):
+            fileName = os.path.join(outputDirectory, os.path.basename(item))
+            with zipfile.ZipFile(os.path.join(fileName), "r") as zipObj:
+                zipObj.extractall(os.path.join(outputDirectory, projectName))
+            zipObj.close()
+            os.remove(fileName)
+        
+ 
+   
+    projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)) + '/util/Zip', projectName)
+            
+    pythonFile = fileOp.createOnePythonFile(projectPath, projectName, commitID)
+    for name in os.listdir(projectPath):
+        dirToDel = os.path.join(projectPath, name)
+        if os.path.isdir(dirToDel):
+            shutil.rmtree(dirToDel)
+
+    return pythonFile   
+   
 def getClassLinesOfAPythonFile(pythonFile):
     '''
         python file is a file that includes all files of a specific commit
@@ -32,19 +55,40 @@ def getClassLinesOfAPythonFile(pythonFile):
     try:
         classList=[]
         with open(pythonFile) as fileToRead:
-            fileLines=fileToRead.read()
-            lines=fileLines.splitlines()
-            import ast
-            tree= ast.parse(fileLines)
-            for item in ast.walk(tree):
-                if isinstance(item, ast.ClassDef):
-                    className=lines[item.lineno-1].lstrip()
-            
-                    classList.append(className)
+            fileLines=fileToRead.readlines()
+            for line in fileLines:
+                if line.lstrip().startswith('class ') and (":" in line):
+                    if "(" and ")" in line:
+                        if ":" in line:
+                            classList.append(line)
+                    elif not ("(" and ")" in line):
+                        if ":" in line:
+                            classList.append(line)
         fileToRead.close()
         return classList
     except Exception as ex:
-        print(ex)  
+        print(ex)   
+
+# def getClassLinesOfAPythonFile(pythonFile):
+    # '''
+        # python file is a file that includes all files of a specific commit
+    # '''
+    # try:
+        # classList=[]
+        # with open(pythonFile) as fileToRead:
+            # fileLines=fileToRead.read()
+            # lines=fileLines.splitlines()
+            # import ast
+            # tree= ast.parse(fileLines)
+            # for item in ast.walk(tree):
+                # if isinstance(item, ast.ClassDef):
+                    # className=lines[item.lineno-1].lstrip()
+                    #
+                    # classList.append(className)
+        # fileToRead.close()
+        # return classList
+    # except Exception as ex:
+        # print(ex)  
         
 def getAllClassesInACommit(classLine):
     classesInACommit=[]
@@ -128,19 +172,9 @@ def calculateDIT(className, parentsDict, count):
             count=1
         elif (len(parents)>=1):
             count += calculateDIT(parents[0], parentsDict, count)  
-            # if  (len(parents)==1):
-                # count += calculateDIT(parents[0], parentsDict, count)  
-            # else:
-                # for i in range(0, len(parents)):
-                    # if (parents[i]!='object'):
-                        # count += calculateDIT(parents[i], parentsDict, count)
-         
-                         
+                             
     return count
            
-  
-#def calculateNumberOfChildren(className, classLines) 
-
 def getNumberOfChildrenOfClassesInACommit(keys, classLines):
     childClassesDict={}
     for key in keys:
@@ -211,23 +245,18 @@ def calculateParallelInheritanceHiearchySmell(pythonFile):
     
     parents= getParentsOfAClassesInACommit(classLines)
     
-    
     keysList=getAllClassesInACommit(classLines)
-    
     
     for key in keysList:
         if key!='object':
             dit = calculateDIT(key, parents, 1)
             
             noc = calculateNumberOfChildren(key, classLines)
-            
-            #print("class= "+key+" dit= "+str(dit)+" noc= "+str(noc))
         
             pihSmell= False
             if dit>3 or noc>4:
                 pihSmell= True
             pihSmellListDict[key]={'dit':dit,'noc':noc,'isPIHSmell':pihSmell}
-            #print(pihSmellListDict)
             
     return pihSmellListDict
 
@@ -235,7 +264,7 @@ def calculateParallelInheritanceHiearchySmell(pythonFile):
             
 
 if __name__ == '__main__':
-    pythonFile="/Users/neda/Desktop/workspace/BadSmells/util/Zip/numpy/allPythonFiles.py" 
+    pythonFile="/Users/neda/Desktop/workspace/BadSmells/util/Zip/numpy/allPythonFilesIn_numpy_withCommitID_8eb6424.py" 
     pihSmellListDict = calculateParallelInheritanceHiearchySmell(pythonFile)
  
 
