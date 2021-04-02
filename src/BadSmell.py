@@ -215,7 +215,7 @@ class BadSmell(object):
     def checkForParallelInheritanceHiearchy(self,fileInTheFolder, projectName):
         commitID=op.find_between(fileInTheFolder, "@", "@")
         pythonFile=pih.downloadProjectInASpecificCommit(projectName, commitID)
-        pihSmellListDictForThisCommit=pih.calculateParallelInheritanceHiearchySmell(pythonFile)
+        pihSmellListDict=pih.calculateParallelInheritanceHiearchySmell(pythonFile)
         parallelInheritanceHiearchyList={}
         try:
             classList=[]
@@ -230,10 +230,11 @@ class BadSmell(object):
                             if ":" in line:
                                 classList.append(line.split(':')[0].split('class ')[1].rstrip().lstrip())
             fileToRead.close()
-            for className in classList:
-                for key, value in pihSmellListDictForThisCommit:
-                        if key==className:
-                            parallelInheritanceHiearchyList[className]= value
+            if classList and len(classList)>=1:
+                for className in classList:
+                    for key, value in pihSmellListDict.items():
+                            if key==className:
+                                parallelInheritanceHiearchyList[className]= value
             return parallelInheritanceHiearchyList
         except Exception as ex:
             print(ex)

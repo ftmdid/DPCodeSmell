@@ -5,30 +5,12 @@ Created on Oct 10, 2020
 
 @author: neda
 '''
-import src.Downloads as download
-import src.Analysis as analysis
+#import src.Downloads as download
+#import src.Analysis as analysis
 import src.Relation as relation
-import wget
-import os
-import zipfile
-from pickle import TRUE
 
-def downloadProjectInASpecificCommit(projectName, commitID):
-    
-        outputDirectory = os.path.dirname(os.path.dirname(__file__)) + '/util/Zip'
-        projectFolder = os.path.join(outputDirectory, projectName)
-        if not os.path.isdir(projectFolder):
-            os.mkdir(projectFolder)
-        url = "https://github.com/numpy/numpy/archive/" + commitID + ".zip"
-        wget.download(url, out=outputDirectory)
-        for item in os.listdir(outputDirectory):
-            if item.endswith(".zip"):
-                fileName = os.path.join(outputDirectory, os.path.basename(item))
-                with zipfile.ZipFile(os.path.join(fileName), "r") as zipObj:
-                    zipObj.extractall(os.path.join(outputDirectory, projectName))
-                zipObj.close()
-                os.remove(fileName)
-    
+
+  
 if __name__ == '__main__':
     
     #projectName='zulip'
@@ -127,20 +109,20 @@ if __name__ == '__main__':
     relation4.checkForRelation()  
     print("Finished bad smell analysis on "+projectName) 
     '''
-    '''
+    #'''
     projectName="models"   
     print("Started bad smell analysis on "+projectName)
     relation5=relation.Relation(projectName)   
     relation5.checkForRelation()
     print("Finished bad smell analysis on "+projectName) 
-    '''
     #'''
+    '''
     projectName="numpy"   
     print("Started bad smell analysis on "+projectName)
     relat=relation.Relation(projectName)  
     relat.checkForRelation()
     print("Finished bad smell analysis on "+projectName)
-    #'''
+    '''
     
 
     

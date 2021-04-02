@@ -286,13 +286,16 @@ class FileOperations(object):
     
     def createOnePythonFile(self, projectPath, projectName, commitID):
         pythonFiles =[]
-        for path, _,files in os.walk(projectPath):
-            for name in files:
-                if name[-3:]==".py":
-                    if not name.lower().startswith('test'):
-#                     if name!= "setup.py":
-#                         if not 'test' in os.path.join(path,name):
-                            pythonFiles.append(os.path.join(path,name))
+        for path, dir,_ in os.walk(projectPath):
+            for name in dir:
+                if commitID in name:
+                    print(name)
+                    direct= os.path.join(path, name)
+                    for pathForDirect,_,files in os.walk(direct):
+                        for fileName in files:
+                            if fileName[-3:]==".py":
+                                if not fileName.lower().startswith('test'):
+                                    pythonFiles.append(os.path.join(pathForDirect,fileName))
 
         try:
             fileName="allPythonFilesIn_"+projectName+"_withCommitID_"+commitID+".py"
@@ -302,17 +305,18 @@ class FileOperations(object):
             # else:
                 # print("Can not delete the file since it doesn't exists")
             with open(newPythonFile,'w+') as writer:
-                count=0
+                #count=0
                 for each in pythonFiles:
                     if each!=newPythonFile:
-                        with open(each) as infile:
+                        with open(each,encoding='windows-1252', errors='ignore') as infile:
+                        #with open(each,encoding='utf-8') as infile:
                             source = infile.read()+'\n'
                             writer.write(source)
-                            count +=1
-                # print(count) #-->python files count
+                            # infile.close()
                 writer.close()
         except Exception as ex:
                     print(ex)
+                    print("Exception occurrred in FileOperations.createOnePythonFile()")
         return newPythonFile
     
     def checkPythonFile(self, pythonFile): # check python file for syntax error
