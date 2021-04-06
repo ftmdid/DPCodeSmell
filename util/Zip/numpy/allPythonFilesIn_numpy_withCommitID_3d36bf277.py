@@ -1,0 +1,17072 @@
+#!/usr/bin/env python
+"""NumPy: array processing for numbers, strings, records, and objects.
+
+NumPy is a general-purpose array-processing package designed to
+efficiently manipulate large multi-dimensional arrays of arbitrary
+records without sacrificing too much speed for small multi-dimensional
+arrays.  NumPy is built on the Numeric code base and adds features
+introduced by numarray as well as an extended C-API and the ability to
+create arrays of arbitrary type which also makes NumPy suitable for
+interfacing with general-purpose data-base applications.
+
+There are also basic facilities for discrete fourier transform,
+basic linear algebra and random number generation.
+"""
+
+DOCLINES = __doc__.split("\n")
+
+import __builtin__
+import os
+import sys
+
+CLASSIFIERS = """\
+Development Status :: 4 - Beta
+Intended Audience :: Science/Research
+Intended Audience :: Developers
+License :: OSI Approved
+Programming Language :: C
+Programming Language :: Python
+Topic :: Software Development
+Topic :: Scientific/Engineering
+Operating System :: Microsoft :: Windows
+Operating System :: POSIX
+Operating System :: Unix
+Operating System :: MacOS
+"""
+
+# BEFORE importing distutils, remove MANIFEST. distutils doesn't properly
+# update it when the contents of directories change.
+if os.path.exists('MANIFEST'): os.remove('MANIFEST')
+
+sys.path.insert(0, os.path.dirname(__file__))
+try:
+    setup_py = __import__("setup")
+    FULLVERSION = setup_py.FULLVERSION
+    write_version_py = setup_py.write_version_py
+finally:
+    sys.path.pop(0)
+
+# This is a bit hackish: we are setting a global variable so that the main
+# numpy __init__ can detect if it is being loaded by the setup routine, to
+# avoid attempting to load components that aren't built yet.  While ugly, it's
+# a lot more robust than what was previously being used.
+__builtin__.__NUMPY_SETUP__ = True
+
+# DO NOT REMOVE numpy.distutils IMPORT ! This is necessary for numpy.distutils'
+# monkey patching to work.
+import numpy.distutils
+from distutils.errors import DistutilsError
+try:
+    import numscons
+except ImportError, e:
+    msg = ["You cannot build numpy with scons without the numscons package "]
+    msg.append("(Failure was: %s)" % e)
+    raise DistutilsError('\n'.join(msg))
+
+def configuration(parent_package='',top_path=None):
+    from numpy.distutils.misc_util import Configuration
+
+    config = Configuration(None, parent_package, top_path, setup_name = 'setupscons.py')
+    config.set_options(ignore_setup_xxx_py=True,
+                       assume_default_configuration=True,
+                       delegate_options_to_subpackages=True,
+                       quiet=True)
+
+    config.add_subpackage('numpy')
+
+    config.add_data_files(('numpy','*.txt'),
+                          ('numpy','COMPATIBILITY'),
+                          ('numpy','site.cfg.example'),
+                          ('numpy','setup.py'))
+
+    config.get_version('numpy/version.py') # sets config.version
+
+    return config
+
+def setup_package():
+
+    from numpy.distutils.core import setup
+
+    old_path = os.getcwd()
+    local_path = os.path.dirname(os.path.abspath(sys.argv[0]))
+    os.chdir(local_path)
+    sys.path.insert(0,local_path)
+
+    # Rewrite the version file everytime
+    if os.path.exists('numpy/version.py'): os.remove('numpy/version.py')
+    write_version_py()
+
+    try:
+        setup(
+            name = 'numpy',
+            maintainer = "NumPy Developers",
+            maintainer_email = "numpy-discussion@lists.sourceforge.net",
+            description = DOCLINES[0],
+            long_description = "\n".join(DOCLINES[2:]),
+            url = "http://numeric.scipy.org",
+            download_url = "http://sourceforge.net/project/showfiles.php?group_id=1369&package_id=175103",
+            license = 'BSD',
+            classifiers=filter(None, CLASSIFIERS.split('\n')),
+            author = "Travis E. Oliphant, et.al.",
+            author_email = "oliphant@ee.byu.edu",
+            platforms = ["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
+            configuration=configuration )
+    finally:
+        del sys.path[0]
+        os.chdir(old_path)
+    return
+
+if __name__ == '__main__':
+    setup_package()
+
+#!/usr/bin/env python
+"""
+A setup.py script to use setuptools, which gives egg goodness, etc.
+"""
+
+from setuptools import setup
+execfile('setupscons.py')
+
+"""
+This paver file is intented to help with the release process as much as
+possible. It relies on virtualenv to generate 'bootstrap' environments as
+independent from the user system as possible (e.g. to make sure the sphinx doc
+is built against the built numpy, not an installed one).
+
+Building a fancy dmg from scratch
+=================================
+
+Clone the numpy-macosx-installer git repo from on github into the source tree
+(numpy-macosx-installer should be in the same directory as setup.py). Then, do
+as follows::
+
+    git clone git://github.com/cournape/macosx-numpy-installer
+    # remove build dir, and everything generated by previous paver calls
+    # (included generated installers). Use with care !
+    paver nuke
+    paver bootstrap && source boostrap/bin/activate
+    # Installing numpy is necessary to build the correct documentation (because
+    # of autodoc)
+    python setupegg.py install
+    paver dmg
+
+Building a simple (no-superpack) windows installer from wine
+============================================================
+
+It assumes that blas/lapack are in c:\local\lib inside drive_c. Build python
+2.5 and python 2.6 installers.
+
+    paver bdist_wininst_simple
+
+You will have to configure your wine python locations (WINE_PYS).
+
+The superpack requires all the atlas libraries for every arch to be installed
+(see SITECFG), and can then be built as follows::
+
+    paver bdist_superpack
+
+Building changelog + notes
+==========================
+
+Assumes you have git and the binaries/tarballs in installers/::
+
+    paver write_release
+    paver write_note
+
+This automatically put the checksum into NOTES.txt, and write the Changelog
+which can be uploaded to sourceforge.
+
+TODO
+====
+    - the script is messy, lots of global variables
+    - make it more easily customizable (through command line args)
+    - missing targets: install & test, sdist test, debian packaging
+    - fix bdist_mpkg: we build the same source twice -> how to make sure we use
+      the same underlying python for egg install in venv and for bdist_mpkg
+"""
+import os
+import sys
+import subprocess
+import re
+import shutil
+try:
+    from hash import md5
+except ImportError:
+    import md5
+
+import distutils
+
+try:
+    from paver.tasks import VERSION as _PVER
+    if not _PVER >= '1.0':
+        raise RuntimeError("paver version >= 1.0 required (was %s)" % _PVER)
+except ImportError, e:
+    raise RuntimeError("paver version >= 1.0 required")
+
+import paver
+import paver.doctools
+import paver.path
+from paver.easy import options, Bunch, task, needs, dry, sh, call_task
+
+setup_py = __import__("setup")
+FULLVERSION = setup_py.FULLVERSION
+
+# Wine config for win32 builds
+WINE_SITE_CFG = ""
+if sys.platform == "darwin":
+    WINE_PY25 = "/Applications/Darwine/Wine.bundle/Contents/bin/wine /Users/david/.wine/drive_c/Python25/python.exe"
+    WINE_PY26 = "/Applications/Darwine/Wine.bundle/Contents/bin/wine /Users/david/.wine/drive_c/Python26/python.exe"
+else:
+    WINE_PY25 = "/home/david/.wine/drive_c/Python25/python.exe"
+    WINE_PY26 = "/home/david/.wine/drive_c/Python26/python.exe"
+WINE_PYS = {'2.6' : WINE_PY26, '2.5': WINE_PY25}
+SUPERPACK_BUILD = 'build-superpack'
+SUPERPACK_BINDIR = os.path.join(SUPERPACK_BUILD, 'binaries')
+
+# Where to put built documentation (where it will picked up for copy to
+# binaries)
+PDF_DESTDIR = paver.path.path('build') / 'pdf'
+HTML_DESTDIR = paver.path.path('build') / 'html'
+DOC_ROOT = paver.path.path("doc")
+DOC_SRC = DOC_ROOT / "source"
+DOC_BLD = DOC_ROOT / "build"
+DOC_BLD_LATEX = DOC_BLD / "latex"
+
+# Source of the release notes
+RELEASE = 'doc/release/1.3.0-notes.rst'
+
+# Start/end of the log (from git)
+LOG_START = 'tags/1.2.0'
+LOG_END = 'master'
+
+# Virtualenv bootstrap stuff
+BOOTSTRAP_DIR = "bootstrap"
+BOOTSTRAP_PYEXEC = "%s/bin/python" % BOOTSTRAP_DIR
+BOOTSTRAP_SCRIPT = "%s/bootstrap.py" % BOOTSTRAP_DIR
+
+DMG_CONTENT = paver.path.path('numpy-macosx-installer') / 'content'
+
+# Where to put the final installers, as put on sourceforge
+RELEASE_DIR = 'release'
+INSTALLERS_DIR = os.path.join(RELEASE_DIR, 'installers')
+
+# XXX: fix this in a sane way
+MPKG_PYTHON = {"25": "/Library/Frameworks/Python.framework/Versions/2.5/bin/python",
+        "26": "/Library/Frameworks/Python.framework/Versions/2.6/bin/python"}
+
+options(sphinx=Bunch(builddir="build", sourcedir="source", docroot='doc'),
+        virtualenv=Bunch(script_name=BOOTSTRAP_SCRIPT,packages_to_install=["sphinx==0.6.1"]),
+        wininst=Bunch(pyver="2.5", scratch=True))
+
+# Bootstrap stuff
+@task
+def bootstrap():
+    """create virtualenv in ./install"""
+    install = paver.path.path(BOOTSTRAP_DIR)
+    if not install.exists():
+        install.mkdir()
+    call_task('paver.virtual.bootstrap')
+    sh('cd %s; %s bootstrap.py' % (BOOTSTRAP_DIR, sys.executable))
+
+@task
+def clean():
+    """Remove build, dist, egg-info garbage."""
+    d = ['build', 'dist', 'numpy.egg-info']
+    for i in d:
+        paver.path.path(i).rmtree()
+
+    (paver.path.path('doc') / options.sphinx.builddir).rmtree()
+
+@task
+def clean_bootstrap():
+    paver.path.path('bootstrap').rmtree()
+
+@task
+@needs('clean', 'clean_bootstrap')
+def nuke():
+    """Remove everything: build dir, installers, bootstrap dirs, etc..."""
+    d = [SUPERPACK_BUILD, INSTALLERS_DIR]
+    for i in d:
+        paver.path.path(i).rmtree()
+
+# NOTES/Changelog stuff
+def compute_md5():
+    released = paver.path.path(INSTALLERS_DIR).listdir()
+    checksums = []
+    for f in released:
+        m = md5.md5(open(f, 'r').read())
+        checksums.append('%s  %s' % (m.hexdigest(), f))
+
+    return checksums
+
+def write_release_task(filename='NOTES.txt'):
+    source = paver.path.path(RELEASE)
+    target = paver.path.path(filename)
+    if target.exists():
+        target.remove()
+    source.copy(target)
+    ftarget = open(str(target), 'a')
+    ftarget.writelines("""
+Checksums
+=========
+
+""")
+    ftarget.writelines(['%s\n' % c for c in compute_md5()])
+
+def write_log_task(filename='Changelog'):
+    st = subprocess.Popen(
+            ['git', 'svn', 'log',  '%s..%s' % (LOG_START, LOG_END)],
+            stdout=subprocess.PIPE)
+
+    out = st.communicate()[0]
+    a = open(filename, 'w')
+    a.writelines(out)
+    a.close()
+
+@task
+def write_release():
+    write_release_task()
+
+@task
+def write_log():
+    write_log_task()
+
+# Doc stuff
+@task
+def html(options):
+    """Build numpy documentation and put it into build/docs"""
+    # Don't use paver html target because of numpy bootstrapping problems
+    subprocess.check_call(["make", "html"], cwd="doc")
+    builtdocs = paver.path.path("doc") / options.sphinx.builddir / "html"
+    HTML_DESTDIR.rmtree()
+    builtdocs.copytree(HTML_DESTDIR)
+
+@task
+def latex():
+    """Build numpy documentation in latex format."""
+    subprocess.check_call(["make", "latex"], cwd="doc")
+
+@task
+@needs('latex')
+def pdf():
+    def build_pdf():
+        subprocess.check_call(["make", "all-pdf"], cwd=str(DOC_BLD_LATEX))
+    dry("Build pdf doc", build_pdf)
+
+    PDF_DESTDIR.rmtree()
+    PDF_DESTDIR.makedirs()
+
+    user = DOC_BLD_LATEX / "numpy-user.pdf"
+    user.copy(PDF_DESTDIR / "userguide.pdf")
+    ref =  DOC_BLD_LATEX / "numpy-ref.pdf"
+    ref.copy(PDF_DESTDIR / "reference.pdf")
+
+def tarball_name(type='gztar'):
+    root = 'numpy-%s' % FULLVERSION
+    if type == 'gztar':
+        return root + '.tar.gz'
+    elif type == 'zip':
+        return root + '.zip'
+    raise ValueError("Unknown type %s" % type)
+
+@task
+def sdist():
+    # To be sure to bypass paver when building sdist... paver + numpy.distutils
+    # do not play well together.
+    sh('python setup.py sdist --formats=gztar,zip')
+
+    # Copy the superpack into installers dir
+    if not os.path.exists(INSTALLERS_DIR):
+        os.makedirs(INSTALLERS_DIR)
+
+    for t in ['gztar', 'zip']:
+        source = os.path.join('dist', tarball_name(t))
+        target = os.path.join(INSTALLERS_DIR, tarball_name(t))
+        shutil.copy(source, target)
+
+#------------------
+# Wine-based builds
+#------------------
+SSE3_CFG = {'BLAS': r'C:\local\lib\yop\sse3', 'LAPACK': r'C:\local\lib\yop\sse3'}
+SSE2_CFG = {'BLAS': r'C:\local\lib\yop\sse2', 'LAPACK': r'C:\local\lib\yop\sse2'}
+NOSSE_CFG = {'BLAS': r'C:\local\lib\yop\nosse', 'LAPACK': r'C:\local\lib\yop\nosse'}
+
+SITECFG = {"sse2" : SSE2_CFG, "sse3" : SSE3_CFG, "nosse" : NOSSE_CFG}
+
+def internal_wininst_name(arch, ismsi=False):
+    """Return the name of the wininst as it will be inside the superpack (i.e.
+    with the arch encoded."""
+    if ismsi:
+        ext = '.msi'
+    else:
+        ext = '.exe'
+    return "numpy-%s-%s%s" % (FULLVERSION, arch, ext)
+
+def wininst_name(pyver, ismsi=False):
+    """Return the name of the installer built by wininst command."""
+    # Yeah, the name logic is harcoded in distutils. We have to reproduce it
+    # here
+    if ismsi:
+        ext = '.msi'
+    else:
+        ext = '.exe'
+    name = "numpy-%s.win32-py%s%s" % (FULLVERSION, pyver, ext)
+    return name
+
+def bdist_wininst_arch(pyver, arch, scratch=True):
+    """Arch specific wininst build."""
+    if scratch:
+        paver.path.path('build').rmtree()
+
+    if not os.path.exists(SUPERPACK_BINDIR):
+        os.makedirs(SUPERPACK_BINDIR)
+    _bdist_wininst(pyver, SITECFG[arch])
+    source = os.path.join('dist', wininst_name(pyver))
+    target = os.path.join(SUPERPACK_BINDIR, internal_wininst_name(arch))
+    if os.path.exists(target):
+        os.remove(target)
+    os.rename(source, target)
+
+def superpack_name(pyver, numver):
+    """Return the filename of the superpack installer."""
+    return 'numpy-%s-win32-superpack-python%s.exe' % (numver, pyver)
+
+def prepare_nsis_script(pyver, numver):
+    if not os.path.exists(SUPERPACK_BUILD):
+        os.makedirs(SUPERPACK_BUILD)
+
+    tpl = os.path.join('tools/win32build/nsis_scripts', 'numpy-superinstaller.nsi.in')
+    source = open(tpl, 'r')
+    target = open(os.path.join(SUPERPACK_BUILD, 'numpy-superinstaller.nsi'), 'w')
+
+    installer_name = superpack_name(pyver, numver)
+    cnt = "".join(source.readlines())
+    cnt = cnt.replace('@NUMPY_INSTALLER_NAME@', installer_name)
+    for arch in ['nosse', 'sse2', 'sse3']:
+        cnt = cnt.replace('@%s_BINARY@' % arch.upper(),
+                          internal_wininst_name(arch))
+
+    target.write(cnt)
+
+@task
+def bdist_wininst_nosse(options):
+    """Build the nosse wininst installer."""
+    bdist_wininst_arch(options.wininst.pyver, 'nosse', scratch=options.wininst.scratch)
+
+@task
+def bdist_wininst_sse2(options):
+    """Build the sse2 wininst installer."""
+    bdist_wininst_arch(options.wininst.pyver, 'sse2', scratch=options.wininst.scratch)
+
+@task
+def bdist_wininst_sse3(options):
+    """Build the sse3 wininst installer."""
+    bdist_wininst_arch(options.wininst.pyver, 'sse3', scratch=options.wininst.scratch)
+
+@task
+@needs('bdist_wininst_nosse', 'bdist_wininst_sse2', 'bdist_wininst_sse3')
+def bdist_superpack(options):
+    """Build all arch specific wininst installers."""
+    prepare_nsis_script(options.wininst.pyver, FULLVERSION)
+    subprocess.check_call(['makensis', 'numpy-superinstaller.nsi'],
+            cwd=SUPERPACK_BUILD)
+
+    # Copy the superpack into installers dir
+    if not os.path.exists(INSTALLERS_DIR):
+        os.makedirs(INSTALLERS_DIR)
+
+    source = os.path.join(SUPERPACK_BUILD,
+                superpack_name(options.wininst.pyver, FULLVERSION))
+    target = os.path.join(INSTALLERS_DIR,
+                superpack_name(options.wininst.pyver, FULLVERSION))
+    shutil.copy(source, target)
+
+@task
+@needs('clean', 'bdist_wininst')
+def bdist_wininst_simple():
+    """Simple wininst-based installer."""
+    _bdist_wininst(pyver=options.wininst.pyver)
+
+def _bdist_wininst(pyver, cfg_env=WINE_SITE_CFG):
+    subprocess.check_call([WINE_PYS[pyver], 'setup.py', 'build', '-c', 'mingw32', 'bdist_wininst'], env=cfg_env)
+
+#-------------------
+# Mac OS X installer
+#-------------------
+def macosx_version():
+    if not sys.platform == 'darwin':
+        raise ValueError("Not darwin ??")
+    st = subprocess.Popen(["sw_vers"], stdout=subprocess.PIPE)
+    out = st.stdout.readlines()
+    ver = re.compile("ProductVersion:\s+([0-9]+)\.([0-9]+)\.([0-9]+)")
+    for i in out:
+        m = ver.match(i)
+        if m:
+            return m.groups()
+
+def mpkg_name():
+    maj, min = macosx_version()[:2]
+    pyver = ".".join([str(i) for i in sys.version_info[:2]])
+    return "numpy-%s-py%s-macosx%s.%s.mpkg" % \
+            (FULLVERSION, pyver, maj, min)
+
+def dmg_name():
+    maj, min = macosx_version()[:2]
+    pyver = ".".join([str(i) for i in sys.version_info[:2]])
+    return "numpy-%s-py%s-macosx%s.%s.dmg" % \
+            (FULLVERSION, pyver, maj, min)
+
+@task
+def bdist_mpkg():
+    call_task("clean")
+    pyver = "".join([str(i) for i in sys.version_info[:2]])
+    sh("%s setupegg.py bdist_mpkg" % MPKG_PYTHON[pyver])
+
+@task
+@needs("bdist_mpkg", "pdf")
+def dmg():
+    pyver = ".".join([str(i) for i in sys.version_info[:2]])
+
+    dmg_n = dmg_name()
+    dmg = paver.path.path('numpy-macosx-installer') / dmg_n
+    if dmg.exists():
+        dmg.remove()
+
+    # Clean the image source
+    content = DMG_CONTENT
+    content.rmtree()
+    content.mkdir()
+
+    # Copy mpkg into image source
+    mpkg_n = mpkg_name()
+    mpkg_tn = "numpy-%s-py%s.mpkg" % (FULLVERSION, pyver)
+    mpkg_source = paver.path.path("dist") / mpkg_n
+    mpkg_target = content / mpkg_tn
+    mpkg_source.copytree(content / mpkg_tn)
+
+    # Copy docs into image source
+
+    #html_docs = HTML_DESTDIR
+    #html_docs.copytree(content / "Documentation" / "html")
+
+    pdf_docs = DMG_CONTENT / "Documentation"
+    pdf_docs.rmtree()
+    pdf_docs.makedirs()
+
+    user = PDF_DESTDIR / "userguide.pdf"
+    user.copy(pdf_docs / "userguide.pdf")
+    ref = PDF_DESTDIR / "reference.pdf"
+    ref.copy(pdf_docs / "reference.pdf")
+
+    # Build the dmg
+    cmd = ["./create-dmg", "--window-size", "500", "500", "--background",
+        "art/dmgbackground.png", "--icon-size", "128", "--icon", mpkg_tn,
+        "125", "320", "--icon", "Documentation", "375", "320", "--volname", "numpy",
+        dmg_n, "./content"]
+    subprocess.check_call(cmd, cwd="numpy-macosx-installer")
+
+@task
+def simple_dmg():
+    # Build the dmg
+    image_name = "numpy-%s.dmg" % FULLVERSION
+    image = paver.path.path(image_name)
+    image.remove()
+    cmd = ["hdiutil", "create", image_name, "-srcdir", str(builddir)]
+    sh(" ".join(cmd))
+
+@task
+def write_note_changelog():
+    write_release_task(os.path.join(RELEASE_DIR, 'NOTES.txt'))
+    write_log_task(os.path.join(RELEASE_DIR, 'Changelog'))
+
+#!/usr/bin/env python
+"""NumPy: array processing for numbers, strings, records, and objects.
+
+NumPy is a general-purpose array-processing package designed to
+efficiently manipulate large multi-dimensional arrays of arbitrary
+records without sacrificing too much speed for small multi-dimensional
+arrays.  NumPy is built on the Numeric code base and adds features
+introduced by numarray as well as an extended C-API and the ability to
+create arrays of arbitrary type which also makes NumPy suitable for
+interfacing with general-purpose data-base applications.
+
+There are also basic facilities for discrete fourier transform,
+basic linear algebra and random number generation.
+"""
+
+DOCLINES = __doc__.split("\n")
+
+import __builtin__
+import os
+import sys
+import re
+import subprocess
+
+CLASSIFIERS = """\
+Development Status :: 5 - Production/Stable
+Intended Audience :: Science/Research
+Intended Audience :: Developers
+License :: OSI Approved
+Programming Language :: C
+Programming Language :: Python
+Topic :: Software Development
+Topic :: Scientific/Engineering
+Operating System :: Microsoft :: Windows
+Operating System :: POSIX
+Operating System :: Unix
+Operating System :: MacOS
+"""
+
+NAME                = 'numpy'
+MAINTAINER          = "NumPy Developers"
+MAINTAINER_EMAIL    = "numpy-discussion@scipy.org"
+DESCRIPTION         = DOCLINES[0]
+LONG_DESCRIPTION    = "\n".join(DOCLINES[2:])
+URL                 = "http://numpy.scipy.org"
+DOWNLOAD_URL        = "http://sourceforge.net/project/showfiles.php?group_id=1369&package_id=175103"
+LICENSE             = 'BSD'
+CLASSIFIERS         = filter(None, CLASSIFIERS.split('\n'))
+AUTHOR              = "Travis E. Oliphant, et.al."
+AUTHOR_EMAIL        = "oliphant@enthought.com"
+PLATFORMS           = ["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"]
+MAJOR               = 1
+MINOR               = 4
+MICRO               = 0
+ISRELEASED          = False
+VERSION             = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
+
+# Return the svn version as a string, raise a ValueError otherwise
+def svn_version():
+    def _minimal_ext_cmd(cmd):
+        # construct minimal environment
+        env = {}
+        for k in ['SYSTEMROOT', 'PATH']:
+            v = os.environ.get(k)
+            if v is not None:
+                env[k] = v
+        # LANGUAGE is used on win32
+        env['LANGUAGE'] = 'C'
+        env['LANG'] = 'C'
+        env['LC_ALL'] = 'C'
+        out = subprocess.Popen(cmd, stdout = subprocess.PIPE, env=env).communicate()[0]
+        return out
+
+    try:
+        out = _minimal_ext_cmd(['svn', 'info'])
+    except OSError:
+        print(" --- Could not run svn info --- ")
+        return ""
+
+    r = re.compile('Revision: ([0-9]+)')
+    svnver = ""
+    for line in out.split('\n'):
+        m = r.match(line.strip())
+        if m:
+            svnver = m.group(1)
+
+    if not svnver:
+        print("Error while parsing svn version")
+
+    return svnver
+
+# BEFORE importing distutils, remove MANIFEST. distutils doesn't properly
+# update it when the contents of directories change.
+if os.path.exists('MANIFEST'): os.remove('MANIFEST')
+
+# This is a bit hackish: we are setting a global variable so that the main
+# numpy __init__ can detect if it is being loaded by the setup routine, to
+# avoid attempting to load components that aren't built yet.  While ugly, it's
+# a lot more robust than what was previously being used.
+__builtin__.__NUMPY_SETUP__ = True
+
+FULLVERSION = VERSION
+if not ISRELEASED:
+    FULLVERSION += '.dev'
+    # If in git or something, bypass the svn rev
+    if os.path.exists('.svn'):
+        FULLVERSION += svn_version()
+
+def write_version_py(filename='numpy/version.py'):
+    cnt = """
+# THIS FILE IS GENERATED FROM NUMPY SETUP.PY
+short_version='%(version)s'
+version='%(version)s'
+release=%(isrelease)s
+
+if not release:
+    version += '.dev'
+    import os
+    svn_version_file = os.path.join(os.path.dirname(__file__),
+                                   'core','__svn_version__.py')
+    if os.path.isfile(svn_version_file):
+        import imp
+        svn = imp.load_module('numpy.core.__svn_version__',
+                              open(svn_version_file),
+                              svn_version_file,
+                              ('.py','U',1))
+        version += svn.version
+"""
+    a = open(filename, 'w')
+    try:
+        a.write(cnt % {'version': VERSION, 'isrelease': str(ISRELEASED)})
+    finally:
+        a.close()
+
+def configuration(parent_package='',top_path=None):
+    from numpy.distutils.misc_util import Configuration
+
+    config = Configuration(None, parent_package, top_path)
+    config.set_options(ignore_setup_xxx_py=True,
+                       assume_default_configuration=True,
+                       delegate_options_to_subpackages=True,
+                       quiet=True)
+
+    config.add_subpackage('numpy')
+
+    config.add_data_files(('numpy','*.txt'),
+                          ('numpy','COMPATIBILITY'),
+                          ('numpy','site.cfg.example'))
+
+    config.get_version('numpy/version.py') # sets config.version
+
+    return config
+
+def setup_package():
+
+    from numpy.distutils.core import setup
+
+    old_path = os.getcwd()
+    local_path = os.path.dirname(os.path.abspath(sys.argv[0]))
+    os.chdir(local_path)
+    sys.path.insert(0,local_path)
+
+    # Rewrite the version file everytime
+    if os.path.exists('numpy/version.py'): os.remove('numpy/version.py')
+    write_version_py()
+
+    try:
+        setup(
+            name=NAME,
+            maintainer=MAINTAINER,
+            maintainer_email=MAINTAINER_EMAIL,
+            description=DESCRIPTION,
+            long_description=LONG_DESCRIPTION,
+            url=URL,
+            download_url=DOWNLOAD_URL,
+            license=LICENSE,
+            classifiers=CLASSIFIERS,
+            author=AUTHOR,
+            author_email=AUTHOR_EMAIL,
+            platforms=PLATFORMS,
+            configuration=configuration )
+    finally:
+        del sys.path[0]
+        os.chdir(old_path)
+    return
+
+if __name__ == '__main__':
+    setup_package()
+
+#!/usr/bin/env python
+"""
+A setup.py script to use setuptools, which gives egg goodness, etc.
+"""
+
+from setuptools import setup
+execfile('setup.py')
+
+
+# Run svn log -l <some number>
+
+import re
+import numpy as np
+import os
+
+names = re.compile(r'r\d+\s[|]\s(.*)\s[|]\s200')
+
+def get_count(filename, repo):
+    mystr = open(filename).read()
+    result = names.findall(mystr)
+    u = np.unique(result)
+    count = [(x,result.count(x),repo) for x in u]
+    return count
+    
+
+command = 'svn log -l 2300 > output.txt'
+os.chdir('..')
+os.system(command)
+
+count = get_count('output.txt', 'NumPy')
+
+
+os.chdir('../scipy')
+os.system(command)
+
+count.extend(get_count('output.txt', 'SciPy'))
+
+os.chdir('../scikits')
+os.system(command)
+count.extend(get_count('output.txt', 'SciKits'))
+count.sort()
+
+             
+
+print "** SciPy and NumPy **"
+print "====================="
+for val in count:
+    print val
+
+
+                   
+
+"""Python script to build windows binaries to be fed to the "superpack".
+
+The script is pretty dumb: it assumes python executables are installed the
+standard way, and the location for blas/lapack/atlas is harcoded."""
+
+# TODO:
+#  - integrate the x86analysis script to check built binaries
+#  - make the config configurable with a file
+import sys
+import subprocess
+import os
+import shutil
+from os.path import join as pjoin, split as psplit, dirname
+
+PYEXECS = {"2.5" : "C:\python25\python.exe",
+        "2.4" : "C:\python24\python24.exe",
+        "2.6" : "C:\python26\python26.exe"}
+
+_SSE3_CFG = r"""[atlas]
+library_dirs = C:\local\lib\yop\sse3"""
+_SSE2_CFG = r"""[atlas]
+library_dirs = C:\local\lib\yop\sse2"""
+_NOSSE_CFG = r"""[DEFAULT]
+library_dirs = C:\local\lib\yop\nosse"""
+
+SITECFG = {"sse2" : _SSE2_CFG, "sse3" : _SSE3_CFG, "nosse" : _NOSSE_CFG}
+
+def get_python_exec(ver):
+    """Return the executable of python for the given version."""
+    # XXX Check that the file actually exists
+    try:
+        return PYEXECS[ver]
+    except KeyError:
+        raise ValueError("Version %s not supported/recognized" % ver)
+
+def get_clean():
+    if os.path.exists("build"):
+        shutil.rmtree("build")
+    if os.path.exists("dist"):
+        shutil.rmtree("dist")
+
+def write_site_cfg(arch):
+    if os.path.exists("site.cfg"):
+        os.remove("site.cfg")
+    f = open("site.cfg", 'w')
+    f.writelines(SITECFG[arch])
+    f.close()
+
+def build(arch, pyver):
+    print "Building numpy binary for python %s, arch is %s" % (get_python_exec(pyver), arch)
+    get_clean()
+    write_site_cfg(arch)
+
+    if BUILD_MSI:
+        cmd = "%s setup.py build -c mingw32 bdist_msi" % get_python_exec(pyver)
+    else:
+        cmd = "%s setup.py build -c mingw32 bdist_wininst" % get_python_exec(pyver)
+    build_log = "build-%s-%s.log" % (arch, pyver)
+    f = open(build_log, 'w')
+
+    try:
+        try:
+            subprocess.check_call(cmd, shell = True, stderr = subprocess.STDOUT, stdout = f)
+        finally:
+            f.close()
+    except subprocess.CalledProcessError, e:
+        msg = """
+There was an error while executing the following command:
+
+    %s
+
+Error was : %s
+
+Look at the build log (%s).""" % (cmd, str(e), build_log)
+        raise Exception(msg)
+
+    move_binary(arch, pyver)
+
+def move_binary(arch, pyver):
+    if not os.path.exists("binaries"):
+        os.makedirs("binaries")
+
+    shutil.move(os.path.join('dist', get_windist_exec(pyver)),
+            os.path.join("binaries", get_binary_name(arch)))
+
+def get_numpy_version():
+    import __builtin__
+    __builtin__.__NUMPY_SETUP__ = True
+    from numpy.version import version
+    return version
+
+def get_binary_name(arch):
+    if BUILD_MSI:
+        ext = '.msi'
+    else:
+        ext = '.exe'
+    return "numpy-%s-%s%s" % (get_numpy_version(), arch, ext)
+
+def get_windist_exec(pyver):
+    """Return the name of the installer built by wininst command."""
+    # Yeah, the name logic is harcoded in distutils. We have to reproduce it
+    # here
+    if BUILD_MSI:
+        ext = '.msi'
+    else:
+        ext = '.exe'
+    name = "numpy-%s.win32-py%s%s" % (get_numpy_version(), pyver, ext)
+    return name
+
+if __name__ == '__main__':
+    from optparse import OptionParser
+    parser = OptionParser()
+    parser.add_option("-a", "--arch", dest="arch",
+                      help = "Architecture to build (sse2, sse3, nosse, etc...)")
+    parser.add_option("-p", "--pyver", dest="pyver",
+                      help = "Python version (2.4, 2.5, etc...)")
+    parser.add_option("-m", "--build-msi", dest="msi",
+                      help = "0 or 1. If 1, build a msi instead of an exe.")
+
+    opts, args = parser.parse_args()
+    arch = opts.arch
+    pyver = opts.pyver
+    msi = opts.msi
+
+    if not pyver:
+        pyver = "2.5"
+    if not msi:
+        BUILD_MSI = False
+    else:
+        BUILD_MSI = True
+
+    if not arch:
+        for arch in SITECFG.keys():
+            build(arch, pyver)
+    else:
+        build(arch, pyver)
+
+import subprocess
+import os
+
+if __name__ == '__main__':
+    from optparse import OptionParser
+    parser = OptionParser()
+    parser.add_option("-p", "--pyver", dest="pyver",
+                      help = "Python version (2.4, 2.5, etc...)")
+
+    opts, args = parser.parse_args()
+    pyver = opts.pyver
+
+    if not pyver:
+        pyver = "2.5"
+
+    # Bootstrap
+    subprocess.check_call(['python', 'prepare_bootstrap.py', '-p', pyver])
+
+    # Build binaries
+    subprocess.check_call(['python', 'build.py', '-p', pyver], 
+                          cwd = 'bootstrap-%s' % pyver)
+
+    # Build installer using nsis
+    subprocess.check_call(['makensis', 'numpy-superinstaller.nsi'], 
+                          cwd = 'bootstrap-%s' % pyver)
+
+import os
+import subprocess
+import shutil
+from os.path import join as pjoin, split as psplit, dirname
+from zipfile import ZipFile
+import re
+
+def get_sdist_tarball():
+    """Return the name of the installer built by wininst command."""
+    # Yeah, the name logic is harcoded in distutils. We have to reproduce it
+    # here
+    name = "numpy-%s.zip" % get_numpy_version()
+    return name
+
+def build_sdist():
+    cwd = os.getcwd()
+    try:
+        os.chdir('../..')
+        cmd = ["python", "setup.py", "sdist", "--format=zip"]
+        subprocess.call(cmd)
+    except Exception, e:
+        raise RuntimeError("Error while executing cmd (%s)" % e)
+    finally:
+        os.chdir(cwd)
+
+def prepare_numpy_sources(bootstrap = 'bootstrap'):
+    zid = ZipFile(pjoin('..', '..', 'dist', get_sdist_tarball()))
+    root = 'numpy-%s' % get_numpy_version()
+
+    # From the sdist-built tarball, extract all files into bootstrap directory,
+    # but removing the numpy-VERSION head path
+    for name in zid.namelist():
+        cnt = zid.read(name)
+        if name.startswith(root):
+            # XXX: even on windows, the path sep in zip is '/' ?
+            name = name.split('/', 1)[1]
+        newname = pjoin(bootstrap, name)
+
+        if not os.path.exists(dirname(newname)):
+            os.makedirs(dirname(newname))
+        fid = open(newname, 'wb')
+        fid.write(cnt)
+
+def prepare_nsis_script(bootstrap, pyver, numver):
+    tpl = os.path.join('nsis_scripts', 'numpy-superinstaller.nsi.in')
+    source = open(tpl, 'r')
+    target = open(pjoin(bootstrap, 'numpy-superinstaller.nsi'), 'w')
+
+    installer_name = 'numpy-%s-win32-superpack-python%s.exe' % (numver, pyver)
+    cnt = "".join(source.readlines())
+    cnt = cnt.replace('@NUMPY_INSTALLER_NAME@', installer_name)
+    for arch in ['nosse', 'sse2', 'sse3']:
+        cnt = cnt.replace('@%s_BINARY@' % arch.upper(),
+                          get_binary_name(arch))
+
+    target.write(cnt)
+
+def prepare_bootstrap(pyver):
+    bootstrap = "bootstrap-%s" % pyver
+    if os.path.exists(bootstrap):
+        shutil.rmtree(bootstrap)
+    os.makedirs(bootstrap)
+
+    build_sdist()
+    prepare_numpy_sources(bootstrap)
+
+    shutil.copy('build.py', bootstrap)
+    prepare_nsis_script(bootstrap, pyver, get_numpy_version())
+
+def get_binary_name(arch):
+    return "numpy-%s-%s.exe" % (get_numpy_version(), arch)
+
+def get_numpy_version(chdir = pjoin('..', '..')):
+    cwd = os.getcwd()
+    try:
+        if not chdir:
+            chdir = cwd
+        os.chdir(chdir)
+        version = subprocess.Popen(['python', '-c', 'import __builtin__; __builtin__.__NUMPY_SETUP__ = True; from numpy.version import version;print version'], stdout =  subprocess.PIPE).communicate()[0]
+        version = version.strip()
+        if 'dev' in version:
+            out = subprocess.Popen(['svn', 'info'], stdout = subprocess.PIPE).communicate()[0]
+            r = re.compile('Revision: ([0-9]+)')
+            svnver = None
+            for line in out.split('\n'):
+                m = r.match(line)
+                if m:
+                    svnver = m.group(1)
+
+            if not svnver:
+                raise ValueError("Error while parsing svn version ?")
+            version += svnver
+    finally:
+        os.chdir(cwd)
+    return version
+
+if __name__ == '__main__':
+    from optparse import OptionParser
+    parser = OptionParser()
+    parser.add_option("-p", "--pyver", dest="pyver",
+                      help = "Python version (2.4, 2.5, etc...)")
+
+    opts, args = parser.parse_args()
+    pyver = opts.pyver
+
+    if not pyver:
+        pyver = "2.5"
+
+    prepare_bootstrap(pyver)
+
+#! /usr/bin/env python
+# Last Change: Sat Mar 28 02:00 AM 2009 J
+
+# Try to identify instruction set used in binary (x86 only). This works by
+# checking the assembly for instructions specific to sse, etc... Obviously,
+# this won't work all the times (for example, if some instructions are used
+# only after proper detection of the running CPU, this will give false alarm).
+
+import sys
+import re
+import os
+import subprocess
+import popen2
+import optparse
+
+I486_SET = ["cmpxchg", "xadd", "bswap", "invd", "wbinvd", "invlpg"]
+I586_SET = ["rdmsr", "wrmsr", "rdtsc", "cmpxch8B", "rsm"]
+PPRO_SET = ["cmovcc", "fcmovcc", "fcomi", "fcomip", "fucomi", "fucomip", "rdpmc", "ud2"]
+MMX_SET = ["emms", "movd", "movq", "packsswb", "packssdw", "packuswb", "paddb",
+        "paddw", "paddd", "paddsb", "paddsw", "paddusb", "paddusw", "pand",
+        "pandn", "pcmpeqb", "pcmpeqw", "pcmpeqd", "pcmpgtb", "pcmpgtw",
+        "pcmpgtd", "pmaddwd", "pmulhw", "pmullw", "por", "psllw", "pslld",
+        "psllq", "psraw", "psrad", "psrlw", "psrld", "psrlq", "psubb", "psubw",
+        "psubd", "psubsb", "psubsw", "psubusb", "psubusw", "punpckhbw",
+        "punpckhwd", "punpckhdq", "punpcklbw", "punpcklwd", "punpckldq",
+        "pxor"]
+SSE_SET = ["addps",  "addss",  "andnps", "andps", "cmpps", "cmpss", "comiss",
+        "cvtpi2ps", "cvtps2pi", "cvtsi2ss", "cvtss2si", "cvttps2pi",
+        "cvttss2si", "divps", "divss", "fxrstor", "fxsave", "ldmxcsr", "maxps",
+        "maxss", "minps", "minss", "movaps", "movhlps", "movhps", "movlhps",
+        "movlps", "movmskps", "movss", "movups", "mulps", "mulss", "orps",
+        "pavgb", "pavgw", "psadbw", "rcpps", "rcpss", "rsqrtps", "rsqrtss",
+        "shufps", "sqrtps", "sqrtss", "stmxcsr", "subps", "subss", "ucomiss",
+        "unpckhps", "unpcklps", "xorps", "pextrw", "pinsrw", "pmaxsw",
+        "pmaxub", "pminsw", "pminub", "pmovmskb", "pmulhuw", "pshufw",
+        "maskmovq", "movntps", "movntq", "prefetch", "sfence"]
+
+SSE2_SET = ["addpd", "addsd", "andnpd", "andpd", "clflush", "cmppd", "cmpsd",
+        "comisd", "cvtdq2pd", "cvtdq2ps", "cvtpd2pi", "cvtpd2pq", "cvtpd2ps",
+        "cvtpi2pd", "cvtps2dq", "cvtps2pd", "cvtsd2si", "cvtsd2ss", "cvtsi2sd",
+        "cvtss2sd", "cvttpd2pi", "cvttpd2dq", "cvttps2dq", "cvttsd2si",
+        "divpd", "divsd", "lfence", "maskmovdqu", "maxpd", "maxsd", "mfence",
+        "minpd", "minsd", "movapd", "movd", "movdq2q", "movdqa", "movdqu",
+        "movhpd", "movlpd", "movmskpd", "movntdq", "movnti", "movntpd", "movq",
+        "movq2dq", "movsd", "movupd", "mulpd", "mulsd", "orpd", "packsswb",
+        "packssdw", "packuswb", "paddb", "paddw", "paddd", "paddq", "paddq",
+        "paddsb", "paddsw", "paddusb", "paddusw", "pand", "pandn", "pause",
+        "pavgb", "pavgw", "pcmpeqb", "pcmpeqw", "pcmpeqd", "pcmpgtb",
+        "pcmpgtw", "pcmpgtd", "pextrw", "pinsrw", "pmaddwd", "pmaxsw",
+        "pmaxub", "pminsw", "pminub", "pmovmskb", "pmulhw", "pmulhuw",
+        "pmullw", "pmuludq", "pmuludq", "por", "psadbw", "pshufd", "pshufhw",
+        "pshuflw", "pslldq", "psllw", "pslld", "psllq", "psraw", "psrad",
+        "psrldq", "psrlw", "psrld", "psrlq", "psubb", "psubw", "psubd",
+        "psubq", "psubq", "psubsb", "psubsw", "psubusb", "psubusw", "psubsb",
+        "punpckhbw", "punpckhwd", "punpckhdq", "punpckhqdq", "punpcklbw",
+        "punpcklwd", "punpckldq", "punpcklqdq", "pxor", "shufpd", "sqrtpd",
+        "sqrtsd", "subpd", "subsd", "ucomisd", "unpckhpd", "unpcklpd", "xorpd"]
+
+SSE3_SET = [ "addsubpd", "addsubps", "haddpd", "haddps", "hsubpd", "hsubps",
+        "lddqu", "movddup", "movshdup", "movsldup", "fisttp"] 
+
+def get_vendor_string():
+    """Return the vendor string reading cpuinfo."""
+    try:
+        a = open('/proc/cpuinfo').readlines()
+        b = re.compile('^vendor_id.*')
+        c = [i for i in a if b.match(i)]
+    except IOError:
+        raise ValueError("Could not read cpuinfo")
+
+
+    int = re.compile("GenuineIntel")
+    amd = re.compile("AuthenticAMD")
+    cyr = re.compile("CyrixInstead")
+    tra = re.compile("GenuineTMx86")
+    if int.search(c[0]):
+        return "intel"
+    elif amd.search(c[0]):
+        return "amd"
+    elif cyr.search(c[0]):
+        return "cyrix"
+    elif tra.search(c[0]):
+        return "tra"
+    else:
+        raise ValueError("Unknown vendor")
+
+def disassemble(filename):
+    """From a filename, returns a list of all asm instructions."""
+    cmd = "i586-mingw32msvc-objdump -d %s " % filename
+    o, i = popen2.popen2(cmd)
+    def floupi(line):
+        line1 = line.split('\t')
+        if len(line1) > 2:
+            line2 = line1[2]
+        else:
+            line2 = line1[0]
+        line3 = line2.split(' ')
+        if len(line3) > 1:
+            inst = line3[0]
+        else:
+            inst = line3[0]
+        return inst
+    inst = [floupi(i) for i in o.readlines()]
+    return inst
+
+def has_set(seq, asm_set):
+    a = dict([(i, 0) for i in asm_set])
+    for i in asm_set:
+        a[i] = seq.count(i)
+    return a
+
+def has_sse(seq):
+    return has_set(seq, SSE_SET)
+
+def has_sse2(seq):
+    return has_set(seq, SSE2_SET)
+
+def has_sse3(seq):
+    return has_set(seq, SSE3_SET)
+
+def has_mmx(seq):
+    return has_set(seq, MMX_SET)
+
+def has_ppro(seq):
+    return has_set(seq, PPRO_SET)
+
+def cntset(seq):
+    cnt = 0
+    for i in seq.values():
+        cnt += i
+    return cnt
+
+def main():
+    #parser = optparse.OptionParser()
+    #parser.add_option("-f", "--filename
+    args = sys.argv[1:]
+    filename = args[0]
+    analyse(filename)
+
+def analyse(filename):
+    print get_vendor_string()
+    print "Getting instructions..."
+    inst = disassemble(filename)
+    print "Counting instructions..."
+    sse = has_sse(inst)
+    sse2 = has_sse2(inst)
+    sse3 = has_sse3(inst)
+    #mmx = has_mmx(inst)
+    #ppro = has_ppro(inst)
+    #print sse
+    #print sse2
+    #print sse3
+    print "SSE3 inst %d" % cntset(sse3)
+    print "SSE2 inst %d" % cntset(sse2)
+    print "SSE inst %d" % cntset(sse)
+    print "Analysed %d instructions" % len(inst)
+
+if __name__ == '__main__':
+    main()
+    #filename = "/usr/lib/sse2/libatlas.a"
+    ##filename = "/usr/lib/sse2/libcblas.a"
+
+#!/usr/bin/env python
+"""
+A script to create C code-coverage reports based on the output of
+valgrind's callgrind tool.
+"""
+
+import optparse
+import os
+import re
+import sys
+from xml.sax.saxutils import quoteattr, escape
+
+try:
+    import pygments
+    if tuple([int(x) for x in pygments.__version__.split('.')]) < (0, 11):
+        raise ImportError()
+    from pygments import highlight
+    from pygments.lexers import CLexer
+    from pygments.formatters import HtmlFormatter
+    has_pygments = True
+except ImportError:
+    print "This script requires pygments 0.11 or greater to generate HTML"
+    has_pygments = False
+
+
+class FunctionHtmlFormatter(HtmlFormatter):
+    """Custom HTML formatter to insert extra information with the lines."""
+    def __init__(self, lines, **kwargs):
+        HtmlFormatter.__init__(self, **kwargs)
+        self.lines = lines
+
+    def wrap(self, source, outfile):
+        for i, (c, t) in enumerate(HtmlFormatter.wrap(self, source, outfile)):
+            as_functions = self.lines.get(i-1, None)
+            if as_functions is not None:
+                yield 0, ('<div title=%s style="background: #ccffcc">[%2d]' %
+                          (quoteattr('as ' + ', '.join(as_functions)),
+                           len(as_functions)))
+            else:
+                yield 0, '    '
+            yield c, t
+            if as_functions is not None:
+                yield 0, '</div>'
+
+
+class SourceFile:
+    def __init__(self, path):
+        self.path = path
+        self.lines = {}
+
+    def mark_line(self, lineno, as_func=None):
+        line = self.lines.setdefault(lineno, set())
+        if as_func is not None:
+            as_func = as_func.split("'", 1)[0]
+            line.add(as_func)
+
+    def write_text(self, fd):
+        source = open(self.path, "r")
+        for i, line in enumerate(source.readlines()):
+            if i + 1 in self.lines:
+                fd.write("> ")
+            else:
+                fd.write("! ")
+            fd.write(line)
+        source.close()
+
+    def write_html(self, fd):
+        source = open(self.path, 'r')
+        code = source.read()
+        lexer = CLexer()
+        formatter = FunctionHtmlFormatter(
+            self.lines,
+            full=True,
+            linenos='inline')
+        fd.write(highlight(code, lexer, formatter))
+        source.close()
+
+
+class SourceFiles:
+    def __init__(self):
+        self.files = {}
+        self.prefix = None
+
+    def get_file(self, path):
+        if path not in self.files:
+            self.files[path] = SourceFile(path)
+            if self.prefix is None:
+                self.prefix = path
+            else:
+                self.prefix = os.path.commonprefix([self.prefix, path])
+        return self.files[path]
+
+    def clean_path(self, path):
+        path = path[len(self.prefix):]
+        return re.sub("[^A-Za-z0-9\.]", '_', path)
+
+    def write_text(self, root):
+        for path, source in self.files.items():
+            fd = open(os.path.join(root, self.clean_path(path)), "w")
+            source.write_text(fd)
+            fd.close()
+
+    def write_html(self, root):
+        for path, source in self.files.items():
+            fd = open(os.path.join(root, self.clean_path(path) + ".html"), "w")
+            source.write_html(fd)
+            fd.close()
+
+        fd = open(os.path.join(root, 'index.html'), 'w')
+        fd.write("<html>")
+        paths = self.files.keys()
+        paths.sort()
+        for path in paths:
+            fd.write('<p><a href="%s.html">%s</a></p>' %
+                     (self.clean_path(path), escape(path[len(self.prefix):])))
+        fd.write("</html>")
+        fd.close()
+
+
+def collect_stats(files, fd, pattern):
+    # TODO: Handle compressed callgrind files
+    line_regexs = [
+        re.compile("(?P<lineno>[0-9]+)(\s[0-9]+)+"),
+        re.compile("((jump)|(jcnd))=([0-9]+)\s(?P<lineno>[0-9]+)")
+        ]
+
+    current_file = None
+    current_function = None
+    for i, line in enumerate(fd.readlines()):
+        if re.match("f[lie]=.+", line):
+            path = line.split('=', 2)[1].strip()
+            if os.path.exists(path) and re.search(pattern, path):
+                current_file = files.get_file(path)
+            else:
+                current_file = None
+        elif re.match("fn=.+", line):
+            current_function = line.split('=', 2)[1].strip()
+        elif current_file is not None:
+            for regex in line_regexs:
+                match = regex.match(line)
+                if match:
+                    lineno = int(match.group('lineno'))
+                    current_file.mark_line(lineno, current_function)
+
+
+if __name__ == '__main__':
+    parser = optparse.OptionParser(
+        usage="[options] callgrind_file(s)")
+    parser.add_option(
+        '-d', '--directory', dest='directory',
+        default='coverage',
+        help='Destination directory for output [default: coverage]')
+    parser.add_option(
+        '-p', '--pattern', dest='pattern',
+        default='numpy',
+        help='Regex pattern to match against source file paths [default: numpy]')
+    parser.add_option(
+        '-f', '--format', dest='format', default=[],
+        action='append', type='choice', choices=('text', 'html'),
+        help="Output format(s) to generate, may be 'text' or 'html' [default: both]")
+    (options, args) = parser.parse_args()
+
+    files = SourceFiles()
+    for log_file in args:
+        log_fd = open(log_file, 'r')
+        collect_stats(files, log_fd, options.pattern)
+        log_fd.close()
+
+    if not os.path.exists(options.directory):
+        os.makedirs(options.directory)
+
+    if options.format == []:
+        formats = ['text', 'html']
+    else:
+        formats = options.format
+    if 'text' in formats:
+        files.write_text(options.directory)
+    if 'html' in formats:
+        if not has_pygments:
+            print "Pygments 0.11 or later is required to generate HTML"
+            sys.exit(1)
+        files.write_html(options.directory)
+
+"""Python script to build the OSX universal binaries.
+
+This is a simple script, most of the heavy lifting is done in bdist_mpkg.
+
+To run this script:  'python build.py'
+
+Requires a svn version of numpy is installed, svn is used to revert
+file changes made to the docs for the end-user install.  Installer is
+built using sudo so file permissions are correct when installed on
+user system.  Script will prompt for sudo pwd.
+
+"""
+
+import os
+import shutil
+import subprocess
+from getpass import getuser
+
+SRC_DIR = '../../'
+
+USER_README = 'docs/README.txt'
+DEV_README = SRC_DIR + 'README.txt'
+
+BUILD_DIR = 'build'
+DIST_DIR = 'dist'
+
+def remove_dirs():
+    print 'Removing old build and distribution directories...'
+    print """The distribution is built as root, so the files have the correct
+    permissions when installed by the user.  Chown them to user for removal."""
+    if os.path.exists(BUILD_DIR):
+        cmd = 'sudo chown -R %s %s' % (getuser(), BUILD_DIR)
+        shellcmd(cmd)
+        shutil.rmtree(BUILD_DIR)
+    if os.path.exists(DIST_DIR):
+        cmd = 'sudo chown -R %s %s' % (getuser(), DIST_DIR)
+        shellcmd(cmd)
+        shutil.rmtree(DIST_DIR)
+
+def build_dist():
+    print 'Building distribution... (using sudo)'
+    cmd = 'sudo python setupegg.py bdist_mpkg'
+    shellcmd(cmd)
+
+def build_dmg():
+    print 'Building disk image...'
+    # Since we removed the dist directory at the start of the script,
+    # our pkg should be the only file there.
+    pkg = os.listdir(DIST_DIR)[0]
+    fn, ext = os.path.splitext(pkg)
+    dmg = fn + '.dmg'
+    srcfolder = os.path.join(DIST_DIR, pkg)
+    dstfolder = os.path.join(DIST_DIR, dmg)
+    # build disk image
+    cmd = 'sudo hdiutil create -srcfolder %s %s' % (srcfolder, dstfolder)
+    shellcmd(cmd)
+
+def copy_readme():
+    """Copy a user README with info regarding the website, instead of
+    the developer README which tells one how to build the source.
+    """
+    print 'Copy user README.txt for installer.'
+    shutil.copy(USER_README, DEV_README)
+
+def revert_readme():
+    """Revert the developer README."""
+    print 'Reverting README.txt...'
+    cmd = 'svn revert %s' % DEV_README
+    shellcmd(cmd)
+
+def shellcmd(cmd, verbose=True):
+    """Call a shell command."""
+    if verbose:
+        print cmd
+    try:
+        subprocess.check_call(cmd, shell=True)
+    except subprocess.CalledProcessError, err:
+        msg = """
+        Error while executing a shell command.
+        %s
+        """ % str(err)
+        raise Exception(msg)
+
+def build():
+    # update end-user documentation
+    copy_readme()
+    shellcmd("svn stat %s"%DEV_README)
+
+    # change to source directory
+    cwd = os.getcwd()
+    os.chdir(SRC_DIR)
+
+    # build distribution
+    remove_dirs()
+    build_dist()
+    build_dmg()
+
+    # change back to original directory
+    os.chdir(cwd)
+    # restore developer documentation
+    revert_readme()
+
+if __name__ == '__main__':
+    build()
+
+#!/usr/bin/env python
+"""Install the built package and run the tests."""
+
+import os
+
+# FIXME: Should handle relative import better!
+#from .build import DIST_DIR
+from build import SRC_DIR, DIST_DIR, shellcmd
+
+clrgreen = '\033[0;32m'
+clrnull = '\033[0m'
+# print '\033[0;32m foobar \033[0m'
+def color_print(msg):
+    """Add color to this print output."""
+    clrmsg = clrgreen + msg + clrnull
+    print clrmsg
+
+distdir = os.path.join(SRC_DIR, DIST_DIR)
+
+# Find the package and build abspath to it
+pkg = None
+filelist = os.listdir(distdir)
+for fn in filelist:
+    if fn.endswith('mpkg'):
+        pkg = fn
+        break
+if pkg is None:
+    raise IOError, 'Package is not found in directory %s' % distdir
+
+pkgpath = os.path.abspath(os.path.join(SRC_DIR, DIST_DIR, pkg))
+color_print('Installing package: %s' % pkgpath)
+
+# Run the installer
+print
+color_print('Installer requires admin rights, you will be prompted for sudo')
+print
+cmd = 'sudo installer -verbose -package %s -target /' % pkgpath
+#color_print(cmd)
+shellcmd(cmd)
+
+# Null out the PYTHONPATH so we're sure to test the Installed version of numpy
+os.environ['PYTHONPATH'] = '0'
+
+print
+color_print('Install successful!')
+color_print('Running numpy test suite!')
+print
+import numpy
+numpy.test()
+
+#!/usr/bin/env python
+from os.path import join as pjoin
+
+def configuration(parent_package='', top_path=None):
+    from numpy.distutils.misc_util import Configuration
+    from numpy.distutils.misc_util import scons_generate_config_py
+
+    pkgname = 'numpy'
+    config = Configuration(pkgname, parent_package, top_path,
+                           setup_name = 'setupscons.py')
+    config.add_subpackage('distutils')
+    config.add_subpackage('testing')
+    config.add_subpackage('f2py')
+    config.add_subpackage('core')
+    config.add_subpackage('lib')
+    config.add_subpackage('oldnumeric')
+    config.add_subpackage('numarray')
+    config.add_subpackage('fft')
+    config.add_subpackage('linalg')
+    config.add_subpackage('random')
+    config.add_subpackage('ma')
+    config.add_subpackage('matrixlib')
+    config.add_subpackage('compat')
+    config.add_data_dir('doc')
+    config.add_data_dir('tests')
+
+    def add_config(*args, **kw):
+        # Generate __config__, handle inplace issues.
+        if kw['scons_cmd'].inplace:
+            target = pjoin(kw['pkg_name'], '__config__.py')
+        else:
+            target = pjoin(kw['scons_cmd'].build_lib, kw['pkg_name'],
+                           '__config__.py')
+        scons_generate_config_py(target)
+    config.add_sconscript(None, post_hook = add_config)
+
+    return config
+
+if __name__ == '__main__':
+    print 'This is the wrong setup.py file to run'
+
+# This is only meant to add docs to objects defined in C-extension modules.
+# The purpose is to allow easier editing of the docstrings without
+# requiring a re-compile.
+
+# NOTE: Many of the methods of ndarray have corresponding functions.
+#       If you update these docstrings, please keep also the ones in
+#       core/fromnumeric.py, core/defmatrix.py up-to-date.
+
+from lib import add_newdoc
+
+###############################################################################
+#
+# flatiter
+#
+# flatiter needs a toplevel description
+#
+###############################################################################
+
+add_newdoc('numpy.core', 'flatiter',
+    """
+    Flat iterator object to iterate over arrays.
+
+    A `flatiter` iterator is returned by ``x.flat`` for any array `x`.
+    It allows iterating over the array as if it were a 1-D array,
+    either in a for-loop or by calling its `next` method.
+
+    Iteration is done in C-contiguous style, with the last index varying the
+    fastest. The iterator can also be indexed using basic slicing or
+    advanced indexing.
+
+    See Also
+    --------
+    ndarray.flat : Return a flat iterator over an array.
+    ndarray.flatten : Returns a flattened copy of an array.
+
+    Notes
+    -----
+    A `flatiter` iterator can not be constructed directly from Python code
+    by calling the `flatiter` constructor.
+
+    Examples
+    --------
+    >>> x = np.arange(6).reshape(2, 3)
+    >>> fl = x.flat
+    >>> type(fl)
+    <type 'numpy.flatiter'>
+    >>> for item in fl:
+    ...     print item
+    ...
+    0
+    1
+    2
+    3
+    4
+    5
+
+    >>> fl[2:4]
+    array([2, 3])
+
+    """)
+
+# flatiter attributes
+
+add_newdoc('numpy.core', 'flatiter', ('base',
+    """
+    A reference to the array that is iterated over.
+
+    Examples
+    --------
+    >>> x = np.arange(5)
+    >>> fl = x.flat
+    >>> fl.base is x
+    True
+
+    """))
+
+
+
+add_newdoc('numpy.core', 'flatiter', ('coords',
+    """
+    An N-dimensional tuple of current coordinates.
+
+    Examples
+    --------
+    >>> x = np.arange(6).reshape(2, 3)
+    >>> fl = x.flat
+    >>> fl.coords
+    (0, 0)
+    >>> fl.next()
+    0
+    >>> fl.coords
+    (0, 1)
+
+    """))
+
+
+
+add_newdoc('numpy.core', 'flatiter', ('index',
+    """
+    Current flat index into the array.
+
+    Examples
+    --------
+    >>> x = np.arange(6).reshape(2, 3)
+    >>> fl = x.flat
+    >>> fl.index
+    0
+    >>> fl.next()
+    0
+    >>> fl.index
+    1
+
+    """))
+
+# flatiter functions
+
+add_newdoc('numpy.core', 'flatiter', ('__array__',
+    """__array__(type=None) Get array from iterator
+
+    """))
+
+
+add_newdoc('numpy.core', 'flatiter', ('copy',
+    """
+    copy()
+
+    Get a copy of the iterator as a 1-D array.
+
+    Examples
+    --------
+    >>> x = np.arange(6).reshape(2, 3)
+    >>> x
+    array([[0, 1, 2],
+           [3, 4, 5]])
+    >>> fl = x.flat
+    >>> fl.copy()
+    array([0, 1, 2, 3, 4, 5])
+
+    """))
+
+
+###############################################################################
+#
+# broadcast
+#
+###############################################################################
+
+add_newdoc('numpy.core', 'broadcast',
+    """
+    Produce an object that mimics broadcasting.
+
+    Parameters
+    ----------
+    in1, in2, ... : array_like
+        Input parameters.
+
+    Returns
+    -------
+    b : broadcast object
+        Broadcast the input parameters against one another, and
+        return an object that encapsulates the result.
+        Amongst others, it has ``shape`` and ``nd`` properties, and
+        may be used as an iterator.
+
+    Examples
+    --------
+    Manually adding two vectors, using broadcasting:
+
+    >>> x = np.array([[1], [2], [3]])
+    >>> y = np.array([4, 5, 6])
+    >>> b = np.broadcast(x, y)
+
+    >>> out = np.empty(b.shape)
+    >>> out.flat = [u+v for (u,v) in b]
+    >>> out
+    array([[ 5.,  6.,  7.],
+           [ 6.,  7.,  8.],
+           [ 7.,  8.,  9.]])
+
+    Compare against built-in broadcasting:
+
+    >>> x + y
+    array([[5, 6, 7],
+           [6, 7, 8],
+           [7, 8, 9]])
+
+    """)
+
+# attributes
+
+add_newdoc('numpy.core', 'broadcast', ('index',
+    """
+    current index in broadcasted result
+
+    Examples
+    --------
+    >>> x = np.array([[1], [2], [3]])
+    >>> y = np.array([4, 5, 6])
+    >>> b = np.broadcast(x, y)
+    >>> b.index
+    0
+    >>> b.next(), b.next(), b.next()
+    ((1, 4), (1, 5), (1, 6))
+    >>> b.index
+    3
+
+    """))
+
+add_newdoc('numpy.core', 'broadcast', ('iters',
+    """
+    tuple of iterators along ``self``'s "components."
+
+    Returns a tuple of `numpy.flatiter` objects, one for each "component"
+    of ``self``.
+
+    See Also
+    --------
+    numpy.flatiter
+
+    Examples
+    --------
+    >>> x = np.array([1, 2, 3])
+    >>> y = np.array([[4], [5], [6]])
+    >>> b = np.broadcast(x, y)
+    >>> row, col = b.iters
+    >>> row.next(), col.next()
+    (1, 4)
+
+    """))
+
+add_newdoc('numpy.core', 'broadcast', ('nd',
+    """
+    Number of dimensions of broadcasted result.
+
+    Examples
+    --------
+    >>> x = np.array([1, 2, 3])
+    >>> y = np.array([[4], [5], [6]])
+    >>> b = np.broadcast(x, y)
+    >>> b.nd
+    2
+
+    """))
+
+add_newdoc('numpy.core', 'broadcast', ('numiter',
+    """
+    Number of iterators possessed by the broadcasted result.
+
+    Examples
+    --------
+    >>> x = np.array([1, 2, 3])
+    >>> y = np.array([[4], [5], [6]])
+    >>> b = np.broadcast(x, y)
+    >>> b.numiter
+    2
+
+    """))
+
+add_newdoc('numpy.core', 'broadcast', ('shape',
+    """
+    Shape of broadcasted result.
+
+    Examples
+    --------
+    >>> x = np.array([1, 2, 3])
+    >>> y = np.array([[4], [5], [6]])
+    >>> b = np.broadcast(x, y)
+    >>> b.shape
+    (3, 3)
+
+    """))
+
+add_newdoc('numpy.core', 'broadcast', ('size',
+    """
+    Total size of broadcasted result.
+
+    Examples
+    --------
+    >>> x = np.array([1, 2, 3])
+    >>> y = np.array([[4], [5], [6]])
+    >>> b = np.broadcast(x, y)
+    >>> b.size
+    9
+
+    """))
+
+
+###############################################################################
+#
+# numpy functions
+#
+###############################################################################
+
+add_newdoc('numpy.core.multiarray', 'array',
+    """
+    array(object, dtype=None, copy=True, order=None, subok=False, ndmin=True)
+
+    Create an array.
+
+    Parameters
+    ----------
+    object : array_like
+        An array, any object exposing the array interface, an
+        object whose __array__ method returns an array, or any
+        (nested) sequence.
+    dtype : data-type, optional
+        The desired data-type for the array.  If not given, then
+        the type will be determined as the minimum type required
+        to hold the objects in the sequence.  This argument can only
+        be used to 'upcast' the array.  For downcasting, use the
+        .astype(t) method.
+    copy : bool, optional
+        If true (default), then the object is copied.  Otherwise, a copy
+        will only be made if __array__ returns a copy, if obj is a
+        nested sequence, or if a copy is needed to satisfy any of the other
+        requirements (`dtype`, `order`, etc.).
+    order : {'C', 'F', 'A'}, optional
+        Specify the order of the array.  If order is 'C' (default), then the
+        array will be in C-contiguous order (last-index varies the
+        fastest).  If order is 'F', then the returned array
+        will be in Fortran-contiguous order (first-index varies the
+        fastest).  If order is 'A', then the returned array may
+        be in any order (either C-, Fortran-contiguous, or even
+        discontiguous).
+    subok : bool, optional
+        If True, then sub-classes will be passed-through, otherwise
+        the returned array will be forced to be a base-class array (default).
+    ndmin : int, optional
+        Specifies the minimum number of dimensions that the resulting
+        array should have.  Ones will be pre-pended to the shape as
+        needed to meet this requirement.
+
+    Examples
+    --------
+    >>> np.array([1, 2, 3])
+    array([1, 2, 3])
+
+    Upcasting:
+
+    >>> np.array([1, 2, 3.0])
+    array([ 1.,  2.,  3.])
+
+    More than one dimension:
+
+    >>> np.array([[1, 2], [3, 4]])
+    array([[1, 2],
+           [3, 4]])
+
+    Minimum dimensions 2:
+
+    >>> np.array([1, 2, 3], ndmin=2)
+    array([[1, 2, 3]])
+
+    Type provided:
+
+    >>> np.array([1, 2, 3], dtype=complex)
+    array([ 1.+0.j,  2.+0.j,  3.+0.j])
+
+    Data-type consisting of more than one element:
+
+    >>> x = np.array([(1,2),(3,4)],dtype=[('a','<i4'),('b','<i4')])
+    >>> x['a']
+    array([1, 3])
+
+    Creating an array from sub-classes:
+
+    >>> np.array(np.mat('1 2; 3 4'))
+    array([[1, 2],
+           [3, 4]])
+
+    >>> np.array(np.mat('1 2; 3 4'), subok=True)
+    matrix([[1, 2],
+            [3, 4]])
+
+    """)
+
+add_newdoc('numpy.core.multiarray', 'empty',
+    """
+    empty(shape, dtype=float, order='C')
+
+    Return a new array of given shape and type, without initializing entries.
+
+    Parameters
+    ----------
+    shape : int or tuple of int
+        Shape of the empty array
+    dtype : data-type, optional
+        Desired output data-type.
+    order : {'C', 'F'}, optional
+        Whether to store multi-dimensional data in C (row-major) or
+        Fortran (column-major) order in memory.
+
+    See Also
+    --------
+    empty_like, zeros, ones
+
+    Notes
+    -----
+    `empty`, unlike `zeros`, does not set the array values to zero,
+    and may therefore be marginally faster.  On the other hand, it requires
+    the user to manually set all the values in the array, and should be
+    used with caution.
+
+    Examples
+    --------
+    >>> np.empty([2, 2])
+    array([[ -9.74499359e+001,   6.69583040e-309],  #random data
+           [  2.13182611e-314,   3.06959433e-309]])
+
+    >>> np.empty([2, 2], dtype=int)
+    array([[-1073741821, -1067949133],  #random data
+           [  496041986,    19249760]])
+
+    """)
+
+
+add_newdoc('numpy.core.multiarray', 'scalar',
+    """
+    scalar(dtype, obj)
+
+    Return a new scalar array of the given type initialized with obj.
+
+    This function is meant mainly for pickle support. `dtype` must be a
+    valid data-type descriptor. If `dtype` corresponds to an object
+    descriptor, then `obj` can be any object, otherwise `obj` must be a
+    string. If `obj` is not given, it will be interpreted as None for object
+    type and as zeros for all other types.
+
+    """)
+
+add_newdoc('numpy.core.multiarray', 'zeros',
+    """
+    zeros(shape, dtype=float, order='C')
+
+    Return a new array of given shape and type, filled with zeros.
+
+    Parameters
+    ----------
+    shape : int or sequence of ints
+        Shape of the new array, e.g., ``(2, 3)`` or ``2``.
+    dtype : data-type, optional
+        The desired data-type for the array, e.g., `numpy.int8`.  Default is
+        `numpy.float64`.
+    order : {'C', 'F'}, optional
+        Whether to store multidimensional data in C- or Fortran-contiguous
+        (row- or column-wise) order in memory.
+
+    Returns
+    -------
+    out : ndarray
+        Array of zeros with the given shape, dtype, and order.
+
+    See Also
+    --------
+    zeros_like : Return an array of zeros with shape and type of input.
+    ones_like : Return an array of ones with shape and type of input.
+    empty_like : Return an empty array with shape and type of input.
+    ones : Return a new array setting values to one.
+    empty : Return a new uninitialized array.
+
+    Examples
+    --------
+    >>> np.zeros(5)
+    array([ 0.,  0.,  0.,  0.,  0.])
+
+    >>> np.zeros((5,), dtype=numpy.int)
+    array([0, 0, 0, 0, 0])
+
+    >>> np.zeros((2, 1))
+    array([[ 0.],
+           [ 0.]])
+
+    >>> s = (2,2)
+    >>> np.zeros(s)
+    array([[ 0.,  0.],
+           [ 0.,  0.]])
+
+    >>> np.zeros((2,), dtype=[('x', 'i4'), ('y', 'i4')]) # custom dtype
+    array([(0, 0), (0, 0)],
+          dtype=[('x', '<i4'), ('y', '<i4')])
+
+    """)
+
+add_newdoc('numpy.core.multiarray','set_typeDict',
+    """set_typeDict(dict)
+
+    Set the internal dictionary that can look up an array type using a
+    registered code.
+
+    """)
+
+add_newdoc('numpy.core.multiarray', 'fromstring',
+    """
+    fromstring(string, dtype=float, count=-1, sep='')
+
+    Return a new 1-D array initialized from raw binary or text data in string.
+
+    Parameters
+    ----------
+    string : str
+        A string containing the data.
+    dtype : dtype, optional
+        The data type of the array. For binary input data, the data must be
+        in exactly this format.
+    count : int, optional
+        Read this number of `dtype` elements from the data. If this is
+        negative, then the size will be determined from the length of the
+        data.
+    sep : str, optional
+        If provided and not empty, then the data will be interpreted as
+        ASCII text with decimal numbers. This argument is interpreted as the
+        string separating numbers in the data. Extra whitespace between
+        elements is also ignored.
+
+    Returns
+    -------
+    arr : array
+        The constructed array.
+
+    Raises
+    ------
+    ValueError
+        If the string is not the correct size to satisfy the requested
+        `dtype` and `count`.
+
+    Examples
+    --------
+    >>> np.fromstring('\\x01\\x02', dtype=np.uint8)
+    array([1, 2], dtype=uint8)
+    >>> np.fromstring('1 2', dtype=int, sep=' ')
+    array([1, 2])
+    >>> np.fromstring('1, 2', dtype=int, sep=',')
+    array([1, 2])
+    >>> np.fromstring('\\x01\\x02\\x03\\x04\\x05', dtype=np.uint8, count=3)
+    array([1, 2, 3], dtype=uint8)
+
+    Invalid inputs:
+
+    >>> np.fromstring('\\x01\\x02\\x03\\x04\\x05', dtype=np.int32)
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+    ValueError: string size must be a multiple of element size
+    >>> np.fromstring('\\x01\\x02', dtype=np.uint8, count=3)
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+    ValueError: string is smaller than requested size
+
+    """)
+
+add_newdoc('numpy.core.multiarray', 'fromiter',
+    """
+    fromiter(iterable, dtype, count=-1)
+
+    Create a new 1-dimensional array from an iterable object.
+
+    Parameters
+    ----------
+    iterable : iterable object
+        An iterable object providing data for the array.
+    dtype : data-type
+        The data type of the returned array.
+    count : int, optional
+        The number of items to read from iterable. The default is -1,
+        which means all data is read.
+
+    Returns
+    -------
+    out : ndarray
+        The output array.
+
+    Notes
+    -----
+    Specify ``count`` to improve performance.  It allows
+    ``fromiter`` to pre-allocate the output array, instead of
+    resizing it on demand.
+
+    Examples
+    --------
+    >>> iterable = (x*x for x in range(5))
+    >>> np.fromiter(iterable, np.float)
+    array([  0.,   1.,   4.,   9.,  16.])
+
+    """)
+
+add_newdoc('numpy.core.multiarray', 'fromfile',
+    """
+    fromfile(file, dtype=float, count=-1, sep='')
+
+    Construct an array from data in a text or binary file.
+
+    A highly efficient way of reading binary data with a known data-type,
+    as well as parsing simply formatted text files.  Data written using the
+    `tofile` method can be read using this function.
+
+    Parameters
+    ----------
+    file : file or string
+        Open file object or filename.
+    dtype : data-type
+        Data type of the returned array.
+        For binary files, it is used to determine the size and byte-order
+        of the items in the file.
+    count : int
+        Number of items to read. ``-1`` means all items (i.e., the complete
+        file).
+    sep : string
+        Separator between items if file is a text file.
+        Empty ("") separator means the file should be treated as binary.
+        Spaces (" ") in the separator match zero or more whitespace characters.
+        A separator consisting only of spaces must match at least one
+        whitespace.
+
+    See also
+    --------
+    load, save
+    ndarray.tofile
+    loadtxt : More flexible way of loading data from a text file.
+
+    Notes
+    -----
+    Do not rely on the combination of `tofile` and `fromfile` for
+    data storage, as the binary files generated are are not platform
+    independent.  In particular, no byte-order or data-type information is
+    saved.  Data can be stored in the platform independent ``.npy`` format
+    using `save` and `load` instead.
+
+    Examples
+    --------
+    Construct an ndarray:
+
+    >>> dt = np.dtype([('time', [('min', int), ('sec', int)]),
+    ...                ('temp', float)])
+    >>> x = np.zeros((1,), dtype=dt)
+    >>> x['time']['min'] = 10; x['temp'] = 98.25
+    >>> x
+    array([((10, 0), 98.25)],
+          dtype=[('time', [('min', '<i4'), ('sec', '<i4')]), ('temp', '<f8')])
+
+    Save the raw data to disk:
+
+    >>> import os
+    >>> fname = os.tmpnam()
+    >>> x.tofile(fname)
+
+    Read the raw data from disk:
+
+    >>> np.fromfile(fname, dtype=dt)
+    array([((10, 0), 98.25)],
+          dtype=[('time', [('min', '<i4'), ('sec', '<i4')]), ('temp', '<f8')])
+
+    The recommended way to store and load data:
+
+    >>> np.save(fname, x)
+    >>> np.load(fname + '.npy')
+    array([((10, 0), 98.25)],
+          dtype=[('time', [('min', '<i4'), ('sec', '<i4')]), ('temp', '<f8')])
+
+    """)
+
+add_newdoc('numpy.core.multiarray', 'frombuffer',
+    """
+    frombuffer(buffer, dtype=float, count=-1, offset=0)
+
+    Interpret a buffer as a 1-dimensional array.
+
+    Parameters
+    ----------
+    buffer
+        An object that exposes the buffer interface.
+    dtype : data-type, optional
+        Data type of the returned array.
+    count : int, optional
+        Number of items to read. ``-1`` means all data in the buffer.
+    offset : int, optional
+        Start reading the buffer from this offset.
+
+    Notes
+    -----
+    If the buffer has data that is not in machine byte-order, this
+    should be specified as part of the data-type, e.g.::
+
+      >>> dt = np.dtype(int)
+      >>> dt = dt.newbyteorder('>')
+      >>> np.frombuffer(buf, dtype=dt)
+
+    The data of the resulting array will not be byteswapped,
+    but will be interpreted correctly.
+
+    Examples
+    --------
+    >>> s = 'hello world'
+    >>> np.frombuffer(s, dtype='S1', count=5, offset=6)
+    array(['w', 'o', 'r', 'l', 'd'],
+          dtype='|S1')
+
+    """)
+
+add_newdoc('numpy.core.multiarray', 'concatenate',
+    """
+    concatenate((a1, a2, ...), axis=0)
+
+    Join a sequence of arrays together.
+
+    Parameters
+    ----------
+    a1, a2, ... : sequence of array_like
+        The arrays must have the same shape, except in the dimension
+        corresponding to `axis` (the first, by default).
+    axis : int, optional
+        The axis along which the arrays will be joined.  Default is 0.
+
+    Returns
+    -------
+    res : ndarray
+        The concatenated array.
+
+    See Also
+    --------
+    ma.concatenate : Concatenate function that preserves input masks.
+    array_split : Split an array into multiple sub-arrays of equal or
+                  near-equal size.
+    split : Split array into a list of multiple sub-arrays of equal size.
+    hsplit : Split array into multiple sub-arrays horizontally (column wise)
+    vsplit : Split array into multiple sub-arrays vertically (row wise)
+    dsplit : Split array into multiple sub-arrays along the 3rd axis (depth).
+    hstack : Stack arrays in sequence horizontally (column wise)
+    vstack : Stack arrays in sequence vertically (row wise)
+    dstack : Stack arrays in sequence depth wise (along third dimension)
+
+    Notes
+    -----
+    When one or more of the arrays to be concatenated is a MaskedArray,
+    this function will return a MaskedArray object instead of an ndarray,
+    but the input masks are *not* preserved. In cases where a MaskedArray
+    is expected as input, use the ma.concatenate function from the masked
+    array module instead.
+
+    Examples
+    --------
+    >>> a = np.array([[1, 2], [3, 4]])
+    >>> b = np.array([[5, 6]])
+    >>> np.concatenate((a, b), axis=0)
+    array([[1, 2],
+           [3, 4],
+           [5, 6]])
+    >>> np.concatenate((a, b.T), axis=1)
+    array([[1, 2, 5],
+           [3, 4, 6]])
+
+    This function will not preserve masking of MaskedArray inputs.
+
+    >>> a = np.ma.arange(3)
+    >>> a[1] = np.ma.masked
+    >>> b = np.arange(2, 5)
+    >>> a
+    masked_array(data = [0 -- 2],
+                 mask = [False  True False],
+           fill_value = 999999)
+    >>> b
+    array([2, 3, 4])
+    >>> np.concatenate([a, b])
+    masked_array(data = [0 1 2 2 3 4],
+                 mask = False,
+           fill_value = 999999)
+    >>> np.ma.concatenate([a, b])
+    masked_array(data = [0 -- 2 2 3 4],
+                 mask = [False  True False False False False],
+           fill_value = 999999)
+
+    """)
+
+add_newdoc('numpy.core', 'inner',
+    """
+    inner(a, b)
+
+    Inner product of two arrays.
+
+    Ordinary inner product of vectors for 1-D arrays (without complex
+    conjugation), in higher dimensions a sum product over the last axes.
+
+    Parameters
+    ----------
+    a, b : array_like
+        If `a` and `b` are nonscalar, their last dimensions of must match.
+
+    Returns
+    -------
+    out : ndarray
+        `out.shape = a.shape[:-1] + b.shape[:-1]`
+
+    Raises
+    ------
+    ValueError
+        If the last dimension of `a` and `b` has different size.
+
+    See Also
+    --------
+    tensordot : Sum products over arbitrary axes.
+    dot : Generalised matrix product, using second last dimension of `b`.
+
+    Notes
+    -----
+    For vectors (1-D arrays) it computes the ordinary inner-product::
+
+        np.inner(a, b) = sum(a[:]*b[:])
+
+    More generally, if `ndim(a) = r > 0` and `ndim(b) = s > 0`::
+
+        np.inner(a, b) = np.tensordot(a, b, axes=(-1,-1))
+
+    or explicitly::
+
+        np.inner(a, b)[i0,...,ir-1,j0,...,js-1]
+             = sum(a[i0,...,ir-1,:]*b[j0,...,js-1,:])
+
+    In addition `a` or `b` may be scalars, in which case::
+
+       np.inner(a,b) = a*b
+
+    Examples
+    --------
+    Ordinary inner product for vectors:
+
+    >>> a = np.array([1,2,3])
+    >>> b = np.array([0,1,0])
+    >>> np.inner(a, b)
+    2
+
+    A multidimensional example:
+
+    >>> a = np.arange(24).reshape((2,3,4))
+    >>> b = np.arange(4)
+    >>> np.inner(a, b)
+    array([[ 14,  38,  62],
+           [ 86, 110, 134]])
+
+    An example where `b` is a scalar:
+
+    >>> np.inner(np.eye(2), 7)
+    array([[ 7.,  0.],
+           [ 0.,  7.]])
+
+    """)
+
+add_newdoc('numpy.core','fastCopyAndTranspose',
+    """_fastCopyAndTranspose(a)""")
+
+add_newdoc('numpy.core.multiarray','correlate',
+    """cross_correlate(a,v, mode=0)""")
+
+add_newdoc('numpy.core.multiarray', 'arange',
+    """
+    arange([start,] stop[, step,], dtype=None)
+
+    Return evenly spaced values within a given interval.
+
+    Values are generated within the half-open interval ``[start, stop)``
+    (in other words, the interval including `start` but excluding `stop`).
+    For integer arguments the function is equivalent to the Python built-in
+    `range <http://docs.python.org/lib/built-in-funcs.html>`_ function,
+    but returns a ndarray rather than a list.
+
+    Parameters
+    ----------
+    start : number, optional
+        Start of interval.  The interval includes this value.  The default
+        start value is 0.
+    stop : number
+        End of interval.  The interval does not include this value.
+    step : number, optional
+        Spacing between values.  For any output `out`, this is the distance
+        between two adjacent values, ``out[i+1] - out[i]``.  The default
+        step size is 1.  If `step` is specified, `start` must also be given.
+    dtype : dtype
+        The type of the output array.  If `dtype` is not given, infer the data
+        type from the other input arguments.
+
+    Returns
+    -------
+    out : ndarray
+        Array of evenly spaced values.
+
+        For floating point arguments, the length of the result is
+        ``ceil((stop - start)/step)``.  Because of floating point overflow,
+        this rule may result in the last element of `out` being greater
+        than `stop`.
+
+    See Also
+    --------
+    linspace : Evenly spaced numbers with careful handling of endpoints.
+    ogrid: Arrays of evenly spaced numbers in N-dimensions
+    mgrid: Grid-shaped arrays of evenly spaced numbers in N-dimensions
+
+    Examples
+    --------
+    >>> np.arange(3)
+    array([0, 1, 2])
+    >>> np.arange(3.0)
+    array([ 0.,  1.,  2.])
+    >>> np.arange(3,7)
+    array([3, 4, 5, 6])
+    >>> np.arange(3,7,2)
+    array([3, 5])
+
+    """)
+
+add_newdoc('numpy.core.multiarray','_get_ndarray_c_version',
+    """_get_ndarray_c_version()
+
+    Return the compile time NDARRAY_VERSION number.
+
+    """)
+
+add_newdoc('numpy.core.multiarray','_reconstruct',
+    """_reconstruct(subtype, shape, dtype)
+
+    Construct an empty array. Used by Pickles.
+
+    """)
+
+
+add_newdoc('numpy.core.multiarray', 'set_string_function',
+    """
+    set_string_function(f, repr=1)
+
+    Set a Python function to be used when pretty printing arrays.
+
+    Parameters
+    ----------
+    f : function or None
+        Function to be used to pretty print arrays. The function should expect
+        a single array argument and return a string of the representation of
+        the array. If None, the function is reset to the default NumPy function
+        to print arrays.
+    repr : bool, optional
+        If True (default), the function for pretty printing (``__repr__``)
+        is set, if False the function that returns the default string
+        representation (``__str__``) is set.
+
+    See Also
+    --------
+    set_printoptions, get_printoptions
+
+    Examples
+    --------
+    >>> def pprint(arr):
+    ...     return 'HA! - What are you going to do now?'
+    ...
+    >>> np.set_string_function(pprint)
+    >>> a = np.arange(10)
+    >>> a
+    HA! - What are you going to do now?
+    >>> print a
+    [0 1 2 3 4 5 6 7 8 9]
+
+    We can reset the function to the default:
+
+    >>> np.set_string_function(None)
+    >>> a
+    array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 'l')
+
+    `repr` affects either pretty printing or normal string representation.
+    Note that ``__repr__`` is still affected by setting ``__str__``
+    because the width of each array element in the returned string becomes
+    equal to the length of the result of ``__str__()``.
+
+    >>> x = np.arange(4)
+    >>> np.set_string_function(lambda x:'random', repr=False)
+    >>> x.__str__()
+    'random'
+    >>> x.__repr__()
+    'array([     0,      1,      2,      3])'
+
+    """)
+
+add_newdoc('numpy.core.multiarray', 'set_numeric_ops',
+    """
+    set_numeric_ops(op1=func1, op2=func2, ...)
+
+    Set numerical operators for array objects.
+
+    Parameters
+    ----------
+    op1, op2, ... : callable
+        Each ``op = func`` pair describes an operator to be replaced.
+        For example, ``add = lambda x, y: np.add(x, y) % 5`` would replace
+        addition by modulus 5 addition.
+
+    Returns
+    -------
+    saved_ops : list of callables
+        A list of all operators, stored before making replacements.
+
+    Notes
+    -----
+    .. WARNING::
+       Use with care!  Incorrect usage may lead to memory errors.
+
+    A function replacing an operator cannot make use of that operator.
+    For example, when replacing add, you may not use ``+``.  Instead,
+    directly call ufuncs.
+
+    Examples
+    --------
+    >>> def add_mod5(x, y):
+    ...     return np.add(x, y) % 5
+    ...
+    >>> old_funcs = np.set_numeric_ops(add=add_mod5)
+
+    >>> x = np.arange(12).reshape((3, 4))
+    >>> x + x
+    array([[0, 2, 4, 1],
+           [3, 0, 2, 4],
+           [1, 3, 0, 2]])
+
+    >>> ignore = np.set_numeric_ops(**old_funcs) # restore operators
+
+    """)
+
+add_newdoc('numpy.core.multiarray', 'where',
+    """
+    where(condition, [x, y])
+
+    Return elements, either from `x` or `y`, depending on `condition`.
+
+    If only `condition` is given, return ``condition.nonzero()``.
+
+    Parameters
+    ----------
+    condition : array_like, bool
+        When True, yield `x`, otherwise yield `y`.
+    x, y : array_like, optional
+        Values from which to choose. `x` and `y` need to have the same
+        shape as `condition`.
+
+    Returns
+    -------
+    out : ndarray or tuple of ndarrays
+        If both `x` and `y` are specified, the output array contains
+        elements of `x` where `condition` is True, and elements from
+        `y` elsewhere.
+
+        If only `condition` is given, return the tuple
+        ``condition.nonzero()``, the indices where `condition` is True.
+
+    See Also
+    --------
+    nonzero, choose
+
+    Notes
+    -----
+    If `x` and `y` are given and input arrays are 1-D, `where` is
+    equivalent to::
+
+        [xv if c else yv for (c,xv,yv) in zip(condition,x,y)]
+
+    Examples
+    --------
+    >>> np.where([[True, False], [True, True]],
+    ...          [[1, 2], [3, 4]],
+    ...          [[9, 8], [7, 6]])
+    array([[1, 8],
+           [3, 4]])
+
+    >>> np.where([[0, 1], [1, 0]])
+    (array([0, 1]), array([1, 0]))
+
+    >>> x = np.arange(9.).reshape(3, 3)
+    >>> np.where( x > 5 )
+    (array([2, 2, 2]), array([0, 1, 2]))
+    >>> x[np.where( x > 3.0 )]               # Note: result is 1D.
+    array([ 4.,  5.,  6.,  7.,  8.])
+    >>> np.where(x < 5, x, -1)               # Note: broadcasting.
+    array([[ 0.,  1.,  2.],
+           [ 3.,  4., -1.],
+           [-1., -1., -1.]])
+
+    """)
+
+
+add_newdoc('numpy.core.multiarray', 'lexsort',
+    """
+    lexsort(keys, axis=-1)
+
+    Perform an indirect sort using a sequence of keys.
+
+    Given multiple sorting keys, which can be interpreted as columns in a
+    spreadsheet, lexsort returns an array of integer indices that describes
+    the sort order by multiple columns. The last key in the sequence is used
+    for the primary sort order, the second-to-last key for the secondary sort
+    order, and so on. The keys argument must be a sequence of objects that
+    can be converted to arrays of the same shape. If a 2D array is provided
+    for the keys argument, it's rows are interpreted as the sorting keys and
+    sorting is according to the last row, second last row etc.
+
+    Parameters
+    ----------
+    keys : (k,N) array or tuple containing k (N,)-shaped sequences
+        The `k` different "columns" to be sorted.  The last column (or row if
+        `keys` is a 2D array) is the primary sort key.
+    axis : int, optional
+        Axis to be indirectly sorted.  By default, sort over the last axis.
+
+    Returns
+    -------
+    indices : (N,) ndarray of ints
+        Array of indices that sort the keys along the specified axis.
+
+    See Also
+    --------
+    argsort : Indirect sort.
+    ndarray.sort : In-place sort.
+    sort : Return a sorted copy of an array.
+
+    Examples
+    --------
+    Sort names: first by surname, then by name.
+
+    >>> surnames =    ('Hertz',    'Galilei', 'Hertz')
+    >>> first_names = ('Heinrich', 'Galileo', 'Gustav')
+    >>> ind = np.lexsort((first_names, surnames))
+    >>> ind
+    array([1, 2, 0])
+
+    >>> [surnames[i] + ", " + first_names[i] for i in ind]
+    ['Galilei, Galileo', 'Hertz, Gustav', 'Hertz, Heinrich']
+
+    Sort two columns of numbers:
+
+    >>> a = [1,5,1,4,3,4,4] # First column
+    >>> b = [9,4,0,4,0,2,1] # Second column
+    >>> ind = np.lexsort((b,a)) # Sort by a, then by b
+    >>> print ind
+    [2 0 4 6 5 3 1]
+
+    >>> [(a[i],b[i]) for i in ind]
+    [(1, 0), (1, 9), (3, 0), (4, 1), (4, 2), (4, 4), (5, 4)]
+
+    Note that sorting is first according to the elements of ``a``.
+    Secondary sorting is according to the elements of ``b``.
+
+    A normal ``argsort`` would have yielded:
+
+    >>> [(a[i],b[i]) for i in np.argsort(a)]
+    [(1, 9), (1, 0), (3, 0), (4, 4), (4, 2), (4, 1), (5, 4)]
+
+    Structured arrays are sorted lexically by ``argsort``:
+
+    >>> x = np.array([(1,9), (5,4), (1,0), (4,4), (3,0), (4,2), (4,1)],
+    ...              dtype=np.dtype([('x', int), ('y', int)]))
+
+    >>> np.argsort(x) # or np.argsort(x, order=('x', 'y'))
+    array([2, 0, 4, 6, 5, 3, 1])
+
+    """)
+
+add_newdoc('numpy.core.multiarray', 'can_cast',
+    """
+    can_cast(fromtype, totype)
+
+    Returns True if cast between data types can occur without losing precision.
+
+    Parameters
+    ----------
+    fromtype : dtype or dtype specifier
+        Data type to cast from.
+    totype : dtype or dtype specifier
+        Data type to cast to.
+
+    Returns
+    -------
+    out : bool
+        True if cast can occur without losing precision.
+
+    Examples
+    --------
+    >>> np.can_cast(np.int32, np.int64)
+    True
+    >>> np.can_cast(np.float64, np.complex)
+    True
+    >>> np.can_cast(np.complex, np.float)
+    False
+
+    >>> np.can_cast('i8', 'f8')
+    True
+    >>> np.can_cast('i8', 'f4')
+    False
+    >>> np.can_cast('i4', 'S4')
+    True
+
+    """)
+
+add_newdoc('numpy.core.multiarray','newbuffer',
+    """newbuffer(size)
+
+    Return a new uninitialized buffer object of size bytes
+
+    """)
+
+add_newdoc('numpy.core.multiarray', 'getbuffer',
+    """
+    getbuffer(obj [,offset[, size]])
+
+    Create a buffer object from the given object referencing a slice of
+    length size starting at offset.
+
+    Default is the entire buffer. A read-write buffer is attempted followed
+    by a read-only buffer.
+
+    Parameters
+    ----------
+    obj : object
+
+    offset : int, optional
+
+    size : int, optional
+
+    Returns
+    -------
+    buffer_obj : buffer
+
+    Examples
+    --------
+    >>> buf = np.getbuffer(np.ones(5), 1, 3)
+    >>> len(buf)
+    3
+    >>> buf[0]
+    '\\x00'
+    >>> buf
+    <read-write buffer for 0x8af1e70, size 3, offset 1 at 0x8ba4ec0>
+
+    """)
+
+add_newdoc('numpy.core', 'dot',
+    """
+    dot(a, b)
+
+    Dot product of two arrays.
+
+    For 2-D arrays it is equivalent to matrix multiplication, and for 1-D
+    arrays to inner product of vectors (without complex conjugation). For
+    N dimensions it is a sum product over the last axis of `a` and
+    the second-to-last of `b`::
+
+        dot(a, b)[i,j,k,m] = sum(a[i,j,:] * b[k,:,m])
+
+    Parameters
+    ----------
+    a : array_like
+        First argument.
+    b : array_like
+        Second argument.
+
+    Returns
+    -------
+    output : ndarray
+        Returns the dot product of `a` and `b`.  If `a` and `b` are both
+        scalars or both 1-D arrays then a scalar is returned; otherwise
+        an array is returned.
+
+    Raises
+    ------
+    ValueError
+        If the last dimension of `a` is not the same size as
+        the second-to-last dimension of `b`.
+
+    See Also
+    --------
+    vdot : Complex-conjugating dot product.
+    tensordot : Sum products over arbitrary axes.
+
+    Examples
+    --------
+    >>> np.dot(3, 4)
+    12
+
+    Neither argument is complex-conjugated:
+
+    >>> np.dot([2j, 3j], [2j, 3j])
+    (-13+0j)
+
+    For 2-D arrays it's the matrix product:
+
+    >>> a = [[1, 0], [0, 1]]
+    >>> b = [[4, 1], [2, 2]]
+    >>> np.dot(a, b)
+    array([[4, 1],
+           [2, 2]])
+
+    >>> a = np.arange(3*4*5*6).reshape((3,4,5,6))
+    >>> b = np.arange(3*4*5*6)[::-1].reshape((5,4,6,3))
+    >>> np.dot(a, b)[2,3,2,1,2,2]
+    499128
+    >>> sum(a[2,3,2,:] * b[1,2,:,2])
+    499128
+
+    """)
+
+add_newdoc('numpy.core', 'alterdot',
+    """
+    Change `dot`, `vdot`, and `innerproduct` to use accelerated BLAS functions.
+
+    Typically, as a user of Numpy, you do not explicitly call this function. If
+    Numpy is built with an accelerated BLAS, this function is automatically
+    called when Numpy is imported.
+
+    When Numpy is built with an accelerated BLAS like ATLAS, these functions
+    are replaced to make use of the faster implementations.  The faster
+    implementations only affect float32, float64, complex64, and complex128
+    arrays. Furthermore, the BLAS API only includes matrix-matrix,
+    matrix-vector, and vector-vector products. Products of arrays with larger
+    dimensionalities use the built in functions and are not accelerated.
+
+    See Also
+    --------
+    restoredot : `restoredot` undoes the effects of `alterdot`.
+
+    """)
+
+add_newdoc('numpy.core', 'restoredot',
+    """
+    Restore `dot`, `vdot`, and `innerproduct` to the default non-BLAS
+    implementations.
+
+    Typically, the user will only need to call this when troubleshooting and
+    installation problem, reproducing the conditions of a build without an
+    accelerated BLAS, or when being very careful about benchmarking linear
+    algebra operations.
+
+    See Also
+    --------
+    alterdot : `restoredot` undoes the effects of `alterdot`.
+
+    """)
+
+add_newdoc('numpy.core', 'vdot',
+    """
+    Return the dot product of two vectors.
+
+    The vdot(`a`, `b`) function handles complex numbers differently than
+    dot(`a`, `b`).  If the first argument is complex the complex conjugate
+    of the first argument is used for the calculation of the dot product.
+
+    For 2-D arrays it is equivalent to matrix multiplication, and for 1-D
+    arrays to inner product of vectors (with complex conjugation of `a`).
+    For N dimensions it is a sum product over the last axis of `a` and
+    the second-to-last of `b`::
+
+        dot(a, b)[i,j,k,m] = sum(a[i,j,:] * b[k,:,m])
+
+    Parameters
+    ----------
+    a : array_like
+        If `a` is complex the complex conjugate is taken before calculation
+        of the dot product.
+    b : array_like
+        Second argument to the dot product.
+
+    Returns
+    -------
+    output : ndarray
+        Returns dot product of `a` and `b`.  Can be an int, float, or
+        complex depending on the types of `a` and `b`.
+
+    See Also
+    --------
+    dot : Return the dot product without using the complex conjugate of the
+          first argument.
+
+    Notes
+    -----
+    The dot product is the summation of element wise multiplication.
+
+    .. math::
+     a \\cdot b = \\sum_{i=1}^n a_i^*b_i = a_1^*b_1+a_2^*b_2+\\cdots+a_n^*b_n
+
+    Examples
+    --------
+    >>> a = np.array([1+2j,3+4j])
+    >>> b = np.array([5+6j,7+8j])
+    >>> np.vdot(a, b)
+    (70-8j)
+    >>> np.vdot(b, a)
+    (70+8j)
+    >>> a = np.array([[1, 4], [5, 6]])
+    >>> b = np.array([[4, 1], [2, 2]])
+    >>> np.vdot(a, b)
+    30
+    >>> np.vdot(b, a)
+    30
+
+    """)
+
+
+##############################################################################
+#
+# Documentation for ndarray attributes and methods
+#
+##############################################################################
+
+
+##############################################################################
+#
+# ndarray object
+#
+##############################################################################
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray',
+    """
+    ndarray(shape, dtype=float, buffer=None, offset=0,
+            strides=None, order=None)
+
+    An array object represents a multidimensional, homogeneous array
+    of fixed-size items.  An associated data-type object describes the
+    format of each element in the array (its byte-order, how many bytes it
+    occupies in memory, whether it is an integer, a floating point number,
+    or something else, etc.)
+
+    Arrays should be constructed using `array`, `zeros` or `empty` (refer
+    to the See Also section below).  The parameters given here refer to
+    a low-level method (`ndarray(...)`) for instantiating an array.
+
+    For more information, refer to the `numpy` module and examine the
+    the methods and attributes of an array.
+
+    Parameters
+    ----------
+    (for the __new__ method; see Notes below)
+
+    shape : tuple of ints
+        Shape of created array.
+    dtype : data-type, optional
+        Any object that can be interpreted as a numpy data type.
+    buffer : object exposing buffer interface, optional
+        Used to fill the array with data.
+    offset : int, optional
+        Offset of array data in buffer.
+    strides : tuple of ints, optional
+        Strides of data in memory.
+    order : {'C', 'F'}, optional
+        Row-major or column-major order.
+
+    Attributes
+    ----------
+    T : ndarray
+        Transpose of the array.
+    data : buffer
+        The array's elements, in memory.
+    dtype : dtype object
+        Describes the format of the elements in the array.
+    flags : dict
+        Dictionary containing information related to memory use, e.g.,
+        'C_CONTIGUOUS', 'OWNDATA', 'WRITEABLE', etc.
+    flat : numpy.flatiter object
+        Flattened version of the array as an iterator.  The iterator
+        allows assignments, e.g., ``x.flat = 3`` (See `ndarray.flat` for
+        assignment examples; TODO).
+    imag : ndarray
+        Imaginary part of the array.
+    real : ndarray
+        Real part of the array.
+    size : int
+        Number of elements in the array.
+    itemsize : int
+        The memory use of each array element in bytes.
+    nbytes : int
+        The total number of bytes required to store the array data,
+        i.e., ``itemsize * size``.
+    ndim : int
+        The array's number of dimensions.
+    shape : tuple of ints
+        Shape of the array.
+    strides : tuple of ints
+        The step-size required to move from one element to the next in
+        memory. For example, a contiguous ``(3, 4)`` array of type
+        ``int16`` in C-order has strides ``(8, 2)``.  This implies that
+        to move from element to element in memory requires jumps of 2 bytes.
+        To move from row-to-row, one needs to jump 8 bytes at a time
+        (``2 * 4``).
+    ctypes : ctypes object
+        Class containing properties of the array needed for interaction
+        with ctypes.
+    base : ndarray
+        If the array is a view into another array, that array is its `base`
+        (unless that array is also a view).  The `base` array is where the
+        array data is actually stored.
+
+    See Also
+    --------
+    array : Construct an array.
+    zeros : Create an array, each element of which is zero.
+    empty : Create an array, but leave its allocated memory unchanged (i.e.,
+            it contains "garbage").
+    dtype : Create a data-type.
+
+    Notes
+    -----
+    There are two modes of creating an array using ``__new__``:
+
+    1. If `buffer` is None, then only `shape`, `dtype`, and `order`
+       are used.
+    2. If `buffer` is an object exposing the buffer interface, then
+       all keywords are interpreted.
+
+    No ``__init__`` method is needed because the array is fully initialized
+    after the ``__new__`` method.
+
+    Examples
+    --------
+    These examples illustrate the low-level `ndarray` constructor.  Refer
+    to the `See Also` section above for easier ways of constructing an
+    ndarray.
+
+    First mode, `buffer` is None:
+
+    >>> np.ndarray(shape=(2,2), dtype=float, order='F')
+    array([[ -1.13698227e+002,   4.25087011e-303],
+           [  2.88528414e-306,   3.27025015e-309]])
+
+    Second mode:
+
+    >>> np.ndarray((2,), buffer=np.array([1,2,3]),
+    ...            offset=np.int_().itemsize,
+    ...            dtype=int) # offset = 1*itemsize, i.e. skip first element
+    array([2, 3])
+
+    """)
+
+
+##############################################################################
+#
+# ndarray attributes
+#
+##############################################################################
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('__array_interface__',
+    """Array protocol: Python side."""))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('__array_finalize__',
+    """None."""))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('__array_priority__',
+    """Array priority."""))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('__array_struct__',
+    """Array protocol: C-struct side."""))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('_as_parameter_',
+    """Allow the array to be interpreted as a ctypes object by returning the
+    data-memory location as an integer
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('base',
+    """
+    Base object if memory is from some other object.
+
+    Examples
+    --------
+    The base of an array that owns its memory is None:
+
+    >>> x = np.array([1,2,3,4])
+    >>> x.base is None
+    True
+
+    Slicing creates a view, whose memory is shared with x:
+
+    >>> y = x[2:]
+    >>> y.base is x
+    True
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('ctypes',
+    """
+    An object to simplify the interaction of the array with the ctypes
+    module.
+
+    This attribute creates an object that makes it easier to use arrays
+    when calling shared libraries with the ctypes module. The returned
+    object has, among others, data, shape, and strides attributes (see
+    Notes below) which themselves return ctypes objects that can be used
+    as arguments to a shared library.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    c : Python object
+        Possessing attributes data, shape, strides, etc.
+
+    See Also
+    --------
+    numpy.ctypeslib
+
+    Notes
+    -----
+    Below are the public attributes of this object which were documented
+    in "Guide to NumPy" (we have omitted undocumented public attributes,
+    as well as documented private attributes):
+
+    * data: A pointer to the memory area of the array as a Python integer.
+      This memory area may contain data that is not aligned, or not in correct
+      byte-order. The memory area may not even be writeable. The array
+      flags and data-type of this array should be respected when passing this
+      attribute to arbitrary C-code to avoid trouble that can include Python
+      crashing. User Beware! The value of this attribute is exactly the same
+      as self._array_interface_['data'][0].
+
+    * shape (c_intp*self.ndim): A ctypes array of length self.ndim where
+      the basetype is the C-integer corresponding to dtype('p') on this
+      platform. This base-type could be c_int, c_long, or c_longlong
+      depending on the platform. The c_intp type is defined accordingly in
+      numpy.ctypeslib. The ctypes array contains the shape of the underlying
+      array.
+
+    * strides (c_intp*self.ndim): A ctypes array of length self.ndim where
+      the basetype is the same as for the shape attribute. This ctypes array
+      contains the strides information from the underlying array. This strides
+      information is important for showing how many bytes must be jumped to
+      get to the next element in the array.
+
+    * data_as(obj): Return the data pointer cast to a particular c-types object.
+      For example, calling self._as_parameter_ is equivalent to
+      self.data_as(ctypes.c_void_p). Perhaps you want to use the data as a
+      pointer to a ctypes array of floating-point data:
+      self.data_as(ctypes.POINTER(ctypes.c_double)).
+
+    * shape_as(obj): Return the shape tuple as an array of some other c-types
+      type. For example: self.shape_as(ctypes.c_short).
+
+    * strides_as(obj): Return the strides tuple as an array of some other
+      c-types type. For example: self.strides_as(ctypes.c_longlong).
+
+    Be careful using the ctypes attribute - especially on temporary
+    arrays or arrays constructed on the fly. For example, calling
+    (a+b).ctypes.data_as(ctypes.c_void_p) returns a pointer to memory
+    that is invalid because the array created as (a+b) is deallocated
+    before the next Python statement. You can avoid this problem using
+    either c=a+b or ct=(a+b).ctypes. In the latter case, ct will hold
+    a reference to the array until ct is deleted or re-assigned.
+
+    If the ctypes module is not available, then the ctypes attribute
+    of array objects still returns something useful, but ctypes objects
+    are not returned and errors may be raised instead. In particular,
+    the object will still have the as parameter attribute which will
+    return an integer equal to the data attribute.
+
+    Examples
+    --------
+    >>> import ctypes
+    >>> x
+    array([[0, 1],
+           [2, 3]])
+    >>> x.ctypes.data
+    30439712
+    >>> x.ctypes.data_as(ctypes.POINTER(ctypes.c_long))
+    <ctypes.LP_c_long object at 0x01F01300>
+    >>> x.ctypes.data_as(ctypes.POINTER(ctypes.c_long)).contents
+    c_long(0)
+    >>> x.ctypes.data_as(ctypes.POINTER(ctypes.c_longlong)).contents
+    c_longlong(4294967296L)
+    >>> x.ctypes.shape
+    <numpy.core._internal.c_long_Array_2 object at 0x01FFD580>
+    >>> x.ctypes.shape_as(ctypes.c_long)
+    <numpy.core._internal.c_long_Array_2 object at 0x01FCE620>
+    >>> x.ctypes.strides
+    <numpy.core._internal.c_long_Array_2 object at 0x01FCE620>
+    >>> x.ctypes.strides_as(ctypes.c_longlong)
+    <numpy.core._internal.c_longlong_Array_2 object at 0x01F01300>
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('data',
+    """Python buffer object pointing to the start of the array's data."""))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('dtype',
+    """
+    Data-type of the array's elements.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    d : numpy dtype object
+
+    See Also
+    --------
+    numpy.dtype
+
+    Examples
+    --------
+    >>> x
+    array([[0, 1],
+           [2, 3]])
+    >>> x.dtype
+    dtype('int32')
+    >>> type(x.dtype)
+    <type 'numpy.dtype'>
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('imag',
+    """
+    The imaginary part of the array.
+
+    Examples
+    --------
+    >>> x = np.sqrt([1+0j, 0+1j])
+    >>> x.imag
+    array([ 0.        ,  0.70710678])
+    >>> x.imag.dtype
+    dtype('float64')
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('itemsize',
+    """
+    Length of one array element in bytes.
+
+    Examples
+    --------
+    >>> x = np.array([1,2,3], dtype=np.float64)
+    >>> x.itemsize
+    8
+    >>> x = np.array([1,2,3], dtype=np.complex128)
+    >>> x.itemsize
+    16
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('flags',
+    """
+    Information about the memory layout of the array.
+
+    Attributes
+    ----------
+    C_CONTIGUOUS (C)
+        The data is in a single, C-style contiguous segment.
+    F_CONTIGUOUS (F)
+        The data is in a single, Fortran-style contiguous segment.
+    OWNDATA (O)
+        The array owns the memory it uses or borrows it from another object.
+    WRITEABLE (W)
+        The data area can be written to.  Setting this to False locks
+        the data, making it read-only.  A view (slice, etc.) inherits WRITEABLE
+        from its base array at creation time, but a view of a writeable
+        array may be subsequently locked while the base array remains writeable.
+        (The opposite is not true, in that a view of a locked array may not
+        be made writeable.  However, currently, locking a base object does not
+        lock any views that already reference it, so under that circumstance it
+        is possible to alter the contents of a locked array via a previously
+        created writeable view onto it.)  Attempting to change a non-writeable
+        array raises a RuntimeError exception.
+    ALIGNED (A)
+        The data and strides are aligned appropriately for the hardware.
+    UPDATEIFCOPY (U)
+        This array is a copy of some other array. When this array is
+        deallocated, the base array will be updated with the contents of
+        this array.
+
+    FNC
+        F_CONTIGUOUS and not C_CONTIGUOUS.
+    FORC
+        F_CONTIGUOUS or C_CONTIGUOUS (one-segment test).
+    BEHAVED (B)
+        ALIGNED and WRITEABLE.
+    CARRAY (CA)
+        BEHAVED and C_CONTIGUOUS.
+    FARRAY (FA)
+        BEHAVED and F_CONTIGUOUS and not C_CONTIGUOUS.
+
+    Notes
+    -----
+    The `flags` object can be accessed dictionary-like (as in ``a.flags['WRITEABLE']``),
+    or by using lowercased attribute names (as in ``a.flags.writeable``). Short flag
+    names are only supported in dictionary access.
+
+    Only the UPDATEIFCOPY, WRITEABLE, and ALIGNED flags can be changed by
+    the user, via direct assignment to the attribute or dictionary entry,
+    or by calling `ndarray.setflags`.
+
+    The array flags cannot be set arbitrarily:
+
+    - UPDATEIFCOPY can only be set ``False``.
+    - ALIGNED can only be set ``True`` if the data is truly aligned.
+    - WRITEABLE can only be set ``True`` if the array owns its own memory
+      or the ultimate owner of the memory exposes a writeable buffer
+      interface or is a string.
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('flat',
+    """
+    A 1-D iterator over the array.
+
+    This is a `numpy.flatiter` instance, which acts similarly to, but is not
+    a subclass of, Python's built-in iterator object.
+
+    See Also
+    --------
+    flatten : Return a copy of the array collapsed into one dimension.
+
+    flatiter
+
+    Examples
+    --------
+    >>> x = np.arange(1, 7).reshape(2, 3)
+    >>> x
+    array([[1, 2, 3],
+           [4, 5, 6]])
+    >>> x.flat[3]
+    4
+    >>> x.T
+    array([[1, 4],
+           [2, 5],
+           [3, 6]])
+    >>> x.T.flat[3]
+    5
+    >>> type(x.flat)
+    <type 'numpy.flatiter'>
+
+    An assignment example:
+
+    >>> x.flat = 3; x
+    array([[3, 3, 3],
+           [3, 3, 3]])
+    >>> x.flat[[1,4]] = 1; x
+    array([[3, 1, 3],
+           [3, 1, 3]])
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('nbytes',
+    """
+    Total bytes consumed by the elements of the array.
+
+    Notes
+    -----
+    Does not include memory consumed by non-element attributes of the
+    array object.
+
+    Examples
+    --------
+    >>> x = np.zeros((3,5,2), dtype=np.complex128)
+    >>> x.nbytes
+    480
+    >>> np.prod(x.shape) * x.itemsize
+    480
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('ndim',
+    """
+    Number of array dimensions.
+
+    Examples
+    --------
+    >>> x = np.array([1, 2, 3])
+    >>> x.ndim
+    1
+    >>> y = np.zeros((2, 3, 4))
+    >>> y.ndim
+    3
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('real',
+    """
+    The real part of the array.
+
+    Examples
+    --------
+    >>> x = np.sqrt([1+0j, 0+1j])
+    >>> x.real
+    array([ 1.        ,  0.70710678])
+    >>> x.real.dtype
+    dtype('float64')
+
+    See Also
+    --------
+    numpy.real : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('shape',
+    """
+    Tuple of array dimensions.
+
+    Notes
+    -----
+    May be used to "reshape" the array, as long as this would not
+    require a change in the total number of elements
+
+    Examples
+    --------
+    >>> x = np.array([1, 2, 3, 4])
+    >>> x.shape
+    (4,)
+    >>> y = np.zeros((2, 3, 4))
+    >>> y.shape
+    (2, 3, 4)
+    >>> y.shape = (3, 8)
+    >>> y
+    array([[ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],
+           [ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],
+           [ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.]])
+    >>> y.shape = (3, 6)
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+    ValueError: total size of new array must be unchanged
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('size',
+    """
+    Number of elements in the array.
+
+    Equivalent to ``np.prod(a.shape)``, i.e., the product of the array's
+    dimensions.
+
+    Examples
+    --------
+    >>> x = np.zeros((3, 5, 2), dtype=np.complex128)
+    >>> x.size
+    30
+    >>> np.prod(x.shape)
+    30
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('strides',
+    """
+    Tuple of bytes to step in each dimension when traversing an array.
+
+    The byte offset of element ``(i[0], i[1], ..., i[n])`` in an array `a`
+    is::
+
+        offset = sum(np.array(i) * a.strides)
+
+    Notes
+    -----
+    Imagine an array of 32-bit integers (each 4 bytes)::
+
+      x = np.array([[0, 1, 2, 3, 4],
+                    [5, 6, 7, 8, 9]], dtype=np.int32)
+
+    This array is stored in memory as 40 bytes, one after the other
+    (known as a contiguous block of memory).  The strides of an array tell
+    us how many bytes we have to skip in memory to move to the next position
+    along a certain axis.  For example, we have to skip 4 bytes (1 value) to
+    move to the next column, but 20 bytes (5 values) to get to the same
+    position in the next row.  As such, the strides for the array `x` will be
+    ``(20, 4)``.
+
+    See Also
+    --------
+    numpy.lib.stride_tricks.as_strided
+
+    Examples
+    --------
+    >>> y = np.reshape(np.arange(2*3*4), (2,3,4))
+    >>> y
+    array([[[ 0,  1,  2,  3],
+            [ 4,  5,  6,  7],
+            [ 8,  9, 10, 11]],
+           [[12, 13, 14, 15],
+            [16, 17, 18, 19],
+            [20, 21, 22, 23]]])
+    >>> y.strides
+    (48, 16, 4)
+    >>> y[1,1,1]
+    17
+    >>> offset=sum(y.strides * np.array((1,1,1)))
+    >>> offset/y.itemsize
+    17
+
+    >>> x = np.reshape(np.arange(5*6*7*8), (5,6,7,8)).transpose(2,3,1,0)
+    >>> x.strides
+    (32, 4, 224, 1344)
+    >>> i = np.array([3,5,2,2])
+    >>> offset = sum(i * x.strides)
+    >>> x[3,5,2,2]
+    813
+    >>> offset / x.itemsize
+    813
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('T',
+    """
+    Same as self.transpose(), except that self is returned if
+    self.ndim < 2.
+
+    Examples
+    --------
+    >>> x = np.array([[1.,2.],[3.,4.]])
+    >>> x
+    array([[ 1.,  2.],
+           [ 3.,  4.]])
+    >>> x.T
+    array([[ 1.,  3.],
+           [ 2.,  4.]])
+    >>> x = np.array([1.,2.,3.,4.])
+    >>> x
+    array([ 1.,  2.,  3.,  4.])
+    >>> x.T
+    array([ 1.,  2.,  3.,  4.])
+
+    """))
+
+
+##############################################################################
+#
+# ndarray methods
+#
+##############################################################################
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('__array__',
+    """ a.__array__(|dtype) -> reference if type unchanged, copy otherwise.
+
+    Returns either a new reference to self if dtype is not given or a new array
+    of provided data type if dtype is different from the current dtype of the
+    array.
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('__array_prepare__',
+    """a.__array_prepare__(obj) -> Object of same type as ndarray object obj.
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('__array_wrap__',
+    """a.__array_wrap__(obj) -> Object of same type as ndarray object a.
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('__copy__',
+    """a.__copy__([order])
+
+    Return a copy of the array.
+
+    Parameters
+    ----------
+    order : {'C', 'F', 'A'}, optional
+        If order is 'C' (False) then the result is contiguous (default).
+        If order is 'Fortran' (True) then the result has fortran order.
+        If order is 'Any' (None) then the result has fortran order
+        only if the array already is in fortran order.
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('__deepcopy__',
+    """a.__deepcopy__() -> Deep copy of array.
+
+    Used if copy.deepcopy is called on an array.
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('__reduce__',
+    """a.__reduce__()
+
+    For pickling.
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('__setstate__',
+    """a.__setstate__(version, shape, dtype, isfortran, rawdata)
+
+    For unpickling.
+
+    Parameters
+    ----------
+    version : int
+        optional pickle version. If omitted defaults to 0.
+    shape : tuple
+    dtype : data-type
+    isFortran : bool
+    rawdata : string or list
+        a binary string with the data (or a list if 'a' is an object array)
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('all',
+    """
+    a.all(axis=None, out=None)
+
+    Returns True if all elements evaluate to True.
+
+    Refer to `numpy.all` for full documentation.
+
+    See Also
+    --------
+    numpy.all : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('any',
+    """
+    a.any(axis=None, out=None)
+
+    Returns True if any of the elements of `a` evaluate to True.
+
+    Refer to `numpy.any` for full documentation.
+
+    See Also
+    --------
+    numpy.any : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('argmax',
+    """
+    a.argmax(axis=None, out=None)
+
+    Return indices of the maximum values along the given axis.
+
+    Refer to `numpy.argmax` for full documentation.
+
+    See Also
+    --------
+    numpy.argmax : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('argmin',
+    """
+    a.argmin(axis=None, out=None)
+
+    Return indices of the minimum values along the given axis of `a`.
+
+    Refer to `numpy.argmin` for detailed documentation.
+
+    See Also
+    --------
+    numpy.argmin : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('argsort',
+    """
+    a.argsort(axis=-1, kind='quicksort', order=None)
+
+    Returns the indices that would sort this array.
+
+    Refer to `numpy.argsort` for full documentation.
+
+    See Also
+    --------
+    numpy.argsort : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('astype',
+    """
+    a.astype(t)
+
+    Copy of the array, cast to a specified type.
+
+    Parameters
+    ----------
+    t : string or dtype
+        Typecode or data-type to which the array is cast.
+
+    Examples
+    --------
+    >>> x = np.array([1, 2, 2.5])
+    >>> x
+    array([ 1. ,  2. ,  2.5])
+
+    >>> x.astype(int)
+    array([1, 2, 2])
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('byteswap',
+    """
+    a.byteswap(inplace)
+
+    Swap the bytes of the array elements
+
+    Toggle between low-endian and big-endian data representation by
+    returning a byteswapped array, optionally swapped in-place.
+
+    Parameters
+    ----------
+    inplace: bool, optional
+        If ``True``, swap bytes in-place, default is ``False``.
+
+    Returns
+    -------
+    out: ndarray
+        The byteswapped array. If `inplace` is ``True``, this is
+        a view to self.
+
+    Examples
+    --------
+    >>> A = np.array([1, 256, 8755], dtype=np.int16)
+    >>> map(hex, A)
+    ['0x1', '0x100', '0x2233']
+    >>> A.byteswap(True)
+    array([  256,     1, 13090], dtype=int16)
+    >>> map(hex, A)
+    ['0x100', '0x1', '0x3322']
+
+    Arrays of strings are not swapped
+
+    >>> A = np.array(['ceg', 'fac'])
+    >>> A.byteswap()
+    array(['ceg', 'fac'],
+          dtype='|S3')
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('choose',
+    """
+    a.choose(choices, out=None, mode='raise')
+
+    Use an index array to construct a new array from a set of choices.
+
+    Refer to `numpy.choose` for full documentation.
+
+    See Also
+    --------
+    numpy.choose : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('clip',
+    """
+    a.clip(a_min, a_max, out=None)
+
+    Return an array whose values are limited to ``[a_min, a_max]``.
+
+    Refer to `numpy.clip` for full documentation.
+
+    See Also
+    --------
+    numpy.clip : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('compress',
+    """
+    a.compress(condition, axis=None, out=None)
+
+    Return selected slices of this array along given axis.
+
+    Refer to `numpy.compress` for full documentation.
+
+    See Also
+    --------
+    numpy.compress : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('conj',
+    """
+    a.conj()
+
+    Complex-conjugate all elements.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    conj : ndarray
+        A new array of the same size and shape as `a` each of whose
+        elements are the complex-conjugates of the positionally
+        respective elements of `a`.
+
+    Examples
+    --------
+    >>> x = np.eye(2) + 1j * np.eye(2)
+    >>> x
+    array([[ 1.+1.j,  0.+0.j],
+           [ 0.+0.j,  1.+1.j]])
+    >>> y = x.conj()
+    >>> y
+    array([[ 1.-1.j,  0.+0.j],
+           [ 0.+0.j,  1.-1.j]])
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('conjugate',
+    """
+    a.conjugate()
+
+    Return the complex conjugate, element-wise.
+
+    Refer to `numpy.conjugate` for full documentation.
+
+    See Also
+    --------
+    numpy.conjugate : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('copy',
+    """
+    a.copy(order='C')
+
+    Return a copy of the array.
+
+    Parameters
+    ----------
+    order : {'C', 'F', 'A'}, optional
+        By default, the result is stored in C-contiguous (row-major) order in
+        memory.  If `order` is `F`, the result has 'Fortran' (column-major)
+        order.  If order is 'A' ('Any'), then the result has the same order
+        as the input.
+
+    Examples
+    --------
+    >>> x = np.array([[1,2,3],[4,5,6]], order='F')
+
+    >>> y = x.copy()
+
+    >>> x.fill(0)
+
+    >>> x
+    array([[0, 0, 0],
+           [0, 0, 0]])
+
+    >>> y
+    array([[1, 2, 3],
+           [4, 5, 6]])
+
+    >>> y.flags['C_CONTIGUOUS']
+    True
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('cumprod',
+    """
+    a.cumprod(axis=None, dtype=None, out=None)
+
+    Return the cumulative product of the elements along the given axis.
+
+    Refer to `numpy.cumprod` for full documentation.
+
+    See Also
+    --------
+    numpy.cumprod : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('cumsum',
+    """
+    a.cumsum(axis=None, dtype=None, out=None)
+
+    Return the cumulative sum of the elements along the given axis.
+
+    Refer to `numpy.cumsum` for full documentation.
+
+    See Also
+    --------
+    numpy.cumsum : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('diagonal',
+    """
+    a.diagonal(offset=0, axis1=0, axis2=1)
+
+    Return specified diagonals.
+
+    Refer to `numpy.diagonal` for full documentation.
+
+    See Also
+    --------
+    numpy.diagonal : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('dump',
+    """a.dump(file)
+
+    Dump a pickle of the array to the specified file.
+    The array can be read back with pickle.load or numpy.load.
+
+    Parameters
+    ----------
+    file : str
+        A string naming the dump file.
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('dumps',
+    """
+    a.dumps()
+
+    Returns the pickle of the array as a string.
+    pickle.loads or numpy.loads will convert the string back to an array.
+
+    Parameters
+    ----------
+    None
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('fill',
+    """
+    a.fill(value)
+
+    Fill the array with a scalar value.
+
+    Parameters
+    ----------
+    value : scalar
+        All elements of `a` will be assigned this value.
+
+    Examples
+    --------
+    >>> a = np.array([1, 2])
+    >>> a.fill(0)
+    >>> a
+    array([0, 0])
+    >>> a = np.empty(2)
+    >>> a.fill(1)
+    >>> a
+    array([ 1.,  1.])
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('flatten',
+    """
+    a.flatten(order='C')
+
+    Return a copy of the array collapsed into one dimension.
+
+    Parameters
+    ----------
+    order : {'C', 'F'}, optional
+        Whether to flatten in C (row-major) or Fortran (column-major) order.
+        The default is 'C'.
+
+    Returns
+    -------
+    y : ndarray
+        A copy of the input array, flattened to one dimension.
+
+    See Also
+    --------
+    ravel : Return a flattened array.
+    flat : A 1-D flat iterator over the array.
+
+    Examples
+    --------
+    >>> a = np.array([[1,2], [3,4]])
+    >>> a.flatten()
+    array([1, 2, 3, 4])
+    >>> a.flatten('F')
+    array([1, 3, 2, 4])
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('getfield',
+    """
+    a.getfield(dtype, offset)
+
+    Returns a field of the given array as a certain type.
+
+    A field is a view of the array data with each itemsize determined
+    by the given type and the offset into the current array, i.e. from
+    ``offset * dtype.itemsize`` to ``(offset+1) * dtype.itemsize``.
+
+    Parameters
+    ----------
+    dtype : str
+        String denoting the data type of the field.
+    offset : int
+        Number of `dtype.itemsize`'s to skip before beginning the element view.
+
+    Examples
+    --------
+    >>> x = np.diag([1.+1.j]*2)
+    >>> x
+    array([[ 1.+1.j,  0.+0.j],
+           [ 0.+0.j,  1.+1.j]])
+    >>> x.dtype
+    dtype('complex128')
+
+    >>> x.getfield('complex64', 0) # Note how this != x
+    array([[ 0.+1.875j,  0.+0.j   ],
+           [ 0.+0.j   ,  0.+1.875j]], dtype=complex64)
+
+    >>> x.getfield('complex64',1) # Note how different this is than x
+    array([[ 0. +5.87173204e-39j,  0. +0.00000000e+00j],
+           [ 0. +0.00000000e+00j,  0. +5.87173204e-39j]], dtype=complex64)
+
+    >>> x.getfield('complex128', 0) # == x
+    array([[ 1.+1.j,  0.+0.j],
+           [ 0.+0.j,  1.+1.j]])
+
+    If the argument dtype is the same as x.dtype, then offset != 0 raises
+    a ValueError:
+
+    >>> x.getfield('complex128', 1)
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+    ValueError: Need 0 <= offset <= 0 for requested type but received offset = 1
+
+    >>> x.getfield('float64', 0)
+    array([[ 1.,  0.],
+           [ 0.,  1.]])
+
+    >>> x.getfield('float64', 1)
+    array([[  1.77658241e-307,   0.00000000e+000],
+           [  0.00000000e+000,   1.77658241e-307]])
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('item',
+    """
+    a.item(*args)
+
+    Copy an element of an array to a standard Python scalar and return it.
+
+    Parameters
+    ----------
+    \\*args : Arguments (variable number and type)
+
+        * none: in this case, the method only works for arrays
+          with one element (`a.size == 1`), which element is
+          copied into a standard Python scalar object and returned.
+
+        * int_type: this argument is interpreted as a flat index into
+          the array, specifying which element to copy and return.
+
+        * tuple of int_types: functions as does a single int_type argument,
+          except that the argument is interpreted as an nd-index into the
+          array.
+
+    Returns
+    -------
+    z : Standard Python scalar object
+        A copy of the specified element of the array as a suitable
+        Python scalar
+
+    Notes
+    -----
+    When the data type of `a` is longdouble or clongdouble, item() returns
+    a scalar array object because there is no available Python scalar that
+    would not lose information. Void arrays return a buffer object for item(),
+    unless fields are defined, in which case a tuple is returned.
+
+    `item` is very similar to a[args], except, instead of an array scalar,
+    a standard Python scalar is returned. This can be useful for speeding up
+    access to elements of the array and doing arithmetic on elements of the
+    array using Python's optimized math.
+
+    Examples
+    --------
+    >>> x = np.random.randint(9, size=(3, 3))
+    >>> x
+    array([[3, 1, 7],
+           [2, 8, 3],
+           [8, 5, 3]])
+    >>> x.item(3)
+    2
+    >>> x.item(7)
+    5
+    >>> x.item((0, 1))
+    1
+    >>> x.item((2, 2))
+    3
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('max',
+    """
+    a.max(axis=None, out=None)
+
+    Return the maximum along a given axis.
+
+    Refer to `numpy.amax` for full documentation.
+
+    See Also
+    --------
+    numpy.amax : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('mean',
+    """
+    a.mean(axis=None, dtype=None, out=None)
+
+    Returns the average of the array elements along given axis.
+
+    Refer to `numpy.mean` for full documentation.
+
+    See Also
+    --------
+    numpy.mean : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('min',
+    """
+    a.min(axis=None, out=None)
+
+    Return the minimum along a given axis.
+
+    Refer to `numpy.amin` for full documentation.
+
+    See Also
+    --------
+    numpy.amin : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('newbyteorder',
+    """
+    arr.newbyteorder(new_order='S')
+
+    Return the array with the same data viewed with a different byte order.
+
+    Equivalent to::
+
+        arr.view(arr.dtype.newbytorder(new_order))
+
+    Changes are also made in all fields and sub-arrays of the array data
+    type.
+
+
+
+    Parameters
+    ----------
+    new_order : string, optional
+        Byte order to force; a value from the byte order specifications
+        above. `new_order` codes can be any of::
+
+         * 'S' - swap dtype from current to opposite endian
+         * {'<', 'L'} - little endian
+         * {'>', 'B'} - big endian
+         * {'=', 'N'} - native order
+         * {'|', 'I'} - ignore (no change to byte order)
+
+        The default value ('S') results in swapping the current
+        byte order. The code does a case-insensitive check on the first
+        letter of `new_order` for the alternatives above.  For example,
+        any of 'B' or 'b' or 'biggish' are valid to specify big-endian.
+
+
+    Returns
+    -------
+    new_arr : array
+        New array object with the dtype reflecting given change to the
+        byte order.
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('nonzero',
+    """
+    a.nonzero()
+
+    Return the indices of the elements that are non-zero.
+
+    Refer to `numpy.nonzero` for full documentation.
+
+    See Also
+    --------
+    numpy.nonzero : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('prod',
+    """
+    a.prod(axis=None, dtype=None, out=None)
+
+    Return the product of the array elements over the given axis
+
+    Refer to `numpy.prod` for full documentation.
+
+    See Also
+    --------
+    numpy.prod : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('ptp',
+    """
+    a.ptp(axis=None, out=None)
+
+    Peak to peak (maximum - minimum) value along a given axis.
+
+    Refer to `numpy.ptp` for full documentation.
+
+    See Also
+    --------
+    numpy.ptp : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('put',
+    """
+    a.put(indices, values, mode='raise')
+
+    Set a.flat[n] = values[n] for all n in indices.
+
+    Refer to `numpy.put` for full documentation.
+
+    See Also
+    --------
+    numpy.put : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'putmask',
+    """
+    putmask(a, mask, values)
+
+    Changes elements of an array based on conditional and input values.
+
+    Sets ``a.flat[n] = values[n]`` for each n where ``mask.flat[n]==True``.
+
+    If `values` is not the same size as `a` and `mask` then it will repeat.
+    This gives behavior different from ``a[mask] = values``.
+
+    Parameters
+    ----------
+    a : array_like
+        Target array.
+    mask : array_like
+        Boolean mask array. It has to be the same shape as `a`.
+    values : array_like
+        Values to put into `a` where `mask` is True. If `values` is smaller
+        than `a` it will be repeated.
+
+    See Also
+    --------
+    place, put, take
+
+    Examples
+    --------
+    >>> x = np.arange(6).reshape(2, 3)
+    >>> np.putmask(x, x>2, x**2)
+    >>> x
+    array([[ 0,  1,  2],
+           [ 9, 16, 25]])
+
+    If `values` is smaller than `a` it is repeated:
+
+    >>> x = np.arange(5)
+    >>> np.putmask(x, x>1, [-33, -44])
+    >>> x
+    array([  0,   1, -33, -44, -33])
+
+    """)
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('ravel',
+    """
+    a.ravel([order])
+
+    Return a flattened array.
+
+    Refer to `numpy.ravel` for full documentation.
+
+    See Also
+    --------
+    numpy.ravel : equivalent function
+
+    ndarray.flat : a flat iterator on the array.
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('repeat',
+    """
+    a.repeat(repeats, axis=None)
+
+    Repeat elements of an array.
+
+    Refer to `numpy.repeat` for full documentation.
+
+    See Also
+    --------
+    numpy.repeat : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('reshape',
+    """
+    a.reshape(shape, order='C')
+
+    Returns an array containing the same data with a new shape.
+
+    Refer to `numpy.reshape` for full documentation.
+
+    See Also
+    --------
+    numpy.reshape : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('resize',
+    """
+    a.resize(new_shape, refcheck=True, order=False)
+
+    Change shape and size of array in-place.
+
+    Parameters
+    ----------
+    new_shape : tuple of ints, or `n` ints
+        Shape of resized array.
+    refcheck : bool, optional
+        If False, reference count will not be checked. Default is True.
+    order : bool, do not use.
+        A SystemError is raised when this parameter is specified.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    ValueError
+        If `a` does not own its own data or references or views to it exist,
+        and the data memory must be changed.
+
+    SystemError
+        If the `order` keyword argument is specified. This behaviour is a
+        bug in NumPy.
+
+    See Also
+    --------
+    resize : Return a new array with the specified shape.
+
+    Notes
+    -----
+    This reallocates space for the data area if necessary.
+
+    Only contiguous arrays (data elements consecutive in memory) can be
+    resized.
+
+    The purpose of the reference count check is to make sure you
+    do not use this array as a buffer for another Python object and then
+    reallocate the memory. However, reference counts can increase in
+    other ways so if you are sure that you have not shared the memory
+    for this array with another Python object, then you may safely set
+    `refcheck` to False.
+
+    Examples
+    --------
+    Shrinking an array: array is flattened (in the order that the data are
+    stored in memory), resized, and reshaped:
+
+    >>> a = np.array([[0, 1], [2, 3]])
+    >>> print a.flags
+    C_CONTIGUOUS : True
+    F_CONTIGUOUS : False
+    OWNDATA : True
+    WRITEABLE : True
+    ALIGNED : True
+    UPDATEIFCOPY : False
+    >>> a.resize((2, 1))
+    >>> a
+    array([[0],
+           [1]])
+
+    >>> a = np.array([[0, 1], [2, 3]], order='F')
+    >>> print a.flags
+    C_CONTIGUOUS : False
+    F_CONTIGUOUS : True
+    OWNDATA : True
+    WRITEABLE : True
+    ALIGNED : True
+    UPDATEIFCOPY : False
+    >>> a.resize((2, 1))
+    >>> a
+    array([[0],
+           [2]])
+
+    Enlarging an array: as above, but missing entries are filled with zeros:
+
+    >>> b = np.array([[0, 1], [2, 3]])
+    >>> b.resize(2, 3) # new_shape parameter doesn't have to be a tuple
+    >>> b
+    array([[0, 1, 2],
+           [3, 0, 0]])
+
+    Referencing an array prevents resizing...
+
+    >>> c = a
+    >>> a.resize((1, 1))
+    Traceback (most recent call last):
+    ...
+    ValueError: cannot resize an array that has been referenced ...
+
+    Unless `refcheck` is False:
+
+    >>> a.resize((1, 1), refcheck=False)
+    >>> a
+    array([[0]])
+    >>> c
+    array([[0]])
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('round',
+    """
+    a.round(decimals=0, out=None)
+
+    Return an array rounded a to the given number of decimals.
+
+    Refer to `numpy.around` for full documentation.
+
+    See Also
+    --------
+    numpy.around : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('searchsorted',
+    """
+    a.searchsorted(v, side='left')
+
+    Find indices where elements of v should be inserted in a to maintain order.
+
+    For full documentation, see `numpy.searchsorted`
+
+    See Also
+    --------
+    numpy.searchsorted : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('setfield',
+    """
+    a.setfield(val, dtype, offset=0)
+
+    Put a value into a specified place in a field defined by a data-type.
+
+    Place `val` into `a`'s field defined by `dtype` and beginning `offset`
+    bytes into the field.
+
+    Parameters
+    ----------
+    val : object
+        Value to be placed in field.
+    dtype : dtype object
+        Data-type of the field in which to place `val`.
+    offset : int, optional
+        The number of bytes into the field at which to place `val`.
+
+    Returns
+    -------
+    None
+
+    See Also
+    --------
+    getfield
+
+    Examples
+    --------
+    >>> x = np.eye(3)
+    >>> x.getfield(np.float64)
+    array([[ 1.,  0.,  0.],
+           [ 0.,  1.,  0.],
+           [ 0.,  0.,  1.]])
+    >>> x.setfield(3, np.int32)
+    >>> x.getfield(np.int32)
+    array([[3, 3, 3],
+           [3, 3, 3],
+           [3, 3, 3]])
+    >>> x
+    array([[  1.00000000e+000,   1.48219694e-323,   1.48219694e-323],
+           [  1.48219694e-323,   1.00000000e+000,   1.48219694e-323],
+           [  1.48219694e-323,   1.48219694e-323,   1.00000000e+000]])
+    >>> x.setfield(np.eye(3), np.int32)
+    >>> x
+    array([[ 1.,  0.,  0.],
+           [ 0.,  1.,  0.],
+           [ 0.,  0.,  1.]])
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('setflags',
+    """
+    a.setflags(write=None, align=None, uic=None)
+
+    Set array flags WRITEABLE, ALIGNED, and UPDATEIFCOPY, respectively.
+
+    These Boolean-valued flags affect how numpy interprets the memory
+    area used by `a` (see Notes below). The ALIGNED flag can only
+    be set to True if the data is actually aligned according to the type.
+    The UPDATEIFCOPY flag can never be set to True. The flag WRITEABLE
+    can only be set to True if the array owns its own memory, or the
+    ultimate owner of the memory exposes a writeable buffer interface,
+    or is a string. (The exception for string is made so that unpickling
+    can be done without copying memory.)
+
+    Parameters
+    ----------
+    write : bool, optional
+        Describes whether or not `a` can be written to.
+    align : bool, optional
+        Describes whether or not `a` is aligned properly for its type.
+    uic : bool, optional
+        Describes whether or not `a` is a copy of another "base" array.
+
+    Notes
+    -----
+    Array flags provide information about how the memory area used
+    for the array is to be interpreted. There are 6 Boolean flags
+    in use, only three of which can be changed by the user:
+    UPDATEIFCOPY, WRITEABLE, and ALIGNED.
+
+    WRITEABLE (W) the data area can be written to;
+
+    ALIGNED (A) the data and strides are aligned appropriately for the hardware
+    (as determined by the compiler);
+
+    UPDATEIFCOPY (U) this array is a copy of some other array (referenced
+    by .base). When this array is deallocated, the base array will be
+    updated with the contents of this array.
+
+    All flags can be accessed using their first (upper case) letter as well
+    as the full name.
+
+    Examples
+    --------
+    >>> y
+    array([[3, 1, 7],
+           [2, 0, 0],
+           [8, 5, 9]])
+    >>> y.flags
+      C_CONTIGUOUS : True
+      F_CONTIGUOUS : False
+      OWNDATA : True
+      WRITEABLE : True
+      ALIGNED : True
+      UPDATEIFCOPY : False
+    >>> y.setflags(write=0, align=0)
+    >>> y.flags
+      C_CONTIGUOUS : True
+      F_CONTIGUOUS : False
+      OWNDATA : True
+      WRITEABLE : False
+      ALIGNED : False
+      UPDATEIFCOPY : False
+    >>> y.setflags(uic=1)
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+    ValueError: cannot set UPDATEIFCOPY flag to True
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('sort',
+    """
+    a.sort(axis=-1, kind='quicksort', order=None)
+
+    Sort an array, in-place.
+
+    Parameters
+    ----------
+    axis : int, optional
+        Axis along which to sort. Default is -1, which means sort along the
+        last axis.
+    kind : {'quicksort', 'mergesort', 'heapsort'}, optional
+        Sorting algorithm. Default is 'quicksort'.
+    order : list, optional
+        When `a` is an array with fields defined, this argument specifies
+        which fields to compare first, second, etc.  Not all fields need be
+        specified.
+
+    See Also
+    --------
+    numpy.sort : Return a sorted copy of an array.
+    argsort : Indirect sort.
+    lexsort : Indirect stable sort on multiple keys.
+    searchsorted : Find elements in sorted array.
+
+    Notes
+    -----
+    See ``sort`` for notes on the different sorting algorithms.
+
+    Examples
+    --------
+    >>> a = np.array([[1,4], [3,1]])
+    >>> a.sort(axis=1)
+    >>> a
+    array([[1, 4],
+           [1, 3]])
+    >>> a.sort(axis=0)
+    >>> a
+    array([[1, 3],
+           [1, 4]])
+
+    Use the `order` keyword to specify a field to use when sorting a
+    structured array:
+
+    >>> a = np.array([('a', 2), ('c', 1)], dtype=[('x', 'S1'), ('y', int)])
+    >>> a.sort(order='y')
+    >>> a
+    array([('c', 1), ('a', 2)],
+          dtype=[('x', '|S1'), ('y', '<i4')])
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('squeeze',
+    """
+    a.squeeze()
+
+    Remove single-dimensional entries from the shape of `a`.
+
+    Refer to `numpy.squeeze` for full documentation.
+
+    See Also
+    --------
+    numpy.squeeze : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('std',
+    """
+    a.std(axis=None, dtype=None, out=None, ddof=0)
+
+    Returns the standard deviation of the array elements along given axis.
+
+    Refer to `numpy.std` for full documentation.
+
+    See Also
+    --------
+    numpy.std : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('sum',
+    """
+    a.sum(axis=None, dtype=None, out=None)
+
+    Return the sum of the array elements over the given axis.
+
+    Refer to `numpy.sum` for full documentation.
+
+    See Also
+    --------
+    numpy.sum : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('swapaxes',
+    """
+    a.swapaxes(axis1, axis2)
+
+    Return a view of the array with `axis1` and `axis2` interchanged.
+
+    Refer to `numpy.swapaxes` for full documentation.
+
+    See Also
+    --------
+    numpy.swapaxes : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('take',
+    """
+    a.take(indices, axis=None, out=None, mode='raise')
+
+    Return an array formed from the elements of a at the given indices.
+
+    Refer to `numpy.take` for full documentation.
+
+    See Also
+    --------
+    numpy.take : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('tofile',
+    """
+    a.tofile(fid, sep="", format="%s")
+
+    Write array to a file as text or binary (default).
+
+    Data is always written in 'C' order, independent of the order of `a`.
+    The data produced by this method can be recovered using the function
+    fromfile().
+
+    Parameters
+    ----------
+    fid : file or str
+        An open file object, or a string containing a filename.
+    sep : str
+        Separator between array items for text output.
+        If "" (empty), a binary file is written, equivalent to
+        ``file.write(a.tostring())``.
+    format : str
+        Format string for text file output.
+        Each entry in the array is formatted to text by first converting
+        it to the closest Python type, and then using "format" % item.
+
+    Notes
+    -----
+    This is a convenience function for quick storage of array data.
+    Information on endianness and precision is lost, so this method is not a
+    good choice for files intended to archive data or transport data between
+    machines with different endianness. Some of these problems can be overcome
+    by outputting the data as text files, at the expense of speed and file
+    size.
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('tolist',
+    """
+    a.tolist()
+
+    Return the array as a (possibly nested) list.
+
+    Return a copy of the array data as a (nested) Python list.
+    Data items are converted to the nearest compatible Python type.
+
+    Parameters
+    ----------
+    none
+
+    Returns
+    -------
+    y : list
+        The possibly nested list of array elements.
+
+    Notes
+    -----
+    The array may be recreated, ``a = np.array(a.tolist())``.
+
+    Examples
+    --------
+    >>> a = np.array([1, 2])
+    >>> a.tolist()
+    [1, 2]
+    >>> a = np.array([[1, 2], [3, 4]])
+    >>> list(a)
+    [array([1, 2]), array([3, 4])]
+    >>> a.tolist()
+    [[1, 2], [3, 4]]
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('tostring',
+    """
+    a.tostring(order='C')
+
+    Construct a Python string containing the raw data bytes in the array.
+
+    Constructs a Python string showing a copy of the raw contents of
+    data memory. The string can be produced in either 'C' or 'Fortran',
+    or 'Any' order (the default is 'C'-order). 'Any' order means C-order
+    unless the F_CONTIGUOUS flag in the array is set, in which case it
+    means 'Fortran' order.
+
+    Parameters
+    ----------
+    order : {'C', 'F', None}, optional
+        Order of the data for multidimensional arrays:
+        C, Fortran, or the same as for the original array.
+
+    Returns
+    -------
+    s : str
+        A Python string exhibiting a copy of `a`'s raw data.
+
+    Examples
+    --------
+    >>> x = np.array([[0, 1], [2, 3]])
+    >>> x.tostring()
+    '\\x00\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x02\\x00\\x00\\x00\\x03\\x00\\x00\\x00'
+    >>> x.tostring('C') == x.tostring()
+    True
+    >>> x.tostring('F')
+    '\\x00\\x00\\x00\\x00\\x02\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x03\\x00\\x00\\x00'
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('trace',
+    """
+    a.trace(offset=0, axis1=0, axis2=1, dtype=None, out=None)
+
+    Return the sum along diagonals of the array.
+
+    Refer to `numpy.trace` for full documentation.
+
+    See Also
+    --------
+    numpy.trace : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('transpose',
+    """
+    a.transpose(*axes)
+
+    Returns a view of the array with axes transposed.
+
+    For a 1-D array, this has no effect. (To change between column and
+    row vectors, first cast the 1-D array into a matrix object.)
+    For a 2-D array, this is the usual matrix transpose.
+    For an n-D array, if axes are given, their order indicates how the
+    axes are permuted (see Examples). If axes are not provided and
+    ``a.shape = (i[0], i[1], ... i[n-2], i[n-1])``, then
+    ``a.transpose().shape = (i[n-1], i[n-2], ... i[1], i[0])``.
+
+    Parameters
+    ----------
+    axes : None, tuple of ints, or `n` ints
+
+     * None or no argument: reverses the order of the axes.
+
+     * tuple of ints: `i` in the `j`-th place in the tuple means `a`'s
+       `i`-th axis becomes `a.transpose()`'s `j`-th axis.
+
+     * `n` ints: same as an n-tuple of the same ints (this form is
+       intended simply as a "convenience" alternative to the tuple form)
+
+    Returns
+    -------
+    out : ndarray
+        View of `a`, with axes suitably permuted.
+
+    See Also
+    --------
+    ndarray.T : Array property returning the array transposed.
+
+    Examples
+    --------
+    >>> a = np.array([[1, 2], [3, 4]])
+    >>> a
+    array([[1, 2],
+           [3, 4]])
+    >>> a.transpose()
+    array([[1, 3],
+           [2, 4]])
+    >>> a.transpose((1, 0))
+    array([[1, 3],
+           [2, 4]])
+    >>> a.transpose(1, 0)
+    array([[1, 3],
+           [2, 4]])
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('var',
+    """
+    a.var(axis=None, dtype=None, out=None, ddof=0)
+
+    Returns the variance of the array elements, along given axis.
+
+    Refer to `numpy.var` for full documentation.
+
+    See Also
+    --------
+    numpy.var : equivalent function
+
+    """))
+
+
+add_newdoc('numpy.core.multiarray', 'ndarray', ('view',
+    """
+    a.view(dtype=None, type=None)
+
+    New view of array with the same data.
+
+    Parameters
+    ----------
+    dtype : data-type
+        Data-type descriptor of the returned view, e.g. float32 or int16.
+    type : python type
+        Type of the returned view, e.g. ndarray or matrix.
+
+
+    Notes
+    -----
+
+    `a.view()` is used two different ways.
+
+    `a.view(some_dtype)` or `a.view(dtype=some_dtype)` constructs a view of
+    the array's memory with a different dtype. This can cause a
+    reinterpretation of the bytes of memory.
+
+    `a.view(ndarray_subclass)`, or `a.view(type=ndarray_subclass)`, just
+    returns an instance of ndarray_subclass that looks at the same array (same
+    shape, dtype, etc.). This does not cause a reinterpretation of the memory.
+
+
+    Examples
+    --------
+    >>> x = np.array([(1, 2)], dtype=[('a', np.int8), ('b', np.int8)])
+
+    Viewing array data using a different type and dtype:
+
+    >>> y = x.view(dtype=np.int16, type=np.matrix)
+    >>> y
+    matrix([[513]], dtype=int16)
+    >>> print type(y)
+    <class 'numpy.matrixlib.defmatrix.matrix'>
+
+    Creating a view on a structured array so it can be used in calculations
+
+    >>> x = np.array([(1, 2),(3,4)], dtype=[('a', np.int8), ('b', np.int8)])
+    >>> xv = x.view(dtype=np.int8).reshape(-1,2)
+    >>> xv
+    array([[1, 2],
+           [3, 4]], dtype=int8)
+    >>> xv.mean(0)
+    array([ 2.,  3.])
+
+    Making changes to the view changes the underlying array
+
+    >>> xv[0,1] = 20
+    >>> print x
+    [(1, 20) (3, 4)]
+
+    Using a view to convert an array to a record array:
+
+    >>> z = x.view(np.recarray)
+    >>> z.a
+    array([1], dtype=int8)
+
+    Views share data:
+
+    >>> x[0] = (9, 10)
+    >>> z[0]
+    (9, 10)
+
+    """))
+
+
+##############################################################################
+#
+# umath functions
+#
+##############################################################################
+
+add_newdoc('numpy.core.umath', 'frexp',
+    """
+    Return normalized fraction and exponent of 2 of input array, element-wise.
+
+    Returns (`out1`, `out2`) from equation ``x` = out1 * 2**out2``.
+
+    Parameters
+    ----------
+    x : array_like
+        Input array.
+
+    Returns
+    -------
+    (out1, out2) : tuple of ndarrays, (float, int)
+        `out1` is a float array with values between -1 and 1.
+        `out2` is an int array which represent the exponent of 2.
+
+    See Also
+    --------
+    ldexp : Compute ``y = x1 * 2**x2``, the inverse of `frexp`.
+
+    Notes
+    -----
+    Complex dtypes are not supported, they will raise a TypeError.
+
+    Examples
+    --------
+    >>> x = np.arange(9)
+    >>> y1, y2 = np.frexp(x)
+    >>> y1
+    array([ 0.   ,  0.5  ,  0.5  ,  0.75 ,  0.5  ,  0.625,  0.75 ,  0.875,
+            0.5  ])
+    >>> y2
+    array([0, 1, 2, 2, 3, 3, 3, 3, 4])
+    >>> y1 * 2**y2
+    array([ 0.,  1.,  2.,  3.,  4.,  5.,  6.,  7.,  8.])
+
+    """)
+
+add_newdoc('numpy.core.umath', 'frompyfunc',
+    """
+    frompyfunc(func, nin, nout)
+
+    Takes an arbitrary Python function and returns a Numpy ufunc.
+
+    Can be used, for example, to add broadcasting to a built-in Python
+    function (see Examples section).
+
+    Parameters
+    ----------
+    func : Python function object
+        An arbitrary Python function.
+    nin : int
+        The number of input arguments.
+    nout : int
+        The number of objects returned by `func`.
+
+    Returns
+    -------
+    out : ufunc
+        Returns a Numpy universal function (``ufunc``) object.
+
+    Notes
+    -----
+    The returned ufunc always returns PyObject arrays.
+
+    Examples
+    --------
+    Use frompyfunc to add broadcasting to the Python function ``oct``:
+
+    >>> oct_array = np.frompyfunc(oct, 1, 1)
+    >>> oct_array(np.array((10, 30, 100)))
+    array([012, 036, 0144], dtype=object)
+    >>> np.array((oct(10), oct(30), oct(100))) # for comparison
+    array(['012', '036', '0144'],
+          dtype='|S4')
+
+    """)
+
+add_newdoc('numpy.core.umath', 'ldexp',
+    """
+    Compute y = x1 * 2**x2.
+
+    Parameters
+    ----------
+    x1 : array_like
+        The array of multipliers.
+    x2 : array_like
+        The array of exponents.
+
+    Returns
+    -------
+    y : array_like
+        The output array, the result of ``x1 * 2**x2``.
+
+    See Also
+    --------
+    frexp : Return (y1, y2) from ``x = y1 * 2**y2``, the inverse of `ldexp`.
+
+    Notes
+    -----
+    Complex dtypes are not supported, they will raise a TypeError.
+
+    `ldexp` is useful as the inverse of `frexp`, if used by itself it is
+    more clear to simply use the expression ``x1 * 2**x2``.
+
+    Examples
+    --------
+    >>> np.ldexp(5, np.arange(4))
+    array([  5.,  10.,  20.,  40.], dtype=float32)
+
+    >>> x = np.arange(6)
+    >>> np.ldexp(*np.frexp(x))
+    array([ 0.,  1.,  2.,  3.,  4.,  5.])
+
+    """)
+
+add_newdoc('numpy.core.umath', 'geterrobj',
+    """
+    geterrobj()
+
+    Return the current object that defines floating-point error handling.
+
+    The error object contains all information that defines the error handling
+    behavior in Numpy. `geterrobj` is used internally by the other
+    functions that get and set error handling behavior (`geterr`, `seterr`,
+    `geterrcall`, `seterrcall`).
+
+    Returns
+    -------
+    errobj : list
+        The error object, a list containing three elements:
+        [internal numpy buffer size, error mask, error callback function].
+
+        The error mask is a single integer that holds the treatment information
+        on all four floating point errors. The information for each error type
+        is contained in three bits of the integer. If we print it in base 8, we
+        can see what treatment is set for "invalid", "under", "over", and
+        "divide" (in that order). The printed string can be interpreted with
+
+        * 0 : 'ignore'
+        * 1 : 'warn'
+        * 2 : 'raise'
+        * 3 : 'call'
+        * 4 : 'print'
+        * 5 : 'log'
+
+    See Also
+    --------
+    seterrobj, seterr, geterr, seterrcall, geterrcall
+    getbufsize, setbufsize
+
+    Notes
+    -----
+    For complete documentation of the types of floating-point exceptions and
+    treatment options, see `seterr`.
+
+    Examples
+    --------
+    >>> np.geterrobj()  # first get the defaults
+    [10000, 0, None]
+
+    >>> def err_handler(type, flag):
+    ...     print "Floating point error (%s), with flag %s" % (type, flag)
+    ...
+    >>> old_bufsize = np.setbufsize(20000)
+    >>> old_err = np.seterr(divide='raise')
+    >>> old_handler = np.seterrcall(err_handler)
+    >>> np.geterrobj()
+    [20000, 2, <function err_handler at 0x91dcaac>]
+
+    >>> old_err = np.seterr(all='ignore')
+    >>> np.base_repr(np.geterrobj()[1], 8)
+    '0'
+    >>> old_err = np.seterr(divide='warn', over='log', under='call',
+                            invalid='print')
+    >>> np.base_repr(np.geterrobj()[1], 8)
+    '4351'
+
+    """)
+
+add_newdoc('numpy.core.umath', 'seterrobj',
+    """
+    seterrobj(errobj)
+
+    Set the object that defines floating-point error handling.
+
+    The error object contains all information that defines the error handling
+    behavior in Numpy. `seterrobj` is used internally by the other
+    functions that set error handling behavior (`seterr`, `seterrcall`).
+
+    Parameters
+    ----------
+    errobj : list
+        The error object, a list containing three elements:
+        [internal numpy buffer size, error mask, error callback function].
+
+        The error mask is a single integer that holds the treatment information
+        on all four floating point errors. The information for each error type
+        is contained in three bits of the integer. If we print it in base 8, we
+        can see what treatment is set for "invalid", "under", "over", and
+        "divide" (in that order). The printed string can be interpreted with
+
+        * 0 : 'ignore'
+        * 1 : 'warn'
+        * 2 : 'raise'
+        * 3 : 'call'
+        * 4 : 'print'
+        * 5 : 'log'
+
+    See Also
+    --------
+    geterrobj, seterr, geterr, seterrcall, geterrcall
+    getbufsize, setbufsize
+
+    Notes
+    -----
+    For complete documentation of the types of floating-point exceptions and
+    treatment options, see `seterr`.
+
+    Examples
+    --------
+    >>> old_errobj = np.geterrobj()  # first get the defaults
+    >>> old_errobj
+    [10000, 0, None]
+
+    >>> def err_handler(type, flag):
+    ...     print "Floating point error (%s), with flag %s" % (type, flag)
+    ...
+    >>> new_errobj = [20000, 12, err_handler]
+    >>> np.seterrobj(new_errobj)
+    >>> np.base_repr(12, 8)  # int for divide=4 ('print') and over=1 ('warn')
+    '14'
+    >>> np.geterr()
+    {'over': 'warn', 'divide': 'print', 'invalid': 'ignore', 'under': 'ignore'}
+    >>> np.geterrcall() is err_handler
+    True
+
+    """)
+
+
+##############################################################################
+#
+# lib._compiled_base functions
+#
+##############################################################################
+
+add_newdoc('numpy.lib._compiled_base', 'digitize',
+    """
+    digitize(x, bins)
+
+    Return the indices of the bins to which each value in input array belongs.
+
+    Each index ``i`` returned is such that ``bins[i-1] <= x < bins[i]`` if
+    `bins` is monotonically increasing, or ``bins[i-1] > x >= bins[i]`` if
+    `bins` is monotonically decreasing. If values in `x` are beyond the
+    bounds of `bins`, 0 or ``len(bins)`` is returned as appropriate.
+
+    Parameters
+    ----------
+    x : array_like
+        Input array to be binned. It has to be 1-dimensional.
+    bins : array_like
+        Array of bins. It has to be 1-dimensional and monotonic.
+
+    Returns
+    -------
+    out : ndarray of ints
+        Output array of indices, of same shape as `x`.
+
+    Raises
+    ------
+    ValueError
+        If the input is not 1-dimensional, or if `bins` is not monotonic.
+    TypeError
+        If the type of the input is complex.
+
+    See Also
+    --------
+    bincount, histogram, unique
+
+    Notes
+    -----
+    If values in `x` are such that they fall outside the bin range,
+    attempting to index `bins` with the indices that `digitize` returns
+    will result in an IndexError.
+
+    Examples
+    --------
+    >>> x = np.array([0.2, 6.4, 3.0, 1.6])
+    >>> bins = np.array([0.0, 1.0, 2.5, 4.0, 10.0])
+    >>> inds = np.digitize(x, bins)
+    >>> inds
+    array([1, 4, 3, 2])
+    >>> for n in range(x.size):
+    ...   print bins[inds[n]-1], "<=", x[n], "<", bins[inds[n]]
+    ...
+    0.0 <= 0.2 < 1.0
+    4.0 <= 6.4 < 10.0
+    2.5 <= 3.0 < 4.0
+    1.0 <= 1.6 < 2.5
+
+    """)
+
+add_newdoc('numpy.lib._compiled_base', 'bincount',
+    """
+    bincount(x, weights=None)
+
+    Count number of occurrences of each value in array of non-negative ints.
+
+    The number of bins (of size 1) is one larger than the largest value in
+    `x`. Each bin gives the number of occurrences of its index value in `x`.
+    If `weights` is specified the input array is weighted by it, i.e. if a
+    value ``n`` is found at position ``i``, ``out[n] += weight[i]`` instead
+    of ``out[n] += 1``.
+
+    Parameters
+    ----------
+    x : array_like, 1 dimension, nonnegative ints
+        Input array.
+    weights : array_like, optional
+        Weights, array of the same shape as `x`.
+
+    Returns
+    -------
+    out : ndarray of ints
+        The result of binning the input array.
+        The length of `out` is equal to ``np.amax(x)+1``.
+
+    Raises
+    ------
+    ValueError
+        If the input is not 1-dimensional, or contains elements with negative
+        values.
+    TypeError
+        If the type of the input is float or complex.
+
+    See Also
+    --------
+    histogram, digitize, unique
+
+    Examples
+    --------
+    >>> np.bincount(np.arange(5))
+    array([1, 1, 1, 1, 1])
+    >>> np.bincount(np.array([0, 1, 1, 3, 2, 1, 7]))
+    array([1, 3, 1, 1, 0, 0, 0, 1])
+
+    >>> x = np.array([0, 1, 1, 3, 2, 1, 7, 23])
+    >>> np.bincount(x).size == np.amax(x)+1
+    True
+
+    >>> np.bincount(np.arange(5, dtype=np.float))
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+    TypeError: array cannot be safely cast to required type
+
+    A possible use of ``bincount`` is to perform sums over
+    variable-size chunks of an array, using the ``weights`` keyword.
+
+    >>> w = np.array([0.3, 0.5, 0.2, 0.7, 1., -0.6]) # weights
+    >>> x = np.array([0, 1, 1, 2, 2, 2])
+    >>> np.bincount(x,  weights=w)
+    array([ 0.3,  0.7,  1.1])
+
+    """)
+
+add_newdoc('numpy.lib._compiled_base', 'add_docstring',
+    """
+    docstring(obj, docstring)
+
+    Add a docstring to a built-in obj if possible.
+    If the obj already has a docstring raise a RuntimeError
+    If this routine does not know how to add a docstring to the object
+    raise a TypeError
+    """)
+
+add_newdoc('numpy.lib._compiled_base', 'packbits',
+    """
+    packbits(myarray, axis=None)
+
+    Packs the elements of a binary-valued array into bits in a uint8 array.
+
+    The result is padded to full bytes by inserting zero bits at the end.
+
+    Parameters
+    ----------
+    myarray : array_like
+        An integer type array whose elements should be packed to bits.
+    axis : int, optional
+        The dimension over which bit-packing is done.
+        ``None`` implies packing the flattened array.
+
+    Returns
+    -------
+    packed : ndarray
+        Array of type uint8 whose elements represent bits corresponding to the
+        logical (0 or nonzero) value of the input elements. The shape of
+        `packed` has the same number of dimensions as the input (unless `axis`
+        is None, in which case the output is 1-D).
+
+    See Also
+    --------
+    unpackbits: Unpacks elements of a uint8 array into a binary-valued output
+                array.
+
+    Examples
+    --------
+    >>> a = np.array([[[1,0,1],
+    ...                [0,1,0]],
+    ...               [[1,1,0],
+    ...                [0,0,1]]])
+    >>> b = np.packbits(a, axis=-1)
+    >>> b
+    array([[[160],[64]],[[192],[32]]], dtype=uint8)
+
+    Note that in binary 160 = 1010 0000, 64 = 0100 0000, 192 = 1100 0000,
+    and 32 = 0010 0000.
+
+    """)
+
+add_newdoc('numpy.lib._compiled_base', 'unpackbits',
+    """
+    unpackbits(myarray, axis=None)
+
+    Unpacks elements of a uint8 array into a binary-valued output array.
+
+    Each element of `myarray` represents a bit-field that should be unpacked
+    into a binary-valued output array. The shape of the output array is either
+    1-D (if `axis` is None) or the same shape as the input array with unpacking
+    done along the axis specified.
+
+    Parameters
+    ----------
+    myarray : ndarray, uint8 type
+       Input array.
+    axis : int, optional
+       Unpacks along this axis.
+
+    Returns
+    -------
+    unpacked : ndarray, uint8 type
+       The elements are binary-valued (0 or 1).
+
+    See Also
+    --------
+    packbits : Packs the elements of a binary-valued array into bits in a uint8
+               array.
+
+    Examples
+    --------
+    >>> a = np.array([[2], [7], [23]], dtype=np.uint8)
+    >>> a
+    array([[ 2],
+           [ 7],
+           [23]], dtype=uint8)
+    >>> b = np.unpackbits(a, axis=1)
+    >>> b
+    array([[0, 0, 0, 0, 0, 0, 1, 0],
+           [0, 0, 0, 0, 0, 1, 1, 1],
+           [0, 0, 0, 1, 0, 1, 1, 1]], dtype=uint8)
+
+    """)
+
+
+##############################################################################
+#
+# Documentation for ufunc attributes and methods
+#
+##############################################################################
+
+
+##############################################################################
+#
+# ufunc object
+#
+##############################################################################
+
+add_newdoc('numpy.core', 'ufunc',
+    """
+    Functions that operate element by element on whole arrays.
+
+    Unary ufuncs:
+    =============
+
+    op(X, out=None)
+    Apply op to X elementwise
+
+    Parameters
+    ----------
+    X : array_like
+        Input array
+    out : array_like
+        An array to store the output. Must be the same shape as X.
+
+    Returns
+    -------
+    r : array_like
+        r will have the same shape as X; if out is provided, r will be
+        equal to out.
+
+    Binary ufuncs:
+    ==============
+
+    op(X, Y, out=None)
+    Apply op to X and Y elementwise. May "broadcast" to make
+    the shapes of X and Y congruent.
+
+    The broadcasting rules are:
+    * Dimensions of length 1 may be prepended to either array
+    * Arrays may be repeated along dimensions of length 1
+
+    Parameters
+    ----------
+    X : array_like
+        First input array
+    Y : array_like
+        Second input array
+    out : array-like
+        An array to store the output. Must be the same shape as the
+        output would have.
+
+    Returns
+    -------
+    r : array-like
+        The return value; if out is provided, r will be equal to out.
+
+    """)
+
+
+##############################################################################
+#
+# ufunc attributes
+#
+##############################################################################
+
+add_newdoc('numpy.core', 'ufunc', ('identity',
+    """
+    The identity value.
+    
+    Data attribute containing the identity element for the ufunc, if it has one.
+    If it does not, the attribute value is None.
+    
+    Examples
+    --------
+    >>> np.add.identity
+    0
+    >>> np.multiply.identity
+    1
+    >>> np.power.identity
+    1
+    >>> print np.exp.identity
+    None
+    """))
+
+add_newdoc('numpy.core', 'ufunc', ('nargs',
+    """
+    The number of arguments.
+    
+    Data attribute containing the number of arguments the ufunc takes, including
+    optional ones.
+    
+    Notes
+    -----
+    Typically this value will be one more than what you might expect because all
+    ufuncs take  the optional "out" argument.
+    
+    Examples
+    --------
+    >>> np.add.nargs
+    3
+    >>> np.multiply.nargs
+    3
+    >>> np.power.nargs
+    3
+    >>> np.exp.nargs
+    2
+    """))
+
+add_newdoc('numpy.core', 'ufunc', ('nin',
+    """
+    The number of inputs.
+    
+    Data attribute containing the number of arguments the ufunc treats as input.
+    
+    Examples
+    --------
+    >>> np.add.nin
+    2
+    >>> np.multiply.nin
+    2
+    >>> np.power.nin
+    2
+    >>> np.exp.nin
+    1
+    """))
+
+add_newdoc('numpy.core', 'ufunc', ('nout',
+    """
+    The number of outputs.
+    
+    Data attribute containing the number of arguments the ufunc treats as output.
+    
+    Notes
+    -----
+    Since all ufuncs can take output arguments, this will always be (at least) 1.
+    
+    Examples
+    --------
+    >>> np.add.nout
+    1
+    >>> np.multiply.nout
+    1
+    >>> np.power.nout
+    1
+    >>> np.exp.nout
+    1
+
+    """))
+
+add_newdoc('numpy.core', 'ufunc', ('ntypes',
+    """
+    The number of types.
+    
+    The number of numerical NumPy types - of which there are 18 total - on which
+    the ufunc can operate.
+    
+    See Also
+    --------
+    numpy.ufunc.types
+    
+    Examples
+    --------
+    >>> np.add.ntypes
+    18
+    >>> np.multiply.ntypes
+    18
+    >>> np.power.ntypes
+    17
+    >>> np.exp.ntypes
+    7
+    >>> np.remainder.ntypes
+    14
+
+    """))
+
+add_newdoc('numpy.core', 'ufunc', ('types',
+    """
+    Returns a list with types grouped input->output.
+
+    Data attribute listing the data-type "Domain-Range" groupings the ufunc can
+    deliver. The data-types are given using the character codes.
+
+    See Also
+    --------
+    numpy.ufunc.ntypes
+
+    Examples
+    --------
+    >>> np.add.types
+    ['??->?', 'bb->b', 'BB->B', 'hh->h', 'HH->H', 'ii->i', 'II->I', 'll->l',
+    'LL->L', 'qq->q', 'QQ->Q', 'ff->f', 'dd->d', 'gg->g', 'FF->F', 'DD->D',
+    'GG->G', 'OO->O']
+
+    >>> np.multiply.types
+    ['??->?', 'bb->b', 'BB->B', 'hh->h', 'HH->H', 'ii->i', 'II->I', 'll->l',
+    'LL->L', 'qq->q', 'QQ->Q', 'ff->f', 'dd->d', 'gg->g', 'FF->F', 'DD->D',
+    'GG->G', 'OO->O']
+
+    >>> np.power.types
+    ['bb->b', 'BB->B', 'hh->h', 'HH->H', 'ii->i', 'II->I', 'll->l', 'LL->L',
+    'qq->q', 'QQ->Q', 'ff->f', 'dd->d', 'gg->g', 'FF->F', 'DD->D', 'GG->G',
+    'OO->O']
+
+    >>> np.exp.types
+    ['f->f', 'd->d', 'g->g', 'F->F', 'D->D', 'G->G', 'O->O']
+
+    >>> np.remainder.types
+    ['bb->b', 'BB->B', 'hh->h', 'HH->H', 'ii->i', 'II->I', 'll->l', 'LL->L',
+    'qq->q', 'QQ->Q', 'ff->f', 'dd->d', 'gg->g', 'OO->O']
+
+    """))
+
+
+##############################################################################
+#
+# ufunc methods
+#
+##############################################################################
+
+add_newdoc('numpy.core', 'ufunc', ('reduce',
+    """
+    reduce(a, axis=0, dtype=None, out=None)
+
+    Reduces `a`'s dimension by one, by applying ufunc along one axis.
+
+    Let :math:`a.shape = (N_0, ..., N_i, ..., N_{M-1})`.  Then
+    :math:`ufunc.reduce(a, axis=i)[k_0, ..,k_{i-1}, k_{i+1}, .., k_{M-1}]` =
+    the result of iterating `j` over :math:`range(N_i)`, cumulatively applying
+    ufunc to each :math:`a[k_0, ..,k_{i-1}, j, k_{i+1}, .., k_{M-1}]`.
+    For a one-dimensional array, reduce produces results equivalent to:
+    ::
+
+     r = op.identity # op = ufunc
+     for i in xrange(len(A)):
+       r = op(r, A[i])
+     return r
+
+    For example, add.reduce() is equivalent to sum().
+
+    Parameters
+    ----------
+    a : array_like
+        The array to act on.
+    axis : int, optional
+        The axis along which to apply the reduction.
+    dtype : data-type code, optional
+        The type used to represent the intermediate results. Defaults
+        to the data-type of the output array if this is provided, or
+        the data-type of the input array if no output array is provided.
+    out : ndarray, optional
+        A location into which the result is stored. If not provided, a
+        freshly-allocated array is returned.
+
+    Returns
+    -------
+    r : ndarray
+        The reduced array. If `out` was supplied, `r` is a reference to it.
+
+    Examples
+    --------
+    >>> np.multiply.reduce([2,3,5])
+    30
+
+    A multi-dimensional array example:
+
+    >>> X = np.arange(8).reshape((2,2,2))
+    >>> X
+    array([[[0, 1],
+            [2, 3]],
+           [[4, 5],
+            [6, 7]]])
+    >>> np.add.reduce(X, 0)
+    array([[ 4,  6],
+           [ 8, 10]])
+    >>> np.add.reduce(X) # confirm: default axis value is 0
+    array([[ 4,  6],
+           [ 8, 10]])
+    >>> np.add.reduce(X, 1)
+    array([[ 2,  4],
+           [10, 12]])
+    >>> np.add.reduce(X, 2)
+    array([[ 1,  5],
+           [ 9, 13]])
+
+    """))
+
+add_newdoc('numpy.core', 'ufunc', ('accumulate',
+    """
+    accumulate(array, axis=0, dtype=None, out=None)
+
+    Accumulate the result of applying the operator to all elements.
+
+    For a one-dimensional array, accumulate produces results equivalent to::
+
+      r = np.empty(len(A))
+      t = op.identity        # op = the ufunc being applied to A's  elements
+      for i in xrange(len(A)):
+          t = op(t, A[i])
+          r[i] = t
+      return r
+
+    For example, add.accumulate() is equivalent to np.cumsum().
+
+    For a multi-dimensional array, accumulate is applied along only one
+    axis (axis zero by default; see Examples below) so repeated use is
+    necessary if one wants to accumulate over multiple axes.
+
+    Parameters
+    ----------
+    array : array_like
+        The array to act on.
+    axis : int, optional
+        The axis along which to apply the accumulation; default is zero.
+    dtype : data-type code, optional
+        The data-type used to represent the intermediate results. Defaults
+        to the data-type of the output array if such is provided, or the
+        the data-type of the input array if no output array is provided.
+    out : ndarray, optional
+        A location into which the result is stored. If not provided a
+        freshly-allocated array is returned.
+
+    Returns
+    -------
+    r : ndarray
+        The accumulated values. If `out` was supplied, `r` is a reference to
+        `out`.
+
+    Examples
+    --------
+    1-D array examples:
+
+    >>> np.add.accumulate([2, 3, 5])
+    array([ 2,  5, 10])
+    >>> np.multiply.accumulate([2, 3, 5])
+    array([ 2,  6, 30])
+
+    2-D array examples:
+
+    >>> I = np.eye(2)
+    >>> I
+    array([[ 1.,  0.],
+           [ 0.,  1.]])
+
+    Accumulate along axis 0 (rows), down columns:
+
+    >>> np.add.accumulate(I, 0)
+    array([[ 1.,  0.],
+           [ 1.,  1.]])
+    >>> np.add.accumulate(I) # no axis specified = axis zero
+    array([[ 1.,  0.],
+           [ 1.,  1.]])
+
+    Accumulate along axis 1 (columns), through rows:
+
+    >>> np.add.accumulate(I, 1)
+    array([[ 1.,  1.],
+           [ 0.,  1.]])
+
+    """))
+
+add_newdoc('numpy.core', 'ufunc', ('reduceat',
+    """
+    reduceat(a, indices, axis=0, dtype=None, out=None)
+
+    Performs a (local) reduce with specified slices over a single axis.
+
+    For i in ``range(len(indices))``, `reduceat` computes
+    ``ufunc.reduce(a[indices[i]:indices[i+1]])``, which becomes the i-th
+    generalized "row" parallel to `axis` in the final result (i.e., in a
+    2-D array, for example, if `axis = 0`, it becomes the i-th row, but if
+    `axis = 1`, it becomes the i-th column).  There are two exceptions to this:
+
+      * when ``i = len(indices) - 1`` (so for the last index),
+        ``indices[i+1] = a.shape[axis]``.
+      * if ``indices[i] >= indices[i + 1]``, the i-th generalized "row" is
+        simply ``a[indices[i]]``.
+
+    The shape of the output depends on the size of `indices`, and may be
+    larger than `a` (this happens if ``len(indices) > a.shape[axis]``).
+
+    Parameters
+    ----------
+    a : array_like
+        The array to act on.
+    indices : array_like
+        Paired indices, comma separated (not colon), specifying slices to
+        reduce.
+    axis : int, optional
+        The axis along which to apply the reduceat.
+    dtype : data-type code, optional
+        The type used to represent the intermediate results. Defaults
+        to the data type of the output array if this is provided, or
+        the data type of the input array if no output array is provided.
+    out : ndarray, optional
+        A location into which the result is stored. If not provided a
+        freshly-allocated array is returned.
+
+    Returns
+    -------
+    r : ndarray
+        The reduced values. If `out` was supplied, `r` is a reference to
+        `out`.
+
+    Notes
+    -----
+    A descriptive example:
+
+    If `a` is 1-D, the function `ufunc.accumulate(a)` is the same as
+    ``ufunc.reduceat(a, indices)[::2]`` where `indices` is
+    ``range(len(array) - 1)`` with a zero placed
+    in every other element:
+    ``indices = zeros(2 * len(a) - 1)``, ``indices[1::2] = range(1, len(a))``.
+
+    Don't be fooled by this attribute's name: `reduceat(a)` is not
+    necessarily smaller than `a`.
+
+    Examples
+    --------
+    To take the running sum of four successive values:
+
+    >>> np.add.reduceat(np.arange(8),[0,4, 1,5, 2,6, 3,7])[::2]
+    array([ 6, 10, 14, 18])
+
+    A 2-D example:
+
+    >>> x = np.linspace(0, 15, 16).reshape(4,4)
+    >>> x
+    array([[  0.,   1.,   2.,   3.],
+           [  4.,   5.,   6.,   7.],
+           [  8.,   9.,  10.,  11.],
+           [ 12.,  13.,  14.,  15.]])
+
+    ::
+
+     # reduce such that the result has the following five rows:
+     # [row1 + row2 + row3]
+     # [row4]
+     # [row2]
+     # [row3]
+     # [row1 + row2 + row3 + row4]
+
+    >>> np.add.reduceat(x, [0, 3, 1, 2, 0])
+    array([[ 12.,  15.,  18.,  21.],
+           [ 12.,  13.,  14.,  15.],
+           [  4.,   5.,   6.,   7.],
+           [  8.,   9.,  10.,  11.],
+           [ 24.,  28.,  32.,  36.]])
+
+    ::
+
+     # reduce such that result has the following two columns:
+     # [col1 * col2 * col3, col4]
+
+    >>> np.multiply.reduceat(x, [0, 3], 1)
+    array([[    0.,     3.],
+           [  120.,     7.],
+           [  720.,    11.],
+           [ 2184.,    15.]])
+
+    """))
+
+add_newdoc('numpy.core', 'ufunc', ('outer',
+    """
+    outer(A, B)
+
+    Apply the ufunc `op` to all pairs (a, b) with a in `A` and b in `B`.
+
+    Let ``M = A.ndim``, ``N = B.ndim``. Then the result, `C`, of
+    ``op.outer(A, B)`` is an array of dimension M + N such that:
+
+    .. math:: C[i_0, ..., i_{M-1}, j_0, ..., j_{N-1}] =
+       op(A[i_0, ..., i_{M-1}], B[j_0, ..., j_{N-1}])
+
+    For `A` and `B` one-dimensional, this is equivalent to::
+
+      r = empty(len(A),len(B))
+      for i in xrange(len(A)):
+          for j in xrange(len(B)):
+              r[i,j] = op(A[i], B[j]) # op = ufunc in question
+
+    Parameters
+    ----------
+    A : array_like
+        First array
+    B : array_like
+        Second array
+
+    Returns
+    -------
+    r : ndarray
+        Output array
+
+    See Also
+    --------
+    numpy.outer
+
+    Examples
+    --------
+    >>> np.multiply.outer([1, 2, 3], [4, 5, 6])
+    array([[ 4,  5,  6],
+           [ 8, 10, 12],
+           [12, 15, 18]])
+
+    A multi-dimensional example:
+
+    >>> A = np.array([[1, 2, 3], [4, 5, 6]])
+    >>> A.shape
+    (2, 3)
+    >>> B = np.array([[1, 2, 3, 4]])
+    >>> B.shape
+    (1, 4)
+    >>> C = np.multiply.outer(A, B)
+    >>> C.shape; C
+    (2, 3, 1, 4)
+    array([[[[ 1,  2,  3,  4]],
+            [[ 2,  4,  6,  8]],
+            [[ 3,  6,  9, 12]]],
+           [[[ 4,  8, 12, 16]],
+            [[ 5, 10, 15, 20]],
+            [[ 6, 12, 18, 24]]]])
+
+    """))
+
+
+##############################################################################
+#
+# Documentation for dtype attributes and methods
+#
+##############################################################################
+
+##############################################################################
+#
+# dtype object
+#
+##############################################################################
+
+add_newdoc('numpy.core.multiarray', 'dtype',
+    """
+    dtype(obj, align=False, copy=False)
+
+    Create a data type object.
+
+    A numpy array is homogeneous, and contains elements described by a
+    dtype object. A dtype object can be constructed from different
+    combinations of fundamental numeric types.
+
+    Parameters
+    ----------
+    obj
+        Object to be converted to a data type object.
+    align : bool, optional
+        Add padding to the fields to match what a C compiler would output
+        for a similar C-struct. Can be ``True`` only if `obj` is a dictionary
+        or a comma-separated string.
+    copy : bool, optional
+        Make a new copy of the data-type object. If ``False``, the result
+        may just be a reference to a built-in data-type object.
+
+    Examples
+    --------
+    Using array-scalar type:
+
+    >>> np.dtype(np.int16)
+    dtype('int16')
+
+    Record, one field name 'f1', containing int16:
+
+    >>> np.dtype([('f1', np.int16)])
+    dtype([('f1', '<i2')])
+
+    Record, one field named 'f1', in itself containing a record with one field:
+
+    >>> np.dtype([('f1', [('f1', np.int16)])])
+    dtype([('f1', [('f1', '<i2')])])
+
+    Record, two fields: the first field contains an unsigned int, the
+    second an int32:
+
+    >>> np.dtype([('f1', np.uint), ('f2', np.int32)])
+    dtype([('f1', '<u4'), ('f2', '<i4')])
+
+    Using array-protocol type strings:
+
+    >>> np.dtype([('a','f8'),('b','S10')])
+    dtype([('a', '<f8'), ('b', '|S10')])
+
+    Using comma-separated field formats.  The shape is (2,3):
+
+    >>> np.dtype("i4, (2,3)f8")
+    dtype([('f0', '<i4'), ('f1', '<f8', (2, 3))])
+
+    Using tuples.  ``int`` is a fixed type, 3 the field's shape.  ``void``
+    is a flexible type, here of size 10:
+
+    >>> np.dtype([('hello',(np.int,3)),('world',np.void,10)])
+    dtype([('hello', '<i4', 3), ('world', '|V10')])
+
+    Subdivide ``int16`` into 2 ``int8``'s, called x and y.  0 and 1 are
+    the offsets in bytes:
+
+    >>> np.dtype((np.int16, {'x':(np.int8,0), 'y':(np.int8,1)}))
+    dtype(('<i2', [('x', '|i1'), ('y', '|i1')]))
+
+    Using dictionaries.  Two fields named 'gender' and 'age':
+
+    >>> np.dtype({'names':['gender','age'], 'formats':['S1',np.uint8]})
+    dtype([('gender', '|S1'), ('age', '|u1')])
+
+    Offsets in bytes, here 0 and 25:
+
+    >>> np.dtype({'surname':('S25',0),'age':(np.uint8,25)})
+    dtype([('surname', '|S25'), ('age', '|u1')])
+
+    """)
+
+##############################################################################
+#
+# dtype attributes
+#
+##############################################################################
+
+add_newdoc('numpy.core.multiarray', 'dtype', ('alignment',
+    """
+    The required alignment (bytes) of this data-type according to the compiler.
+
+    More information is available in the C-API section of the manual.
+
+    """))
+
+add_newdoc('numpy.core.multiarray', 'dtype', ('byteorder',
+    """
+    A character indicating the byte-order of this data-type object.
+
+    One of:
+
+    ===  ==============
+    '='  native
+    '<'  little-endian
+    '>'  big-endian
+    '|'  not applicable
+    ===  ==============
+
+    All built-in data-type objects have byteorder either '=' or '|'.
+
+    Examples
+    --------
+
+    >>> dt = np.dtype('i2')
+    >>> dt.byteorder
+    '='
+    >>> # endian is not relevant for 8 bit numbers
+    >>> np.dtype('i1').byteorder
+    '|'
+    >>> # or ASCII strings
+    >>> np.dtype('S2').byteorder
+    '|'
+    >>> # Even if specific code is given, and it is native
+    >>> # '=' is the byteorder
+    >>> import sys
+    >>> sys_is_le = sys.byteorder == 'little'
+    >>> native_code = sys_is_le and '<' or '>'
+    >>> swapped_code = sys_is_le and '>' or '<'
+    >>> dt = np.dtype(native_code + 'i2')
+    >>> dt.byteorder
+    '='
+    >>> # Swapped code shows up as itself
+    >>> dt = np.dtype(swapped_code + 'i2')
+    >>> dt.byteorder == swapped_code
+    True
+
+    """))
+
+add_newdoc('numpy.core.multiarray', 'dtype', ('char',
+    """A unique character code for each of the 21 different built-in types."""))
+
+add_newdoc('numpy.core.multiarray', 'dtype', ('descr',
+    """
+    Array-interface compliant full description of the data-type.
+
+    The format is that required by the 'descr' key in the
+    `__array_interface__` attribute.
+
+    """))
+
+add_newdoc('numpy.core.multiarray', 'dtype', ('fields',
+    """
+    Dictionary of named fields defined for this data type, or ``None``.
+
+    The dictionary is indexed by keys that are the names of the fields.
+    Each entry in the dictionary is a tuple fully describing the field::
+
+      (dtype, offset[, title])
+
+    If present, the optional title can be any object (if it is a string
+    or unicode then it will also be a key in the fields dictionary,
+    otherwise it's meta-data). Notice also that the first two elements
+    of the tuple can be passed directly as arguments to the ``ndarray.getfield``
+    and ``ndarray.setfield`` methods.
+
+    See Also
+    --------
+    ndarray.getfield, ndarray.setfield
+
+    Examples
+    --------
+
+    >>> dt = np.dtype([('name', np.str_, 16), ('grades', np.float64, (2,))])
+    >>> print dt.fields
+    {'grades': (dtype(('float64',(2,))), 16), 'name': (dtype('|S16'), 0)}
+
+    """))
+
+add_newdoc('numpy.core.multiarray', 'dtype', ('flags',
+    """
+    Bit-flags describing how this data type is to be interpreted.
+
+    Bit-masks are in `numpy.core.multiarray` as the constants
+    `ITEM_HASOBJECT`, `LIST_PICKLE`, `ITEM_IS_POINTER`, `NEEDS_INIT`,
+    `NEEDS_PYAPI`, `USE_GETITEM`, `USE_SETITEM`. A full explanation
+    of these flags is in C-API documentation; they are largely useful
+    for user-defined data-types.
+
+    """))
+
+add_newdoc('numpy.core.multiarray', 'dtype', ('hasobject',
+    """
+    Boolean indicating whether this dtype contains any reference-counted
+    objects in any fields or sub-dtypes.
+
+    Recall that what is actually in the ndarray memory representing
+    the Python object is the memory address of that object (a pointer).
+    Special handling may be required, and this attribute is useful for
+    distinguishing data types that may contain arbitrary Python objects
+    and data-types that won't.
+
+    """))
+
+add_newdoc('numpy.core.multiarray', 'dtype', ('isbuiltin',
+    """
+    Integer indicating how this dtype relates to the built-in dtypes.
+
+    Read-only.
+
+    =  ========================================================================
+    0  if this is a structured array type, with fields
+    1  if this is a dtype compiled into numpy (such as ints, floats etc)
+    2  if the dtype is for a user-defined numpy type
+       A user-defined type uses the numpy C-API machinery to extend
+       numpy to handle a new array type. See
+       :ref:`user.user-defined-data-types` in the Numpy manual.
+    =  ========================================================================
+
+    Examples
+    --------
+    >>> dt = np.dtype('i2')
+    >>> dt.isbuiltin
+    1
+    >>> dt = np.dtype('f8')
+    >>> dt.isbuiltin
+    1
+    >>> dt = np.dtype([('field1', 'f8')])
+    >>> dt.isbuiltin
+    0
+
+    """))
+
+add_newdoc('numpy.core.multiarray', 'dtype', ('isnative',
+    """
+    Boolean indicating whether the byte order of this dtype is native
+    to the platform.
+
+    """))
+
+add_newdoc('numpy.core.multiarray', 'dtype', ('itemsize',
+    """
+    The element size of this data-type object.
+
+    For 18 of the 21 types this number is fixed by the data-type.
+    For the flexible data-types, this number can be anything.
+
+    """))
+
+add_newdoc('numpy.core.multiarray', 'dtype', ('kind',
+    """
+    A character code (one of 'biufcSUV') identifying the general kind of data.
+
+    """))
+
+add_newdoc('numpy.core.multiarray', 'dtype', ('name',
+    """
+    A bit-width name for this data-type.
+
+    Un-sized flexible data-type objects do not have this attribute.
+
+    """))
+
+add_newdoc('numpy.core.multiarray', 'dtype', ('names',
+    """
+    Ordered list of field names, or ``None`` if there are no fields.
+
+    The names are ordered according to increasing byte offset. This can be
+    used, for example, to walk through all of the named fields in offset order.
+
+    Examples
+    --------
+
+    >>> dt = np.dtype([('name', np.str_, 16), ('grades', np.float64, (2,))])
+    >>> dt.names
+    ('name', 'grades')
+
+    """))
+
+add_newdoc('numpy.core.multiarray', 'dtype', ('num',
+    """
+    A unique number for each of the 21 different built-in types.
+
+    These are roughly ordered from least-to-most precision.
+
+    """))
+
+add_newdoc('numpy.core.multiarray', 'dtype', ('shape',
+    """
+    Shape tuple of the sub-array if this data type describes a sub-array,
+    and ``()`` otherwise.
+
+    """))
+
+add_newdoc('numpy.core.multiarray', 'dtype', ('str',
+    """The array-protocol typestring of this data-type object."""))
+
+add_newdoc('numpy.core.multiarray', 'dtype', ('subdtype',
+    """
+    Tuple ``(item_dtype, shape)`` if this `dtype` describes a sub-array, and
+    None otherwise.
+
+    The *shape* is the fixed shape of the sub-array described by this
+    data type, and *item_dtype* the data type of the array.
+
+    If a field whose dtype object has this attribute is retrieved,
+    then the extra dimensions implied by *shape* are tacked on to
+    the end of the retrieved array.
+
+    """))
+
+add_newdoc('numpy.core.multiarray', 'dtype', ('type',
+    """The type object used to instantiate a scalar of this data-type."""))
+
+##############################################################################
+#
+# dtype methods
+#
+##############################################################################
+
+add_newdoc('numpy.core.multiarray', 'dtype', ('newbyteorder',
+    """
+    newbyteorder(new_order='S')
+
+    Return a new dtype with a different byte order.
+
+    Changes are also made in all fields and sub-arrays of the data type.
+
+    Parameters
+    ----------
+    new_order : string, optional
+        Byte order to force; a value from the byte order
+        specifications below.  The default value ('S') results in
+        swapping the current byte order.
+        `new_order` codes can be any of::
+
+         * 'S' - swap dtype from current to opposite endian
+         * {'<', 'L'} - little endian
+         * {'>', 'B'} - big endian
+         * {'=', 'N'} - native order
+         * {'|', 'I'} - ignore (no change to byte order)
+
+        The code does a case-insensitive check on the first letter of
+        `new_order` for these alternatives.  For example, any of '>'
+        or 'B' or 'b' or 'brian' are valid to specify big-endian.
+
+    Returns
+    -------
+    new_dtype : dtype
+        New dtype object with the given change to the byte order.
+
+    Notes
+    -----
+    Changes are also made in all fields and sub-arrays of the data type.
+
+    Examples
+    --------
+    >>> import sys
+    >>> sys_is_le = sys.byteorder == 'little'
+    >>> native_code = sys_is_le and '<' or '>'
+    >>> swapped_code = sys_is_le and '>' or '<'
+    >>> native_dt = np.dtype(native_code+'i2')
+    >>> swapped_dt = np.dtype(swapped_code+'i2')
+    >>> native_dt.newbyteorder('S') == swapped_dt
+    True
+    >>> native_dt.newbyteorder() == swapped_dt
+    True
+    >>> native_dt == swapped_dt.newbyteorder('S')
+    True
+    >>> native_dt == swapped_dt.newbyteorder('=')
+    True
+    >>> native_dt == swapped_dt.newbyteorder('N')
+    True
+    >>> native_dt == native_dt.newbyteorder('|')
+    True
+    >>> np.dtype('<i2') == native_dt.newbyteorder('<')
+    True
+    >>> np.dtype('<i2') == native_dt.newbyteorder('L')
+    True
+    >>> np.dtype('>i2') == native_dt.newbyteorder('>')
+    True
+    >>> np.dtype('>i2') == native_dt.newbyteorder('B')
+    True
+
+    """))
+
+
+##############################################################################
+#
+# nd_grid instances
+#
+##############################################################################
+
+add_newdoc('numpy.lib.index_tricks', 'mgrid',
+    """
+    `nd_grid` instance which returns a dense multi-dimensional "meshgrid".
+
+    An instance of `numpy.lib.index_tricks.nd_grid` which returns an dense
+    (or fleshed out) mesh-grid when indexed, so that each returned argument
+    has the same shape.  The dimensions and number of the output arrays are
+    equal to the number of indexing dimensions.  If the step length is not a
+    complex number, then the stop is not inclusive.
+
+    However, if the step length is a **complex number** (e.g. 5j), then
+    the integer part of its magnitude is interpreted as specifying the
+    number of points to create between the start and stop values, where
+    the stop value **is inclusive**.
+
+    Returns
+    ----------
+    mesh-grid `ndarrays` all of the same dimensions
+
+    See Also
+    --------
+    numpy.lib.index_tricks.nd_grid : class of `ogrid` and `mgrid` objects
+    ogrid : like mgrid but returns open (not fleshed out) mesh grids
+    r_ : array concatenator
+
+    Examples
+    --------
+    >>> np.mgrid[0:5,0:5]
+    array([[[0, 0, 0, 0, 0],
+            [1, 1, 1, 1, 1],
+            [2, 2, 2, 2, 2],
+            [3, 3, 3, 3, 3],
+            [4, 4, 4, 4, 4]],
+           [[0, 1, 2, 3, 4],
+            [0, 1, 2, 3, 4],
+            [0, 1, 2, 3, 4],
+            [0, 1, 2, 3, 4],
+            [0, 1, 2, 3, 4]]])
+    >>> np.mgrid[-1:1:5j]
+    array([-1. , -0.5,  0. ,  0.5,  1. ])
+
+    """)
+
+add_newdoc('numpy.lib.index_tricks', 'ogrid',
+    """
+    `nd_grid` instance which returns an open multi-dimensional "meshgrid".
+
+    An instance of `numpy.lib.index_tricks.nd_grid` which returns an open
+    (i.e. not fleshed out) mesh-grid when indexed, so that only one dimension
+    of each returned array is greater than 1.  The dimension and number of the
+    output arrays are equal to the number of indexing dimensions.  If the step
+    length is not a complex number, then the stop is not inclusive.
+
+    However, if the step length is a **complex number** (e.g. 5j), then
+    the integer part of its magnitude is interpreted as specifying the
+    number of points to create between the start and stop values, where
+    the stop value **is inclusive**.
+
+    Returns
+    ----------
+    mesh-grid `ndarrays` with only one dimension :math:`\\neq 1`
+
+    See Also
+    --------
+    np.lib.index_tricks.nd_grid : class of `ogrid` and `mgrid` objects
+    mgrid : like `ogrid` but returns dense (or fleshed out) mesh grids
+    r_ : array concatenator
+
+    Examples
+    --------
+    >>> from numpy import ogrid
+    >>> ogrid[-1:1:5j]
+    array([-1. , -0.5,  0. ,  0.5,  1. ])
+    >>> ogrid[0:5,0:5]
+    [array([[0],
+            [1],
+            [2],
+            [3],
+            [4]]), array([[0, 1, 2, 3, 4]])]
+
+    """)
+
+
+##############################################################################
+#
+# Documentation for `generic` attributes and methods
+#
+##############################################################################
+
+add_newdoc('numpy.core.numerictypes', 'generic',
+    """
+    """)
+
+# Attributes
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('T',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('base',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('data',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('dtype',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('flags',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('flat',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('imag',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('itemsize',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('nbytes',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('ndim',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('real',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('shape',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('size',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('strides',
+    """
+    """))
+
+# Methods
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('all',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('any',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('argmax',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('argmin',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('argsort',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('astype',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('byteswap',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('choose',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('clip',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('compress',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('conjugate',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('copy',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('cumprod',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('cumsum',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('diagonal',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('dump',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('dumps',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('fill',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('flatten',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('getfield',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('item',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('itemset',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('max',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('mean',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('min',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('newbyteorder',
+    """
+    newbyteorder(new_order='S')
+
+    Return a new dtype with a different byte order.
+
+    Changes are also made in all fields and sub-arrays of the data type.
+
+    The `new_order` code can be any from the following:
+
+    * {'<', 'L'} - little endian
+    * {'>', 'B'} - big endian
+    * {'=', 'N'} - native order
+    * 'S' - swap dtype from current to opposite endian
+    * {'|', 'I'} - ignore (no change to byte order)
+
+    Parameters
+    ----------
+    new_order : string, optional
+        Byte order to force; a value from the byte order specifications
+        above.  The default value ('S') results in swapping the current
+        byte order. The code does a case-insensitive check on the first
+        letter of `new_order` for the alternatives above.  For example,
+        any of 'B' or 'b' or 'biggish' are valid to specify big-endian.
+
+
+    Returns
+    -------
+    new_dtype : dtype
+        New dtype object with the given change to the byte order.
+
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('nonzero',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('prod',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('ptp',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('put',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('ravel',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('repeat',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('reshape',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('resize',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('round',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('searchsorted',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('setfield',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('setflags',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('sort',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('squeeze',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('std',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('sum',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('swapaxes',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('take',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('tofile',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('tolist',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('tostring',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('trace',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('transpose',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('var',
+    """
+    """))
+
+add_newdoc('numpy.core.numerictypes', 'generic', ('view',
+    """
+    """))
+
+
+##############################################################################
+#
+# Documentation for other scalar classes
+#
+##############################################################################
+
+add_newdoc('numpy.core.numerictypes', 'bool_',
+    """Numpy's Boolean type.  Character code: ``?``.  Alias: bool8""")
+
+add_newdoc('numpy.core.numerictypes', 'complex64',
+    """
+    Complex number type composed of two 32 bit floats. Character code: 'F'.
+
+    """)
+
+add_newdoc('numpy.core.numerictypes', 'complex128',
+    """
+    Complex number type composed of two 64 bit floats. Character code: 'D'.
+    Python complex compatible.
+
+    """)
+
+add_newdoc('numpy.core.numerictypes', 'complex256',
+    """
+    Complex number type composed of two 128-bit floats. Character code: 'G'.
+
+    """)
+
+add_newdoc('numpy.core.numerictypes', 'float32',
+    """
+    32-bit floating-point number. Character code 'f'. C float compatible.
+
+    """)
+
+add_newdoc('numpy.core.numerictypes', 'float64',
+    """
+    64-bit floating-point number. Character code 'd'. Python float compatible.
+
+    """)
+
+add_newdoc('numpy.core.numerictypes', 'float96',
+    """
+    """)
+
+add_newdoc('numpy.core.numerictypes', 'float128',
+    """
+    128-bit floating-point number. Character code: 'g'. C long float
+    compatible.
+
+    """)
+
+add_newdoc('numpy.core.numerictypes', 'int8',
+    """8-bit integer. Character code ``b``. C char compatible.""")
+
+add_newdoc('numpy.core.numerictypes', 'int16',
+    """16-bit integer. Character code ``h``. C short compatible.""")
+
+add_newdoc('numpy.core.numerictypes', 'int32',
+    """32-bit integer. Character code 'i'. C int compatible.""")
+
+add_newdoc('numpy.core.numerictypes', 'int64',
+    """64-bit integer. Character code 'l'. Python int compatible.""")
+
+add_newdoc('numpy.core.numerictypes', 'object_',
+    """Any Python object.  Character code: 'O'.""")
+
+"""
+NumPy
+=====
+
+Provides
+  1. An array object of arbitrary homogeneous items
+  2. Fast mathematical operations over arrays
+  3. Linear Algebra, Fourier Transforms, Random Number Generation
+
+How to use the documentation
+----------------------------
+Documentation is available in two forms: docstrings provided
+with the code, and a loose standing reference guide, available from
+`the NumPy homepage <http://www.scipy.org>`_.
+
+We recommend exploring the docstrings using
+`IPython <http://ipython.scipy.org>`_, an advanced Python shell with
+TAB-completion and introspection capabilities.  See below for further
+instructions.
+
+The docstring examples assume that `numpy` has been imported as `np`::
+
+  >>> import numpy as np
+
+Code snippets are indicated by three greater-than signs::
+
+  >>> x = x + 1
+
+Use the built-in ``help`` function to view a function's docstring::
+
+  >>> help(np.sort)
+
+For some objects, ``np.info(obj)`` may provide additional help.  This is
+particularly true if you see the line "Help on ufunc object:" at the top
+of the help() page.  Ufuncs are implemented in C, not Python, for speed.
+The native Python help() does not know how to view their help, but our
+np.info() function does.
+
+To search for documents containing a keyword, do::
+
+  >>> np.lookfor('keyword')
+
+General-purpose documents like a glossary and help on the basic concepts
+of numpy are available under the ``doc`` sub-module::
+
+  >>> from numpy import doc
+  >>> help(doc)
+
+Available subpackages
+---------------------
+doc
+    Topical documentation on broadcasting, indexing, etc.
+lib
+    Basic functions used by several sub-packages.
+random
+    Core Random Tools
+linalg
+    Core Linear Algebra Tools
+fft
+    Core FFT routines
+testing
+    Numpy testing tools
+f2py
+    Fortran to Python Interface Generator.
+distutils
+    Enhancements to distutils with support for
+    Fortran compilers support and more.
+
+Utilities
+---------
+test
+    Run numpy unittests
+show_config
+    Show numpy build configuration
+dual
+    Overwrite certain functions with high-performance Scipy tools
+matlib
+    Make everything matrices.
+__version__
+    Numpy version string
+
+Viewing documentation using IPython
+-----------------------------------
+Start IPython with the NumPy profile (``ipython -p numpy``), which will
+import `numpy` under the alias `np`.  Then, use the ``cpaste`` command to
+paste examples into the shell.  To see which functions are available in
+`numpy`, type ``np.<TAB>`` (where ``<TAB>`` refers to the TAB key), or use
+``np.*cos*?<ENTER>`` (where ``<ENTER>`` refers to the ENTER key) to narrow
+down the list.  To view the docstring for a function, use
+``np.cos?<ENTER>`` (to view the docstring) and ``np.cos??<ENTER>`` (to view
+the source code).
+
+Copies vs. in-place operation
+-----------------------------
+Most of the functions in `numpy` return a copy of the array argument
+(e.g., `np.sort`).  In-place versions of these functions are often
+available as array methods, i.e. ``x = np.array([1,2,3]); x.sort()``.
+Exceptions to this rule are documented.
+
+"""
+
+# We first need to detect if we're being called as part of the numpy setup
+# procedure itself in a reliable manner.
+try:
+    __NUMPY_SETUP__
+except NameError:
+    __NUMPY_SETUP__ = False
+
+
+if __NUMPY_SETUP__:
+    import sys as _sys
+    print >> _sys.stderr, 'Running from numpy source directory.'
+    del _sys
+else:
+    try:
+        from numpy.__config__ import show as show_config
+    except ImportError, e:
+        msg = """Error importing numpy: you should not try to import numpy from
+        its source directory; please exit the numpy source tree, and relaunch
+        your python intepreter from there."""
+        raise ImportError(msg)
+    from version import version as __version__
+
+    from _import_tools import PackageLoader
+
+    def pkgload(*packages, **options):
+        loader = PackageLoader(infunc=True)
+        return loader(*packages, **options)
+
+    import add_newdocs
+    __all__ = ['add_newdocs']
+
+    pkgload.__doc__ = PackageLoader.__call__.__doc__
+
+    from testing import Tester
+    test = Tester().test
+    bench = Tester().bench
+
+    import core
+    from core import *
+    import compat
+    import lib
+    from lib import *
+    import linalg
+    import fft
+    import random
+    import ctypeslib
+    import ma
+    import matrixlib as _mat
+    from matrixlib import *
+
+    # Make these accessible from numpy name-space
+    #  but not imported in from numpy import *
+    from __builtin__ import bool, int, long, float, complex, \
+         object, unicode, str
+    from core import round, abs, max, min
+
+    __all__.extend(['__version__', 'pkgload', 'PackageLoader',
+               'show_config'])
+    __all__.extend(core.__all__)
+    __all__.extend(_mat.__all__)
+    __all__.extend(lib.__all__)
+    __all__.extend(['linalg', 'fft', 'random', 'ctypeslib', 'ma'])
+
+"""
+Aliases for functions which may be accelerated by Scipy.
+
+Scipy_ can be built to use accelerated or otherwise improved libraries
+for FFTs, linear algebra, and special functions. This module allows
+developers to transparently support these accelerated functions when
+scipy is available but still support users who have only installed
+Numpy.
+
+.. _Scipy : http://www.scipy.org
+
+"""
+# This module should be used for functions both in numpy and scipy if
+#  you want to use the numpy version if available but the scipy version
+#  otherwise.
+#  Usage  --- from numpy.dual import fft, inv
+
+__all__ = ['fft','ifft','fftn','ifftn','fft2','ifft2',
+           'norm','inv','svd','solve','det','eig','eigvals',
+           'eigh','eigvalsh','lstsq', 'pinv','cholesky','i0']
+
+import numpy.linalg as linpkg
+import numpy.fft as fftpkg
+from numpy.lib import i0
+import sys
+
+
+fft = fftpkg.fft
+ifft = fftpkg.ifft
+fftn = fftpkg.fftn
+ifftn = fftpkg.ifftn
+fft2 = fftpkg.fft2
+ifft2 = fftpkg.ifft2
+
+norm = linpkg.norm
+inv = linpkg.inv
+svd = linpkg.svd
+solve = linpkg.solve
+det = linpkg.det
+eig = linpkg.eig
+eigvals = linpkg.eigvals
+eigh = linpkg.eigh
+eigvalsh = linpkg.eigvalsh
+lstsq = linpkg.lstsq
+pinv = linpkg.pinv
+cholesky = linpkg.cholesky
+
+_restore_dict = {}
+
+def register_func(name, func):
+    if name not in __all__:
+        raise ValueError, "%s not a dual function." % name
+    f = sys._getframe(0).f_globals
+    _restore_dict[name] = f[name]
+    f[name] = func
+
+def restore_func(name):
+    if name not in __all__:
+        raise ValueError, "%s not a dual function." % name
+    try:
+        val = _restore_dict[name]
+    except KeyError:
+        return
+    else:
+        sys._getframe(0).f_globals[name] = val
+
+def restore_all():
+    for name in _restore_dict.keys():
+        restore_func(name)
+
+#!/usr/bin/env python
+
+def configuration(parent_package='',top_path=None):
+    from numpy.distutils.misc_util import Configuration
+    config = Configuration('numpy',parent_package,top_path)
+    config.add_subpackage('distutils')
+    config.add_subpackage('testing')
+    config.add_subpackage('f2py')
+    config.add_subpackage('core')
+    config.add_subpackage('lib')
+    config.add_subpackage('oldnumeric')
+    config.add_subpackage('numarray')
+    config.add_subpackage('fft')
+    config.add_subpackage('linalg')
+    config.add_subpackage('random')
+    config.add_subpackage('ma')
+    config.add_subpackage('matrixlib')
+    config.add_subpackage('compat')
+    config.add_subpackage('doc')
+    config.add_data_dir('doc')
+    config.add_data_dir('tests')
+    config.make_config_py() # installs __config__.py
+    return config
+
+if __name__ == '__main__':
+    print 'This is the wrong setup.py file to run'
+
+"""
+============================
+``ctypes`` Utility Functions
+============================
+
+See Also
+---------
+load_library : Load a C library.
+ndpointer : Array restype/argtype with verification.
+as_ctypes : Create a ctypes array from an ndarray.
+as_array : Create an ndarray from a ctypes array.
+
+References
+----------
+.. [1] "SciPy Cookbook: ctypes", http://www.scipy.org/Cookbook/Ctypes
+
+Examples
+--------
+Load the C library:
+
+>>> _lib = np.ctypeslib.load_library('libmystuff', '.') #DOCTEST: +ignore
+
+Our result type, an ndarray that must be of type double, be 1-dimensional
+and is C-contiguous in memory:
+
+>>> array_1d_double = np.ctypeslib.ndpointer(
+...                          dtype=np.double,
+...                          ndim=1, flags='CONTIGUOUS') #DOCTEST: +ignore
+
+Our C-function typically takes an array and updates its values
+in-place.  For example::
+
+    void foo_func(double* x, int length)
+    {
+        int i;
+        for (i = 0; i < length; i++) {
+            x[i] = i*i;
+        }
+    }
+
+We wrap it using:
+
+>>> lib.foo_func.restype = None #DOCTEST: +ignore
+>>> lib.foo.argtypes = [array_1d_double, c_int] #DOCTEST: +ignore
+
+Then, we're ready to call ``foo_func``:
+
+>>> out = np.empty(15, dtype=np.double)
+>>> _lib.foo_func(out, len(out)) #DOCTEST: +ignore
+
+"""
+__all__ = ['load_library', 'ndpointer', 'test', 'ctypes_load_library',
+           'c_intp', 'as_ctypes', 'as_array']
+
+import sys, os
+from numpy import integer, ndarray, dtype as _dtype, deprecate, array
+from numpy.core.multiarray import _flagdict, flagsobj
+
+try:
+    import ctypes
+except ImportError:
+    ctypes = None
+
+if ctypes is None:
+    def _dummy(*args, **kwds):
+        raise ImportError, "ctypes is not available."
+    ctypes_load_library = _dummy
+    load_library = _dummy
+    as_ctypes = _dummy
+    as_array = _dummy
+    from numpy import intp as c_intp
+    _ndptr_base = object
+else:
+    import numpy.core._internal as nic
+    c_intp = nic._getintp_ctype()
+    del nic
+    _ndptr_base = ctypes.c_void_p
+
+    # Adapted from Albert Strasheim
+    def load_library(libname, loader_path):
+        if ctypes.__version__ < '1.0.1':
+            import warnings
+            warnings.warn("All features of ctypes interface may not work " \
+                          "with ctypes < 1.0.1")
+
+        ext = os.path.splitext(libname)[1]
+
+        if not ext:
+            # Try to load library with platform-specific name, otherwise
+            # default to libname.[so|pyd].  Sometimes, these files are built
+            # erroneously on non-linux platforms.
+            libname_ext = ['%s.so' % libname, '%s.pyd' % libname]
+            if sys.platform == 'win32':
+                libname_ext.insert(0, '%s.dll' % libname)
+            elif sys.platform == 'darwin':
+                libname_ext.insert(0, '%s.dylib' % libname)
+        else:
+            libname_ext = [libname]
+
+        loader_path = os.path.abspath(loader_path)
+        if not os.path.isdir(loader_path):
+            libdir = os.path.dirname(loader_path)
+        else:
+            libdir = loader_path
+
+        for ln in libname_ext:
+            try:
+                libpath = os.path.join(libdir, ln)
+                return ctypes.cdll[libpath]
+            except OSError, e:
+                pass
+
+        raise e
+
+    ctypes_load_library = deprecate(load_library, 'ctypes_load_library',
+                                    'load_library')
+
+def _num_fromflags(flaglist):
+    num = 0
+    for val in flaglist:
+        num += _flagdict[val]
+    return num
+
+_flagnames = ['C_CONTIGUOUS', 'F_CONTIGUOUS', 'ALIGNED', 'WRITEABLE',
+              'OWNDATA', 'UPDATEIFCOPY']
+def _flags_fromnum(num):
+    res = []
+    for key in _flagnames:
+        value = _flagdict[key]
+        if (num & value):
+            res.append(key)
+    return res
+
+
+class _ndptr(_ndptr_base):
+
+    def _check_retval_(self):
+        """This method is called when this class is used as the .restype
+        asttribute for a shared-library function.   It constructs a numpy
+        array from a void pointer."""
+        return array(self)
+
+    @property
+    def __array_interface__(self):
+        return {'descr': self._dtype_.descr,
+                '__ref': self,
+                'strides': None,
+                'shape': self._shape_,
+                'version': 3,
+                'typestr': self._dtype_.descr[0][1],
+                'data': (self.value, False),
+                }
+    
+    @classmethod
+    def from_param(cls, obj):
+        if not isinstance(obj, ndarray):
+            raise TypeError, "argument must be an ndarray"
+        if cls._dtype_ is not None \
+               and obj.dtype != cls._dtype_:
+            raise TypeError, "array must have data type %s" % cls._dtype_
+        if cls._ndim_ is not None \
+               and obj.ndim != cls._ndim_:
+            raise TypeError, "array must have %d dimension(s)" % cls._ndim_
+        if cls._shape_ is not None \
+               and obj.shape != cls._shape_:
+            raise TypeError, "array must have shape %s" % str(cls._shape_)
+        if cls._flags_ is not None \
+               and ((obj.flags.num & cls._flags_) != cls._flags_):
+            raise TypeError, "array must have flags %s" % \
+                  _flags_fromnum(cls._flags_)
+        return obj.ctypes
+
+
+# Factory for an array-checking class with from_param defined for
+#  use with ctypes argtypes mechanism
+_pointer_type_cache = {}
+def ndpointer(dtype=None, ndim=None, shape=None, flags=None):
+    """
+    Array-checking restype/argtypes.
+
+    An ndpointer instance is used to describe an ndarray in restypes
+    and argtypes specifications.  This approach is more flexible than
+    using, for example, ``POINTER(c_double)``, since several restrictions
+    can be specified, which are verified upon calling the ctypes function.
+    These include data type, number of dimensions, shape and flags.  If a
+    given array does not satisfy the specified restrictions,
+    a ``TypeError`` is raised.
+
+    Parameters
+    ----------
+    dtype : data-type, optional
+        Array data-type.
+    ndim : int, optional
+        Number of array dimensions.
+    shape : tuple of ints, optional
+        Array shape.
+    flags : string or tuple of strings
+        Array flags; may be one or more of:
+
+          - C_CONTIGUOUS / C / CONTIGUOUS
+          - F_CONTIGUOUS / F / FORTRAN
+          - OWNDATA / O
+          - WRITEABLE / W
+          - ALIGNED / A
+          - UPDATEIFCOPY / U
+
+    Examples
+    --------
+    >>> clib.somefunc.argtypes = [np.ctypeslib.ndpointer(dtype=float64,
+    ...                                                  ndim=1,
+    ...                                                  flags='C_CONTIGUOUS')]
+    >>> clib.somefunc(np.array([1, 2, 3], dtype=np.float64))
+
+    """
+
+    if dtype is not None:
+        dtype = _dtype(dtype)
+    num = None
+    if flags is not None:
+        if isinstance(flags, str):
+            flags = flags.split(',')
+        elif isinstance(flags, (int, integer)):
+            num = flags
+            flags = _flags_fromnum(num)
+        elif isinstance(flags, flagsobj):
+            num = flags.num
+            flags = _flags_fromnum(num)
+        if num is None:
+            try:
+                flags = [x.strip().upper() for x in flags]
+            except:
+                raise TypeError, "invalid flags specification"
+            num = _num_fromflags(flags)
+    try:
+        return _pointer_type_cache[(dtype, ndim, shape, num)]
+    except KeyError:
+        pass
+    if dtype is None:
+        name = 'any'
+    elif dtype.names:
+        name = str(id(dtype))
+    else:
+        name = dtype.str
+    if ndim is not None:
+        name += "_%dd" % ndim
+    if shape is not None:
+        try:
+            strshape = [str(x) for x in shape]
+        except TypeError:
+            strshape = [str(shape)]
+            shape = (shape,)
+        shape = tuple(shape)
+        name += "_"+"x".join(strshape)
+    if flags is not None:
+        name += "_"+"_".join(flags)
+    else:
+        flags = []
+    klass = type("ndpointer_%s"%name, (_ndptr,),
+                 {"_dtype_": dtype,
+                  "_shape_" : shape,
+                  "_ndim_" : ndim,
+                  "_flags_" : num})
+    _pointer_type_cache[dtype] = klass
+    return klass
+
+if ctypes is not None:
+    ct = ctypes
+    ################################################################
+    # simple types
+
+    # maps the numpy typecodes like '<f8' to simple ctypes types like
+    # c_double. Filled in by prep_simple.
+    _typecodes = {}
+
+    def prep_simple(simple_type, typestr):
+        """Given a ctypes simple type, construct and attach an
+        __array_interface__ property to it if it does not yet have one.
+        """
+        try: simple_type.__array_interface__
+        except AttributeError: pass
+        else: return
+
+        _typecodes[typestr] = simple_type
+
+        def __array_interface__(self):
+            return {'descr': [('', typestr)],
+                    '__ref': self,
+                    'strides': None,
+                    'shape': (),
+                    'version': 3,
+                    'typestr': typestr,
+                    'data': (ct.addressof(self), False),
+                    }
+
+        simple_type.__array_interface__ = property(__array_interface__)
+
+    if sys.byteorder == "little":
+        TYPESTR = "<%c%d"
+    else:
+        TYPESTR = ">%c%d"
+
+    simple_types = [
+        ((ct.c_byte, ct.c_short, ct.c_int, ct.c_long, ct.c_longlong), "i"),
+        ((ct.c_ubyte, ct.c_ushort, ct.c_uint, ct.c_ulong, ct.c_ulonglong), "u"),
+        ((ct.c_float, ct.c_double), "f"),
+    ]
+
+    # Prep that numerical ctypes types:
+    for types, code in simple_types:
+        for tp in types:
+            prep_simple(tp, TYPESTR % (code, ct.sizeof(tp)))
+
+    ################################################################
+    # array types
+
+    _ARRAY_TYPE = type(ct.c_int * 1)
+
+    def prep_array(array_type):
+        """Given a ctypes array type, construct and attach an
+        __array_interface__ property to it if it does not yet have one.
+        """
+        try: array_type.__array_interface__
+        except AttributeError: pass
+        else: return
+
+        shape = []
+        ob = array_type
+        while type(ob) == _ARRAY_TYPE:
+            shape.append(ob._length_)
+            ob = ob._type_
+        shape = tuple(shape)
+        ai = ob().__array_interface__
+        descr = ai['descr']
+        typestr = ai['typestr']
+
+        def __array_interface__(self):
+            return {'descr': descr,
+                    '__ref': self,
+                    'strides': None,
+                    'shape': shape,
+                    'version': 3,
+                    'typestr': typestr,
+                    'data': (ct.addressof(self), False),
+                    }
+
+        array_type.__array_interface__ = property(__array_interface__)
+
+    ################################################################
+    # public functions
+
+    def as_array(obj):
+        """Create a numpy array from a ctypes array.  The numpy array
+        shares the memory with the ctypes object."""
+        tp = type(obj)
+        try: tp.__array_interface__
+        except AttributeError: prep_array(tp)
+        return array(obj, copy=False)
+
+    def as_ctypes(obj):
+        """Create and return a ctypes object from a numpy array.  Actually
+        anything that exposes the __array_interface__ is accepted."""
+        ai = obj.__array_interface__
+        if ai["strides"]:
+            raise TypeError("strided arrays not supported")
+        if ai["version"] != 3:
+            raise TypeError("only __array_interface__ version 3 supported")
+        addr, readonly = ai["data"]
+        if readonly:
+            raise TypeError("readonly arrays unsupported")
+        tp = _typecodes[ai["typestr"]]
+        for dim in ai["shape"][::-1]:
+            tp = tp * dim
+        result = tp.from_address(addr)
+        result.__keep = ai
+        return result
+
+import os
+import sys
+
+__all__ = ['PackageLoader']
+
+class PackageLoader:
+    def __init__(self, verbose=False, infunc=False):
+        """ Manages loading packages.
+        """
+
+        if infunc:
+            _level = 2
+        else:
+            _level = 1
+        self.parent_frame = frame = sys._getframe(_level)
+        self.parent_name = eval('__name__',frame.f_globals,frame.f_locals)
+        parent_path = eval('__path__',frame.f_globals,frame.f_locals)
+        if isinstance(parent_path, str):
+            parent_path = [parent_path]
+        self.parent_path = parent_path
+        if '__all__' not in frame.f_locals:
+            exec('__all__ = []',frame.f_globals,frame.f_locals)
+        self.parent_export_names = eval('__all__',frame.f_globals,frame.f_locals)
+
+        self.info_modules = {}
+        self.imported_packages = []
+        self.verbose = None
+
+    def _get_info_files(self, package_dir, parent_path, parent_package=None):
+        """ Return list of (package name,info.py file) from parent_path subdirectories.
+        """
+        from glob import glob
+        files = glob(os.path.join(parent_path,package_dir,'info.py'))
+        for info_file in glob(os.path.join(parent_path,package_dir,'info.pyc')):
+            if info_file[:-1] not in files:
+                files.append(info_file)
+        info_files = []
+        for info_file in files:
+            package_name = os.path.dirname(info_file[len(parent_path)+1:])\
+                           .replace(os.sep,'.')
+            if parent_package:
+                package_name = parent_package + '.' + package_name
+            info_files.append((package_name,info_file))
+            info_files.extend(self._get_info_files('*',
+                                                   os.path.dirname(info_file),
+                                                   package_name))
+        return info_files
+
+    def _init_info_modules(self, packages=None):
+        """Initialize info_modules = {<package_name>: <package info.py module>}.
+        """
+        import imp
+        info_files = []
+        info_modules = self.info_modules
+
+        if packages is None:
+            for path in self.parent_path:
+                info_files.extend(self._get_info_files('*',path))
+        else:
+            for package_name in packages:
+                package_dir = os.path.join(*package_name.split('.'))
+                for path in self.parent_path:
+                    names_files = self._get_info_files(package_dir, path)
+                    if names_files:
+                        info_files.extend(names_files)
+                        break
+                else:
+                    try:
+                        exec 'import %s.info as info' % (package_name)
+                        info_modules[package_name] = info
+                    except ImportError, msg:
+                        self.warn('No scipy-style subpackage %r found in %s. '\
+                                  'Ignoring: %s'\
+                                  % (package_name,':'.join(self.parent_path), msg))
+
+        for package_name,info_file in info_files:
+            if package_name in info_modules:
+                continue
+            fullname = self.parent_name +'.'+ package_name
+            if info_file[-1]=='c':
+                filedescriptor = ('.pyc','rb',2)
+            else:
+                filedescriptor = ('.py','U',1)
+
+            try:
+                info_module = imp.load_module(fullname+'.info',
+                                              open(info_file,filedescriptor[1]),
+                                              info_file,
+                                              filedescriptor)
+            except Exception,msg:
+                self.error(msg)
+                info_module = None
+
+            if info_module is None or getattr(info_module,'ignore',False):
+                info_modules.pop(package_name,None)
+            else:
+                self._init_info_modules(getattr(info_module,'depends',[]))
+                info_modules[package_name] = info_module
+
+        return
+
+    def _get_sorted_names(self):
+        """ Return package names sorted in the order as they should be
+        imported due to dependence relations between packages.
+        """
+
+        depend_dict = {}
+        for name,info_module in self.info_modules.items():
+            depend_dict[name] = getattr(info_module,'depends',[])
+        package_names = []
+
+        for name in depend_dict.keys():
+            if not depend_dict[name]:
+                package_names.append(name)
+                del depend_dict[name]
+
+        while depend_dict:
+            for name, lst in depend_dict.items():
+                new_lst = [n for n in lst if n in depend_dict]
+                if not new_lst:
+                    package_names.append(name)
+                    del depend_dict[name]
+                else:
+                    depend_dict[name] = new_lst
+
+        return package_names
+
+    def __call__(self,*packages, **options):
+        """Load one or more packages into parent package top-level namespace.
+
+       This function is intended to shorten the need to import many
+       subpackages, say of scipy, constantly with statements such as
+
+         import scipy.linalg, scipy.fftpack, scipy.etc...
+
+       Instead, you can say:
+
+         import scipy
+         scipy.pkgload('linalg','fftpack',...)
+
+       or
+
+         scipy.pkgload()
+
+       to load all of them in one call.
+
+       If a name which doesn't exist in scipy's namespace is
+       given, a warning is shown.
+
+       Parameters
+       ----------
+        *packages : arg-tuple
+             the names (one or more strings) of all the modules one
+             wishes to load into the top-level namespace.
+        verbose= : integer
+             verbosity level [default: -1].
+             verbose=-1 will suspend also warnings.
+        force= : bool
+             when True, force reloading loaded packages [default: False].
+        postpone= : bool
+             when True, don't load packages [default: False]
+
+     """
+        frame = self.parent_frame
+        self.info_modules = {}
+        if options.get('force',False):
+            self.imported_packages = []
+        self.verbose = verbose = options.get('verbose',-1)
+        postpone = options.get('postpone',None)
+        self._init_info_modules(packages or None)
+
+        self.log('Imports to %r namespace\n----------------------------'\
+                 % self.parent_name)
+
+        for package_name in self._get_sorted_names():
+            if package_name in self.imported_packages:
+                continue
+            info_module = self.info_modules[package_name]
+            global_symbols = getattr(info_module,'global_symbols',[])
+            postpone_import = getattr(info_module,'postpone_import',False)
+            if (postpone and not global_symbols) \
+                   or (postpone_import and postpone is not None):
+                continue
+
+            old_object = frame.f_locals.get(package_name,None)
+
+            cmdstr = 'import '+package_name
+            if self._execcmd(cmdstr):
+                continue
+            self.imported_packages.append(package_name)
+
+            if verbose!=-1:
+                new_object = frame.f_locals.get(package_name)
+                if old_object is not None and old_object is not new_object:
+                    self.warn('Overwriting %s=%s (was %s)' \
+                              % (package_name,self._obj2repr(new_object),
+                                 self._obj2repr(old_object)))
+
+            if '.' not in package_name:
+                self.parent_export_names.append(package_name)
+
+            for symbol in global_symbols:
+                if symbol=='*':
+                    symbols = eval('getattr(%s,"__all__",None)'\
+                                   % (package_name),
+                                   frame.f_globals,frame.f_locals)
+                    if symbols is None:
+                        symbols = eval('dir(%s)' % (package_name),
+                                       frame.f_globals,frame.f_locals)
+                        symbols = filter(lambda s:not s.startswith('_'),symbols)
+                else:
+                    symbols = [symbol]
+
+                if verbose!=-1:
+                    old_objects = {}
+                    for s in symbols:
+                        if s in frame.f_locals:
+                            old_objects[s] = frame.f_locals[s]
+
+                cmdstr = 'from '+package_name+' import '+symbol
+                if self._execcmd(cmdstr):
+                    continue
+
+                if verbose!=-1:
+                    for s,old_object in old_objects.items():
+                        new_object = frame.f_locals[s]
+                        if new_object is not old_object:
+                            self.warn('Overwriting %s=%s (was %s)' \
+                                      % (s,self._obj2repr(new_object),
+                                         self._obj2repr(old_object)))
+
+                if symbol=='*':
+                    self.parent_export_names.extend(symbols)
+                else:
+                    self.parent_export_names.append(symbol)
+
+        return
+
+    def _execcmd(self,cmdstr):
+        """ Execute command in parent_frame."""
+        frame = self.parent_frame
+        try:
+            exec (cmdstr, frame.f_globals,frame.f_locals)
+        except Exception,msg:
+            self.error('%s -> failed: %s' % (cmdstr,msg))
+            return True
+        else:
+            self.log('%s -> success' % (cmdstr))
+        return
+
+    def _obj2repr(self,obj):
+        """ Return repr(obj) with"""
+        module = getattr(obj,'__module__',None)
+        file = getattr(obj,'__file__',None)
+        if module is not None:
+            return repr(obj) + ' from ' + module
+        if file is not None:
+            return repr(obj) + ' from ' + file
+        return repr(obj)
+
+    def log(self,mess):
+        if self.verbose>1:
+            print >> sys.stderr, str(mess)
+    def warn(self,mess):
+        if self.verbose>=0:
+            print >> sys.stderr, str(mess)
+    def error(self,mess):
+        if self.verbose!=-1:
+            print >> sys.stderr, str(mess)
+
+    def _get_doc_title(self, info_module):
+        """ Get the title from a package info.py file.
+        """
+        title = getattr(info_module,'__doc_title__',None)
+        if title is not None:
+            return title
+        title = getattr(info_module,'__doc__',None)
+        if title is not None:
+            title = title.lstrip().split('\n',1)[0]
+            return title
+        return '* Not Available *'
+
+    def _format_titles(self,titles,colsep='---'):
+        display_window_width = 70 # How to determine the correct value in runtime??
+        lengths = [len(name)-name.find('.')-1 for (name,title) in titles]+[0]
+        max_length = max(lengths)
+        lines = []
+        for (name,title) in titles:
+            name = name[name.find('.')+1:]
+            w = max_length - len(name)
+            words = title.split()
+            line = '%s%s %s' % (name,w*' ',colsep)
+            tab = len(line) * ' '
+            while words:
+                word = words.pop(0)
+                if len(line)+len(word)>display_window_width:
+                    lines.append(line)
+                    line = tab
+                line += ' ' + word
+            else:
+                lines.append(line)
+        return '\n'.join(lines)
+
+    def get_pkgdocs(self):
+        """ Return documentation summary of subpackages.
+        """
+        import sys
+        self.info_modules = {}
+        self._init_info_modules(None)
+
+        titles = []
+        symbols = []
+        for package_name, info_module in self.info_modules.items():
+            global_symbols = getattr(info_module,'global_symbols',[])
+            fullname = self.parent_name +'.'+ package_name
+            note = ''
+            if fullname not in sys.modules:
+                note = ' [*]'
+            titles.append((fullname,self._get_doc_title(info_module) + note))
+            if global_symbols:
+                symbols.append((package_name,', '.join(global_symbols)))
+
+        retstr = self._format_titles(titles) +\
+               '\n  [*] - using a package requires explicit import (see pkgload)'
+
+
+        if symbols:
+            retstr += """\n\nGlobal symbols from subpackages"""\
+                      """\n-------------------------------\n""" +\
+                      self._format_titles(symbols,'-->')
+
+        return retstr
+
+class PackageLoaderDebug(PackageLoader):
+    def _execcmd(self,cmdstr):
+        """ Execute command in parent_frame."""
+        frame = self.parent_frame
+        print 'Executing',`cmdstr`,'...',
+        sys.stdout.flush()
+        exec (cmdstr, frame.f_globals,frame.f_locals)
+        print 'ok'
+        sys.stdout.flush()
+        return
+
+if int(os.environ.get('NUMPY_IMPORT_DEBUG','0')):
+    PackageLoader = PackageLoaderDebug
+
+import numpy as np
+from numpy.matrixlib.defmatrix import matrix, asmatrix
+# need * as we're copying the numpy namespace
+from numpy import *
+
+__version__ = np.__version__
+
+__all__ = np.__all__[:] # copy numpy namespace
+__all__ += ['rand', 'randn', 'repmat']
+
+def empty(shape, dtype=None, order='C'):
+    """return an empty matrix of the given shape
+    """
+    return ndarray.__new__(matrix, shape, dtype, order=order)
+
+def ones(shape, dtype=None, order='C'):
+    """
+    Matrix of ones.
+
+    Return a matrix of given shape and type, filled with ones.
+
+    Parameters
+    ----------
+    shape : {sequence of ints, int}
+        Shape of the matrix
+    dtype : data-type, optional
+        The desired data-type for the matrix, default is np.float64.
+    order : {'C', 'F'}, optional
+        Whether to store matrix in C- or Fortran-contiguous order,
+        default is 'C'.
+
+    Returns
+    -------
+    out : matrix
+        Matrix of ones of given shape, dtype, and order.
+
+    See Also
+    --------
+    ones : Array of ones.
+    matlib.zeros : Zero matrix.
+
+    Notes
+    -----
+    If `shape` has length one i.e. ``(N,)``, or is a scalar ``N``,
+    `out` becomes a single row matrix of shape ``(1,N)``.
+
+    Examples
+    --------
+    >>> np.matlib.ones((2,3))
+    matrix([[ 1.,  1.,  1.],
+            [ 1.,  1.,  1.]])
+
+    >>> np.matlib.ones(2)
+    matrix([[ 1.,  1.]])
+
+    """
+    a = ndarray.__new__(matrix, shape, dtype, order=order)
+    a.fill(1)
+    return a
+
+def zeros(shape, dtype=None, order='C'):
+    """
+    Zero matrix.
+
+    Return a matrix of given shape and type, filled with zeros
+
+    Parameters
+    ----------
+    shape : {sequence of ints, int}
+        Shape of the matrix
+    dtype : data-type, optional
+        The desired data-type for the matrix, default is np.float64.
+    order : {'C', 'F'}, optional
+        Whether to store the result in C- or Fortran-contiguous order,
+        default is 'C'.
+
+    Returns
+    -------
+    out : matrix
+        Zero matrix of given shape, dtype, and order.
+
+    See Also
+    --------
+    zeros : Zero array.
+    matlib.ones : Matrix of ones.
+
+    Notes
+    -----
+    If `shape` has length one i.e. ``(N,)``, or is a scalar ``N``,
+    `out` becomes a single row matrix of shape ``(1,N)``.
+
+    Examples
+    --------
+    >>> np.matlib.zeros((2,3))
+    matrix([[ 0.,  0.,  0.],
+            [ 0.,  0.,  0.]])
+
+    >>> np.matlib.zeros(2)
+    matrix([[ 0.,  0.]])
+
+    """
+    a = ndarray.__new__(matrix, shape, dtype, order=order)
+    a.fill(0)
+    return a
+
+def identity(n,dtype=None):
+    """
+    Returns the square identity matrix of given size.
+
+    Parameters
+    ----------
+    n : int
+        Size of identity matrix
+
+    dtype : data-type, optional
+        Data-type of the output. Defaults to ``float``.
+
+    Returns
+    -------
+    out : matrix
+        `n` x `n` matrix with its main diagonal set to one,
+        and all other elements zero.
+
+    See Also
+    --------
+    identity : Equivalent array function.
+    matlib.eye : More general matrix identity function.
+
+    Notes
+    -----
+    For more detailed documentation, see the docstring of the equivalent
+    array function ``np.identity``
+
+    """
+    a = array([1]+n*[0],dtype=dtype)
+    b = empty((n,n),dtype=dtype)
+    b.flat = a
+    return b
+
+def eye(n,M=None, k=0, dtype=float):
+    """
+    Return a matrix with ones on the diagonal and zeros elsewhere.
+
+    Parameters
+    ----------
+    n : int
+        Number of rows in the output.
+    M : int, optional
+        Number of columns in the output, defaults to n.
+    k : int, optional
+        Index of the diagonal: 0 refers to the main diagonal,
+        a positive value refers to an upper diagonal,
+        and a negative value to a lower diagonal.
+    dtype : dtype, optional
+        Data-type of the returned matrix.
+
+    Returns
+    -------
+    I : matrix
+        A `n` x `M` matrix where all elements are equal to zero,
+        except for the k-th diagonal, whose values are equal to one.
+
+    See Also
+    --------
+    eye : Equivalent array function
+    matlib.identity : Square identity matrix
+
+    Notes
+    -----
+    For more detailed docuemtation, see the docstring of the equivalent
+    array function ``np.eye``.
+
+    """
+    return asmatrix(np.eye(n,M,k,dtype))
+
+def rand(*args):
+    if isinstance(args[0], tuple):
+        args = args[0]
+    return asmatrix(np.random.rand(*args))
+
+def randn(*args):
+    if isinstance(args[0], tuple):
+        args = args[0]
+    return asmatrix(np.random.randn(*args))
+
+def repmat(a, m, n):
+    """Repeat a 0-d to 2-d array mxn times
+    """
+    a = asanyarray(a)
+    ndim = a.ndim
+    if ndim == 0:
+        origrows, origcols = (1,1)
+    elif ndim == 1:
+        origrows, origcols = (1, a.shape[0])
+    else:
+        origrows, origcols = a.shape
+    rows = origrows * m
+    cols = origcols * n
+    c = a.reshape(1,a.size).repeat(m, 0).reshape(rows, origcols).repeat(n,0)
+    return c.reshape(rows, cols)
+
+"""
+unixccompiler - can handle very long argument lists for ar.
+"""
+
+import os
+
+from distutils.errors import DistutilsExecError, CompileError
+from distutils.unixccompiler import *
+from numpy.distutils.ccompiler import replace_method
+
+import log
+
+# Note that UnixCCompiler._compile appeared in Python 2.3
+def UnixCCompiler__compile(self, obj, src, ext, cc_args, extra_postargs, pp_opts):
+    display = '%s: %s' % (os.path.basename(self.compiler_so[0]),src)
+    try:
+        self.spawn(self.compiler_so + cc_args + [src, '-o', obj] +
+                   extra_postargs, display = display)
+    except DistutilsExecError, msg:
+        raise CompileError, msg
+
+replace_method(UnixCCompiler, '_compile', UnixCCompiler__compile)
+
+
+def UnixCCompiler_create_static_lib(self, objects, output_libname,
+                                    output_dir=None, debug=0, target_lang=None):
+    objects, output_dir = self._fix_object_args(objects, output_dir)
+
+    output_filename = \
+                    self.library_filename(output_libname, output_dir=output_dir)
+
+    if self._need_link(objects, output_filename):
+        try:
+            # previous .a may be screwed up; best to remove it first
+            # and recreate.
+            # Also, ar on OS X doesn't handle updating universal archives
+            os.unlink(output_filename)
+        except (IOError, OSError):
+            pass
+        self.mkpath(os.path.dirname(output_filename))
+        tmp_objects = objects + self.objects
+        while tmp_objects:
+            objects = tmp_objects[:50]
+            tmp_objects = tmp_objects[50:]
+            display = '%s: adding %d object files to %s' % (
+                           os.path.basename(self.archiver[0]),
+                           len(objects), output_filename)
+            self.spawn(self.archiver + [output_filename] + objects,
+                       display = display)
+
+        # Not many Unices required ranlib anymore -- SunOS 4.x is, I
+        # think the only major Unix that does.  Maybe we need some
+        # platform intelligence here to skip ranlib if it's not
+        # needed -- or maybe Python's configure script took care of
+        # it for us, hence the check for leading colon.
+        if self.ranlib:
+            display = '%s:@ %s' % (os.path.basename(self.ranlib[0]),
+                                   output_filename)
+            try:
+                self.spawn(self.ranlib + [output_filename],
+                           display = display)
+            except DistutilsExecError, msg:
+                raise LibError, msg
+    else:
+        log.debug("skipping %s (up-to-date)", output_filename)
+    return
+
+replace_method(UnixCCompiler, 'create_static_lib',
+               UnixCCompiler_create_static_lib)
+
+# XXX: Handle setuptools ?
+from distutils.core import Distribution
+
+# This class is used because we add new files (sconscripts, and so on) with the
+# scons command
+class NumpyDistribution(Distribution):
+    def __init__(self, attrs = None):
+        # A list of (sconscripts, pre_hook, post_hook, src, parent_names)
+        self.scons_data = []
+        # A list of installable libraries
+        self.installed_libraries = []
+        # A dict of pkg_config files to generate/install
+        self.installed_pkg_config = {}
+        Distribution.__init__(self, attrs)
+
+    def has_scons_scripts(self):
+        return bool(self.scons_data)
+
+#!/usr/bin/python
+"""
+takes templated file .xxx.src and produces .xxx file  where .xxx is
+.i or .c or .h, using the following template rules
+
+/**begin repeat  -- on a line by itself marks the start of a repeated code
+                    segment
+/**end repeat**/ -- on a line by itself marks it's end
+
+After the /**begin repeat and before the */, all the named templates are placed
+these should all have the same number of replacements
+
+Repeat blocks can be nested, with each nested block labeled with its depth,
+i.e.
+/**begin repeat1
+ *....
+ */
+/**end repeat1**/
+
+When using nested loops, you can optionally exlude particular
+combinations of the variables using (inside the comment portion of the inner loop):
+
+ :exclude: var1=value1, var2=value2, ...
+
+This will exlude the pattern where var1 is value1 and var2 is value2 when
+the result is being generated.
+  
+
+In the main body each replace will use one entry from the list of named replacements
+
+ Note that all #..# forms in a block must have the same number of
+   comma-separated entries.
+
+Example:
+
+    An input file containing
+
+        /**begin repeat
+         * #a = 1,2,3#
+         * #b = 1,2,3#
+         */
+
+        /**begin repeat1
+         * #c = ted, jim#
+         */
+        @a@, @b@, @c@
+        /**end repeat1**/
+
+        /**end repeat**/
+
+    produces
+
+        line 1 "template.c.src"
+
+        /*
+         *********************************************************************
+         **       This file was autogenerated from a template  DO NOT EDIT!!**
+         **       Changes should be made to the original source (.src) file **
+         *********************************************************************
+         */
+
+        #line 9
+        1, 1, ted
+
+        #line 9
+        1, 1, jim
+
+        #line 9
+        2, 2, ted
+
+        #line 9
+        2, 2, jim
+
+        #line 9
+        3, 3, ted
+
+        #line 9
+        3, 3, jim
+
+"""
+
+__all__ = ['process_str', 'process_file']
+
+import os
+import sys
+import re
+
+# names for replacement that are already global.
+global_names = {}
+
+# header placed at the front of head processed file
+header =\
+"""
+/*
+ *****************************************************************************
+ **       This file was autogenerated from a template  DO NOT EDIT!!!!      **
+ **       Changes should be made to the original source (.src) file         **
+ *****************************************************************************
+ */
+
+"""
+# Parse string for repeat loops
+def parse_structure(astr, level):
+    """
+    The returned line number is from the beginning of the string, starting
+    at zero. Returns an empty list if no loops found.
+
+    """
+    if level == 0 :
+        loopbeg = "/**begin repeat"
+        loopend = "/**end repeat**/"
+    else :
+        loopbeg = "/**begin repeat%d" % level
+        loopend = "/**end repeat%d**/" % level
+
+    ind = 0
+    line = 0
+    spanlist = []
+    while 1:
+        start = astr.find(loopbeg, ind)
+        if start == -1:
+            break
+        start2 = astr.find("*/",start)
+        start2 = astr.find("\n",start2)
+        fini1 = astr.find(loopend,start2)
+        fini2 = astr.find("\n",fini1)
+        line += astr.count("\n", ind, start2+1)
+        spanlist.append((start, start2+1, fini1, fini2+1, line))
+        line += astr.count("\n", start2+1, fini2)
+        ind = fini2
+    spanlist.sort()
+    return spanlist
+
+
+def paren_repl(obj):
+    torep = obj.group(1)
+    numrep = obj.group(2)
+    return ','.join([torep]*int(numrep))
+
+parenrep = re.compile(r"[(]([^)]*)[)]\*(\d+)")
+plainrep = re.compile(r"([^*]+)\*(\d+)")
+def parse_values(astr):
+    # replaces all occurrences of '(a,b,c)*4' in astr
+    # with 'a,b,c,a,b,c,a,b,c,a,b,c'. Empty braces generate
+    # empty values, i.e., ()*4 yields ',,,'. The result is
+    # split at ',' and a list of values returned.
+    astr = parenrep.sub(paren_repl, astr)
+    # replaces occurences of xxx*3 with xxx, xxx, xxx
+    astr = ','.join([plainrep.sub(paren_repl,x.strip())
+                     for x in astr.split(',')])
+    return astr.split(',')
+
+
+stripast = re.compile(r"\n\s*\*?")
+named_re = re.compile(r"#\s*(\w*)\s*=([^#]*)#")
+exclude_vars_re = re.compile(r"(\w*)=(\w*)")
+exclude_re = re.compile(":exclude:")
+def parse_loop_header(loophead) :
+    """Find all named replacements in the header
+
+    Returns a list of dictionaries, one for each loop iteration,
+    where each key is a name to be substituted and the corresponding
+    value is the replacement string.
+
+    Also return a list of exclusions.  The exclusions are dictionaries
+     of key value pairs. There can be more than one exclusion.
+     [{'var1':'value1', 'var2', 'value2'[,...]}, ...]
+
+    """
+    # Strip out '\n' and leading '*', if any, in continuation lines.
+    # This should not effect code previous to this change as
+    # continuation lines were not allowed.
+    loophead = stripast.sub("", loophead)
+    # parse out the names and lists of values
+    names = []
+    reps = named_re.findall(loophead)
+    nsub = None
+    for rep in reps:
+        name = rep[0]
+        vals = parse_values(rep[1])
+        size = len(vals)
+        if nsub is None :
+            nsub = size
+        elif nsub != size :
+            msg = "Mismatch in number of values:\n%s = %s" % (name, vals)
+            raise ValueError(msg)
+        names.append((name,vals))
+
+
+    # Find any exclude variables
+    excludes = []
+    
+    for obj in exclude_re.finditer(loophead):
+        span = obj.span()
+        # find next newline
+        endline = loophead.find('\n', span[1])
+        substr = loophead[span[1]:endline]
+        ex_names = exclude_vars_re.findall(substr)
+        excludes.append(dict(ex_names))        
+
+    # generate list of dictionaries, one for each template iteration
+    dlist = []
+    if nsub is None :
+        raise ValueError("No substitution variables found")
+    for i in range(nsub) :
+        tmp = {}
+        for name,vals in names :
+            tmp[name] = vals[i]
+        dlist.append(tmp)
+    return dlist
+
+replace_re = re.compile(r"@([\w]+)@")
+def parse_string(astr, env, level, line) :
+    lineno = "#line %d\n" % line
+
+    # local function for string replacement, uses env
+    def replace(match):
+        name = match.group(1)
+        try :
+            val = env[name]
+        except KeyError, e :
+            msg = 'line %d: no definition of key "%s"'%(line, name)
+            raise ValueError(msg)
+        return val
+
+    code = [lineno]
+    struct = parse_structure(astr, level)
+    if struct :
+        # recurse over inner loops
+        oldend = 0
+        newlevel = level + 1
+        for sub in struct:
+            pref = astr[oldend:sub[0]]
+            head = astr[sub[0]:sub[1]]
+            text = astr[sub[1]:sub[2]]
+            oldend = sub[3]
+            newline = line + sub[4]
+            code.append(replace_re.sub(replace, pref))
+            try :
+                envlist = parse_loop_header(head)
+            except ValueError, e :
+                msg = "line %d: %s" % (newline, e)
+                raise ValueError(msg)
+            for newenv in envlist :
+                newenv.update(env)
+                newcode = parse_string(text, newenv, newlevel, newline)
+                code.extend(newcode)
+        suff = astr[oldend:]
+        code.append(replace_re.sub(replace, suff))
+    else :
+        # replace keys
+        code.append(replace_re.sub(replace, astr))
+    code.append('\n')
+    return ''.join(code)
+
+def process_str(astr):
+    code = [header]
+    code.extend(parse_string(astr, global_names, 0, 1))
+    return ''.join(code)
+
+
+include_src_re = re.compile(r"(\n|\A)#include\s*['\"]"
+                            r"(?P<name>[\w\d./\\]+[.]src)['\"]", re.I)
+
+def resolve_includes(source):
+    d = os.path.dirname(source)
+    fid = open(source)
+    lines = []
+    for line in fid.readlines():
+        m = include_src_re.match(line)
+        if m:
+            fn = m.group('name')
+            if not os.path.isabs(fn):
+                fn = os.path.join(d,fn)
+            if os.path.isfile(fn):
+                print 'Including file',fn
+                lines.extend(resolve_includes(fn))
+            else:
+                lines.append(line)
+        else:
+            lines.append(line)
+    fid.close()
+    return lines
+
+def process_file(source):
+    lines = resolve_includes(source)
+    sourcefile = os.path.normcase(source).replace("\\","\\\\")
+    try:
+        code = process_str(''.join(lines))
+    except ValueError, e:
+        raise ValueError('In "%s" loop at %s' % (sourcefile, e))
+    return '#line 1 "%s"\n%s' % (sourcefile, code)
+
+
+def unique_key(adict):
+    # this obtains a unique key given a dictionary
+    # currently it works by appending together n of the letters of the
+    #   current keys and increasing n until a unique key is found
+    # -- not particularly quick
+    allkeys = adict.keys()
+    done = False
+    n = 1
+    while not done:
+        newkey = "".join([x[:n] for x in allkeys])
+        if newkey in allkeys:
+            n += 1
+        else:
+            done = True
+    return newkey
+
+
+if __name__ == "__main__":
+
+    try:
+        file = sys.argv[1]
+    except IndexError:
+        fid = sys.stdin
+        outfile = sys.stdout
+    else:
+        fid = open(file,'r')
+        (base, ext) = os.path.splitext(file)
+        newname = base
+        outfile = open(newname,'w')
+
+    allstr = fid.read()
+    try:
+        writestr = process_str(allstr)
+    except ValueError, e:
+        raise ValueError("In %s loop at %s" % (file, e))
+    outfile.write(writestr)
+
+#!/usr/bin/env python
+"""
+cpuinfo
+
+Copyright 2002 Pearu Peterson all rights reserved,
+Pearu Peterson <pearu@cens.ioc.ee>
+Permission to use, modify, and distribute this software is given under the
+terms of the NumPy (BSD style) license.  See LICENSE.txt that came with
+this distribution for specifics.
+
+NO WARRANTY IS EXPRESSED OR IMPLIED.  USE AT YOUR OWN RISK.
+Pearu Peterson
+"""
+
+__all__ = ['cpu']
+
+import sys, re, types
+import os
+import commands
+import warnings
+import platform
+
+def getoutput(cmd, successful_status=(0,), stacklevel=1):
+    try:
+        status, output = commands.getstatusoutput(cmd)
+    except EnvironmentError, e:
+        warnings.warn(str(e), UserWarning, stacklevel=stacklevel)
+        return False, output
+    if os.WIFEXITED(status) and os.WEXITSTATUS(status) in successful_status:
+        return True, output
+    return False, output
+
+def command_info(successful_status=(0,), stacklevel=1, **kw):
+    info = {}
+    for key in kw:
+        ok, output = getoutput(kw[key], successful_status=successful_status,
+                               stacklevel=stacklevel+1)
+        if ok:
+            info[key] = output.strip()
+    return info
+
+def command_by_line(cmd, successful_status=(0,), stacklevel=1):
+    ok, output = getoutput(cmd, successful_status=successful_status,
+                           stacklevel=stacklevel+1)
+    if not ok:
+        return
+    for line in output.splitlines():
+        yield line.strip()
+
+def key_value_from_command(cmd, sep, successful_status=(0,),
+                           stacklevel=1):
+    d = {}
+    for line in command_by_line(cmd, successful_status=successful_status,
+                                stacklevel=stacklevel+1):
+        l = [s.strip() for s in line.split(sep, 1)]
+        if len(l) == 2:
+            d[l[0]] = l[1]
+    return d
+
+class CPUInfoBase(object):
+    """Holds CPU information and provides methods for requiring
+    the availability of various CPU features.
+    """
+
+    def _try_call(self,func):
+        try:
+            return func()
+        except:
+            pass
+
+    def __getattr__(self,name):
+        if not name.startswith('_'):
+            if hasattr(self,'_'+name):
+                attr = getattr(self,'_'+name)
+                if type(attr) is types.MethodType:
+                    return lambda func=self._try_call,attr=attr : func(attr)
+            else:
+                return lambda : None
+        raise AttributeError,name
+
+    def _getNCPUs(self):
+        return 1
+
+    def __get_nbits(self):
+        abits = platform.architecture()[0]
+        nbits = re.compile('(\d+)bit').search(abits).group(1)
+        return nbits
+
+    def _is_32bit(self):
+        return self.__get_nbits() == '32'
+
+    def _is_64bit(self):
+        return self.__get_nbits() == '64'
+
+class LinuxCPUInfo(CPUInfoBase):
+
+    info = None
+
+    def __init__(self):
+        if self.info is not None:
+            return
+        info = [ {} ]
+        ok, output = getoutput('uname -m')
+        if ok:
+            info[0]['uname_m'] = output.strip()
+        try:
+            fo = open('/proc/cpuinfo')
+        except EnvironmentError, e:
+            warnings.warn(str(e), UserWarning)
+        else:
+            for line in fo:
+                name_value = [s.strip() for s in line.split(':', 1)]
+                if len(name_value) != 2:
+                    continue
+                name, value = name_value
+                if not info or name in info[-1]: # next processor
+                    info.append({})
+                info[-1][name] = value
+            fo.close()
+        self.__class__.info = info
+
+    def _not_impl(self): pass
+
+    # Athlon
+
+    def _is_AMD(self):
+        return self.info[0]['vendor_id']=='AuthenticAMD'
+
+    def _is_AthlonK6_2(self):
+        return self._is_AMD() and self.info[0]['model'] == '2'
+
+    def _is_AthlonK6_3(self):
+        return self._is_AMD() and self.info[0]['model'] == '3'
+
+    def _is_AthlonK6(self):
+        return re.match(r'.*?AMD-K6',self.info[0]['model name']) is not None
+
+    def _is_AthlonK7(self):
+        return re.match(r'.*?AMD-K7',self.info[0]['model name']) is not None
+
+    def _is_AthlonMP(self):
+        return re.match(r'.*?Athlon\(tm\) MP\b',
+                        self.info[0]['model name']) is not None
+
+    def _is_AMD64(self):
+        return self.is_AMD() and self.info[0]['family'] == '15'
+
+    def _is_Athlon64(self):
+        return re.match(r'.*?Athlon\(tm\) 64\b',
+                        self.info[0]['model name']) is not None
+
+    def _is_AthlonHX(self):
+        return re.match(r'.*?Athlon HX\b',
+                        self.info[0]['model name']) is not None
+
+    def _is_Opteron(self):
+        return re.match(r'.*?Opteron\b',
+                        self.info[0]['model name']) is not None
+
+    def _is_Hammer(self):
+        return re.match(r'.*?Hammer\b',
+                        self.info[0]['model name']) is not None
+
+    # Alpha
+
+    def _is_Alpha(self):
+        return self.info[0]['cpu']=='Alpha'
+
+    def _is_EV4(self):
+        return self.is_Alpha() and self.info[0]['cpu model'] == 'EV4'
+
+    def _is_EV5(self):
+        return self.is_Alpha() and self.info[0]['cpu model'] == 'EV5'
+
+    def _is_EV56(self):
+        return self.is_Alpha() and self.info[0]['cpu model'] == 'EV56'
+
+    def _is_PCA56(self):
+        return self.is_Alpha() and self.info[0]['cpu model'] == 'PCA56'
+
+    # Intel
+
+    #XXX
+    _is_i386 = _not_impl
+
+    def _is_Intel(self):
+        return self.info[0]['vendor_id']=='GenuineIntel'
+
+    def _is_i486(self):
+        return self.info[0]['cpu']=='i486'
+
+    def _is_i586(self):
+        return self.is_Intel() and self.info[0]['cpu family'] == '5'
+
+    def _is_i686(self):
+        return self.is_Intel() and self.info[0]['cpu family'] == '6'
+
+    def _is_Celeron(self):
+        return re.match(r'.*?Celeron',
+                        self.info[0]['model name']) is not None
+
+    def _is_Pentium(self):
+        return re.match(r'.*?Pentium',
+                        self.info[0]['model name']) is not None
+
+    def _is_PentiumII(self):
+        return re.match(r'.*?Pentium.*?II\b',
+                        self.info[0]['model name']) is not None
+
+    def _is_PentiumPro(self):
+        return re.match(r'.*?PentiumPro\b',
+                        self.info[0]['model name']) is not None
+
+    def _is_PentiumMMX(self):
+        return re.match(r'.*?Pentium.*?MMX\b',
+                        self.info[0]['model name']) is not None
+
+    def _is_PentiumIII(self):
+        return re.match(r'.*?Pentium.*?III\b',
+                        self.info[0]['model name']) is not None
+
+    def _is_PentiumIV(self):
+        return re.match(r'.*?Pentium.*?(IV|4)\b',
+                        self.info[0]['model name']) is not None
+
+    def _is_PentiumM(self):
+        return re.match(r'.*?Pentium.*?M\b',
+                        self.info[0]['model name']) is not None
+
+    def _is_Prescott(self):
+        return self.is_PentiumIV() and self.has_sse3()
+
+    def _is_Nocona(self):
+        return self.is_Intel() \
+               and (self.info[0]['cpu family'] == '6' \
+                    or self.info[0]['cpu family'] == '15' ) \
+               and (self.has_sse3() and not self.has_ssse3())\
+               and re.match(r'.*?\blm\b',self.info[0]['flags']) is not None
+
+    def _is_Core2(self):
+        return self.is_64bit() and self.is_Intel() and \
+               re.match(r'.*?Core\(TM\)2\b', \
+                        self.info[0]['model name']) is not None
+
+    def _is_Itanium(self):
+        return re.match(r'.*?Itanium\b',
+                        self.info[0]['family']) is not None
+
+    def _is_XEON(self):
+        return re.match(r'.*?XEON\b',
+                        self.info[0]['model name'],re.IGNORECASE) is not None
+
+    _is_Xeon = _is_XEON
+
+    # Varia
+
+    def _is_singleCPU(self):
+        return len(self.info) == 1
+
+    def _getNCPUs(self):
+        return len(self.info)
+
+    def _has_fdiv_bug(self):
+        return self.info[0]['fdiv_bug']=='yes'
+
+    def _has_f00f_bug(self):
+        return self.info[0]['f00f_bug']=='yes'
+
+    def _has_mmx(self):
+        return re.match(r'.*?\bmmx\b',self.info[0]['flags']) is not None
+
+    def _has_sse(self):
+        return re.match(r'.*?\bsse\b',self.info[0]['flags']) is not None
+
+    def _has_sse2(self):
+        return re.match(r'.*?\bsse2\b',self.info[0]['flags']) is not None
+
+    def _has_sse3(self):
+        return re.match(r'.*?\bpni\b',self.info[0]['flags']) is not None
+
+    def _has_ssse3(self):
+        return re.match(r'.*?\bssse3\b',self.info[0]['flags']) is not None
+
+    def _has_3dnow(self):
+        return re.match(r'.*?\b3dnow\b',self.info[0]['flags']) is not None
+
+    def _has_3dnowext(self):
+        return re.match(r'.*?\b3dnowext\b',self.info[0]['flags']) is not None
+
+class IRIXCPUInfo(CPUInfoBase):
+    info = None
+
+    def __init__(self):
+        if self.info is not None:
+            return
+        info = key_value_from_command('sysconf', sep=' ',
+                                      successful_status=(0,1))
+        self.__class__.info = info
+
+    def _not_impl(self): pass
+
+    def _is_singleCPU(self):
+        return self.info.get('NUM_PROCESSORS') == '1'
+
+    def _getNCPUs(self):
+        return int(self.info.get('NUM_PROCESSORS', 1))
+
+    def __cputype(self,n):
+        return self.info.get('PROCESSORS').split()[0].lower() == 'r%s' % (n)
+    def _is_r2000(self): return self.__cputype(2000)
+    def _is_r3000(self): return self.__cputype(3000)
+    def _is_r3900(self): return self.__cputype(3900)
+    def _is_r4000(self): return self.__cputype(4000)
+    def _is_r4100(self): return self.__cputype(4100)
+    def _is_r4300(self): return self.__cputype(4300)
+    def _is_r4400(self): return self.__cputype(4400)
+    def _is_r4600(self): return self.__cputype(4600)
+    def _is_r4650(self): return self.__cputype(4650)
+    def _is_r5000(self): return self.__cputype(5000)
+    def _is_r6000(self): return self.__cputype(6000)
+    def _is_r8000(self): return self.__cputype(8000)
+    def _is_r10000(self): return self.__cputype(10000)
+    def _is_r12000(self): return self.__cputype(12000)
+    def _is_rorion(self): return self.__cputype('orion')
+
+    def get_ip(self):
+        try: return self.info.get('MACHINE')
+        except: pass
+    def __machine(self,n):
+        return self.info.get('MACHINE').lower() == 'ip%s' % (n)
+    def _is_IP19(self): return self.__machine(19)
+    def _is_IP20(self): return self.__machine(20)
+    def _is_IP21(self): return self.__machine(21)
+    def _is_IP22(self): return self.__machine(22)
+    def _is_IP22_4k(self): return self.__machine(22) and self._is_r4000()
+    def _is_IP22_5k(self): return self.__machine(22)  and self._is_r5000()
+    def _is_IP24(self): return self.__machine(24)
+    def _is_IP25(self): return self.__machine(25)
+    def _is_IP26(self): return self.__machine(26)
+    def _is_IP27(self): return self.__machine(27)
+    def _is_IP28(self): return self.__machine(28)
+    def _is_IP30(self): return self.__machine(30)
+    def _is_IP32(self): return self.__machine(32)
+    def _is_IP32_5k(self): return self.__machine(32) and self._is_r5000()
+    def _is_IP32_10k(self): return self.__machine(32) and self._is_r10000()
+
+
+class DarwinCPUInfo(CPUInfoBase):
+    info = None
+
+    def __init__(self):
+        if self.info is not None:
+            return
+        info = command_info(arch='arch',
+                            machine='machine')
+        info['sysctl_hw'] = key_value_from_command('sysctl hw', sep='=')
+        self.__class__.info = info
+
+    def _not_impl(self): pass
+
+    def _getNCPUs(self):
+        return int(self.info['sysctl_hw'].get('hw.ncpu', 1))
+
+    def _is_Power_Macintosh(self):
+        return self.info['sysctl_hw']['hw.machine']=='Power Macintosh'
+
+    def _is_i386(self):
+        return self.info['arch']=='i386'
+    def _is_ppc(self):
+        return self.info['arch']=='ppc'
+
+    def __machine(self,n):
+        return self.info['machine'] == 'ppc%s'%n
+    def _is_ppc601(self): return self.__machine(601)
+    def _is_ppc602(self): return self.__machine(602)
+    def _is_ppc603(self): return self.__machine(603)
+    def _is_ppc603e(self): return self.__machine('603e')
+    def _is_ppc604(self): return self.__machine(604)
+    def _is_ppc604e(self): return self.__machine('604e')
+    def _is_ppc620(self): return self.__machine(620)
+    def _is_ppc630(self): return self.__machine(630)
+    def _is_ppc740(self): return self.__machine(740)
+    def _is_ppc7400(self): return self.__machine(7400)
+    def _is_ppc7450(self): return self.__machine(7450)
+    def _is_ppc750(self): return self.__machine(750)
+    def _is_ppc403(self): return self.__machine(403)
+    def _is_ppc505(self): return self.__machine(505)
+    def _is_ppc801(self): return self.__machine(801)
+    def _is_ppc821(self): return self.__machine(821)
+    def _is_ppc823(self): return self.__machine(823)
+    def _is_ppc860(self): return self.__machine(860)
+
+
+class SunOSCPUInfo(CPUInfoBase):
+
+    info = None
+
+    def __init__(self):
+        if self.info is not None:
+            return
+        info = command_info(arch='arch',
+                            mach='mach',
+                            uname_i='uname_i',
+                            isainfo_b='isainfo -b',
+                            isainfo_n='isainfo -n',
+                            )
+        info['uname_X'] = key_value_from_command('uname -X', sep='=')
+        for line in command_by_line('psrinfo -v 0'):
+            m = re.match(r'\s*The (?P<p>[\w\d]+) processor operates at', line)
+            if m:
+                info['processor'] = m.group('p')
+                break
+        self.__class__.info = info
+
+    def _not_impl(self): pass
+
+    def _is_i386(self):
+        return self.info['isainfo_n']=='i386'
+    def _is_sparc(self):
+        return self.info['isainfo_n']=='sparc'
+    def _is_sparcv9(self):
+        return self.info['isainfo_n']=='sparcv9'
+
+    def _getNCPUs(self):
+        return int(self.info['uname_X'].get('NumCPU', 1))
+
+    def _is_sun4(self):
+        return self.info['arch']=='sun4'
+
+    def _is_SUNW(self):
+        return re.match(r'SUNW',self.info['uname_i']) is not None
+    def _is_sparcstation5(self):
+        return re.match(r'.*SPARCstation-5',self.info['uname_i']) is not None
+    def _is_ultra1(self):
+        return re.match(r'.*Ultra-1',self.info['uname_i']) is not None
+    def _is_ultra250(self):
+        return re.match(r'.*Ultra-250',self.info['uname_i']) is not None
+    def _is_ultra2(self):
+        return re.match(r'.*Ultra-2',self.info['uname_i']) is not None
+    def _is_ultra30(self):
+        return re.match(r'.*Ultra-30',self.info['uname_i']) is not None
+    def _is_ultra4(self):
+        return re.match(r'.*Ultra-4',self.info['uname_i']) is not None
+    def _is_ultra5_10(self):
+        return re.match(r'.*Ultra-5_10',self.info['uname_i']) is not None
+    def _is_ultra5(self):
+        return re.match(r'.*Ultra-5',self.info['uname_i']) is not None
+    def _is_ultra60(self):
+        return re.match(r'.*Ultra-60',self.info['uname_i']) is not None
+    def _is_ultra80(self):
+        return re.match(r'.*Ultra-80',self.info['uname_i']) is not None
+    def _is_ultraenterprice(self):
+        return re.match(r'.*Ultra-Enterprise',self.info['uname_i']) is not None
+    def _is_ultraenterprice10k(self):
+        return re.match(r'.*Ultra-Enterprise-10000',self.info['uname_i']) is not None
+    def _is_sunfire(self):
+        return re.match(r'.*Sun-Fire',self.info['uname_i']) is not None
+    def _is_ultra(self):
+        return re.match(r'.*Ultra',self.info['uname_i']) is not None
+
+    def _is_cpusparcv7(self):
+        return self.info['processor']=='sparcv7'
+    def _is_cpusparcv8(self):
+        return self.info['processor']=='sparcv8'
+    def _is_cpusparcv9(self):
+        return self.info['processor']=='sparcv9'
+
+class Win32CPUInfo(CPUInfoBase):
+
+    info = None
+    pkey = r"HARDWARE\DESCRIPTION\System\CentralProcessor"
+    # XXX: what does the value of
+    #   HKEY_LOCAL_MACHINE\HARDWARE\DESCRIPTION\System\CentralProcessor\0
+    # mean?
+
+    def __init__(self):
+        if self.info is not None:
+            return
+        info = []
+        try:
+            #XXX: Bad style to use so long `try:...except:...`. Fix it!
+            import _winreg
+            prgx = re.compile(r"family\s+(?P<FML>\d+)\s+model\s+(?P<MDL>\d+)"\
+                              "\s+stepping\s+(?P<STP>\d+)",re.IGNORECASE)
+            chnd=_winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, self.pkey)
+            pnum=0
+            while 1:
+                try:
+                    proc=_winreg.EnumKey(chnd,pnum)
+                except _winreg.error:
+                    break
+                else:
+                    pnum+=1
+                    info.append({"Processor":proc})
+                    phnd=_winreg.OpenKey(chnd,proc)
+                    pidx=0
+                    while True:
+                        try:
+                            name,value,vtpe=_winreg.EnumValue(phnd,pidx)
+                        except _winreg.error:
+                            break
+                        else:
+                            pidx=pidx+1
+                            info[-1][name]=value
+                            if name=="Identifier":
+                                srch=prgx.search(value)
+                                if srch:
+                                    info[-1]["Family"]=int(srch.group("FML"))
+                                    info[-1]["Model"]=int(srch.group("MDL"))
+                                    info[-1]["Stepping"]=int(srch.group("STP"))
+        except:
+            print sys.exc_value,'(ignoring)'
+        self.__class__.info = info
+
+    def _not_impl(self): pass
+
+    # Athlon
+
+    def _is_AMD(self):
+        return self.info[0]['VendorIdentifier']=='AuthenticAMD'
+
+    def _is_Am486(self):
+        return self.is_AMD() and self.info[0]['Family']==4
+
+    def _is_Am5x86(self):
+        return self.is_AMD() and self.info[0]['Family']==4
+
+    def _is_AMDK5(self):
+        return self.is_AMD() and self.info[0]['Family']==5 \
+               and self.info[0]['Model'] in [0,1,2,3]
+
+    def _is_AMDK6(self):
+        return self.is_AMD() and self.info[0]['Family']==5 \
+               and self.info[0]['Model'] in [6,7]
+
+    def _is_AMDK6_2(self):
+        return self.is_AMD() and self.info[0]['Family']==5 \
+               and self.info[0]['Model']==8
+
+    def _is_AMDK6_3(self):
+        return self.is_AMD() and self.info[0]['Family']==5 \
+               and self.info[0]['Model']==9
+
+    def _is_AMDK7(self):
+        return self.is_AMD() and self.info[0]['Family'] == 6
+
+    # To reliably distinguish between the different types of AMD64 chips
+    # (Athlon64, Operton, Athlon64 X2, Semperon, Turion 64, etc.) would
+    # require looking at the 'brand' from cpuid
+
+    def _is_AMD64(self):
+        return self.is_AMD() and self.info[0]['Family'] == 15
+
+    # Intel
+
+    def _is_Intel(self):
+        return self.info[0]['VendorIdentifier']=='GenuineIntel'
+
+    def _is_i386(self):
+        return self.info[0]['Family']==3
+
+    def _is_i486(self):
+        return self.info[0]['Family']==4
+
+    def _is_i586(self):
+        return self.is_Intel() and self.info[0]['Family']==5
+
+    def _is_i686(self):
+        return self.is_Intel() and self.info[0]['Family']==6
+
+    def _is_Pentium(self):
+        return self.is_Intel() and self.info[0]['Family']==5
+
+    def _is_PentiumMMX(self):
+        return self.is_Intel() and self.info[0]['Family']==5 \
+               and self.info[0]['Model']==4
+
+    def _is_PentiumPro(self):
+        return self.is_Intel() and self.info[0]['Family']==6 \
+               and self.info[0]['Model']==1
+
+    def _is_PentiumII(self):
+        return self.is_Intel() and self.info[0]['Family']==6 \
+               and self.info[0]['Model'] in [3,5,6]
+
+    def _is_PentiumIII(self):
+        return self.is_Intel() and self.info[0]['Family']==6 \
+               and self.info[0]['Model'] in [7,8,9,10,11]
+
+    def _is_PentiumIV(self):
+        return self.is_Intel() and self.info[0]['Family']==15
+
+    def _is_PentiumM(self):
+        return self.is_Intel() and self.info[0]['Family'] == 6 \
+               and self.info[0]['Model'] in [9, 13, 14]
+
+    def _is_Core2(self):
+        return self.is_Intel() and self.info[0]['Family'] == 6 \
+               and self.info[0]['Model'] in [15, 16, 17]
+
+    # Varia
+
+    def _is_singleCPU(self):
+        return len(self.info) == 1
+
+    def _getNCPUs(self):
+        return len(self.info)
+
+    def _has_mmx(self):
+        if self.is_Intel():
+            return (self.info[0]['Family']==5 and self.info[0]['Model']==4) \
+                   or (self.info[0]['Family'] in [6,15])
+        elif self.is_AMD():
+            return self.info[0]['Family'] in [5,6,15]
+        else:
+            return False
+
+    def _has_sse(self):
+        if self.is_Intel():
+            return (self.info[0]['Family']==6 and \
+                    self.info[0]['Model'] in [7,8,9,10,11]) \
+                    or self.info[0]['Family']==15
+        elif self.is_AMD():
+            return (self.info[0]['Family']==6 and \
+                    self.info[0]['Model'] in [6,7,8,10]) \
+                    or self.info[0]['Family']==15
+        else:
+            return False
+
+    def _has_sse2(self):
+        if self.is_Intel():
+            return self.is_Pentium4() or self.is_PentiumM() \
+                   or self.is_Core2()
+        elif self.is_AMD():
+            return self.is_AMD64()
+        else:
+            return False
+
+    def _has_3dnow(self):
+        return self.is_AMD() and self.info[0]['Family'] in [5,6,15]
+
+    def _has_3dnowext(self):
+        return self.is_AMD() and self.info[0]['Family'] in [6,15]
+
+if sys.platform.startswith('linux'): # variations: linux2,linux-i386 (any others?)
+    cpuinfo = LinuxCPUInfo
+elif sys.platform.startswith('irix'):
+    cpuinfo = IRIXCPUInfo
+elif sys.platform == 'darwin':
+    cpuinfo = DarwinCPUInfo
+elif sys.platform.startswith('sunos'):
+    cpuinfo = SunOSCPUInfo
+elif sys.platform.startswith('win32'):
+    cpuinfo = Win32CPUInfo
+elif sys.platform.startswith('cygwin'):
+    cpuinfo = LinuxCPUInfo
+#XXX: other OS's. Eg. use _winreg on Win32. Or os.uname on unices.
+else:
+    cpuinfo = CPUInfoBase
+
+cpu = cpuinfo()
+
+if __name__ == "__main__":
+
+    cpu.is_blaa()
+    cpu.is_Intel()
+    cpu.is_Alpha()
+
+    print 'CPU information:',
+    for name in dir(cpuinfo):
+        if name[0]=='_' and name[1]!='_':
+            r = getattr(cpu,name[1:])()
+            if r:
+                if r!=1:
+                    print '%s=%s' %(name[1:],r),
+                else:
+                    print name[1:],
+    print
+
+import re
+import os
+import sys
+import new
+
+from distutils.ccompiler import *
+from distutils import ccompiler
+from distutils.sysconfig import customize_compiler
+from distutils.version import LooseVersion
+
+from numpy.distutils import log
+from numpy.distutils.exec_command import exec_command
+from numpy.distutils.misc_util import cyg2win32, is_sequence, mingw32, quote_args, msvc_on_amd64
+
+# hack to set compiler optimizing options. Needs to integrated with something.
+import distutils.sysconfig
+_old_init_posix = distutils.sysconfig._init_posix
+def _new_init_posix():
+    _old_init_posix()
+    distutils.sysconfig._config_vars['OPT'] = '-Wall -g -O0'
+#distutils.sysconfig._init_posix = _new_init_posix
+
+def replace_method(klass, method_name, func):
+    m = new.instancemethod(func, None, klass)
+    setattr(klass, method_name, m)
+
+# Using customized CCompiler.spawn.
+def CCompiler_spawn(self, cmd, display=None):
+    if display is None:
+        display = cmd
+        if is_sequence(display):
+            display = ' '.join(list(display))
+    log.info(display)
+    s,o = exec_command(cmd)
+    if s:
+        if is_sequence(cmd):
+            cmd = ' '.join(list(cmd))
+        print o
+        if re.search('Too many open files', o):
+            msg = '\nTry rerunning setup command until build succeeds.'
+        else:
+            msg = ''
+        raise DistutilsExecError,\
+              'Command "%s" failed with exit status %d%s' % (cmd, s, msg)
+
+replace_method(CCompiler, 'spawn', CCompiler_spawn)
+
+def CCompiler_object_filenames(self, source_filenames, strip_dir=0, output_dir=''):
+    if output_dir is None:
+        output_dir = ''
+    obj_names = []
+    for src_name in source_filenames:
+        base, ext = os.path.splitext(os.path.normpath(src_name))
+        base = os.path.splitdrive(base)[1] # Chop off the drive
+        base = base[os.path.isabs(base):]  # If abs, chop off leading /
+        if base.startswith('..'):
+            # Resolve starting relative path components, middle ones
+            # (if any) have been handled by os.path.normpath above.
+            i = base.rfind('..')+2
+            d = base[:i]
+            d = os.path.basename(os.path.abspath(d))
+            base = d + base[i:]
+        if ext not in self.src_extensions:
+            raise UnknownFileError, \
+                  "unknown file type '%s' (from '%s')" % (ext, src_name)
+        if strip_dir:
+            base = os.path.basename(base)
+        obj_name = os.path.join(output_dir,base + self.obj_extension)
+        obj_names.append(obj_name)
+    return obj_names
+
+replace_method(CCompiler, 'object_filenames', CCompiler_object_filenames)
+
+def CCompiler_compile(self, sources, output_dir=None, macros=None,
+                      include_dirs=None, debug=0, extra_preargs=None,
+                      extra_postargs=None, depends=None):
+    # This method is effective only with Python >=2.3 distutils.
+    # Any changes here should be applied also to fcompiler.compile
+    # method to support pre Python 2.3 distutils.
+    if not sources:
+        return []
+    from fcompiler import FCompiler
+    if isinstance(self, FCompiler):
+        display = []
+        for fc in ['f77','f90','fix']:
+            fcomp = getattr(self,'compiler_'+fc)
+            if fcomp is None:
+                continue
+            display.append("Fortran %s compiler: %s" % (fc, ' '.join(fcomp)))
+        display = '\n'.join(display)
+    else:
+        ccomp = self.compiler_so
+        display = "C compiler: %s\n" % (' '.join(ccomp),)
+    log.info(display)
+    macros, objects, extra_postargs, pp_opts, build = \
+            self._setup_compile(output_dir, macros, include_dirs, sources,
+                                depends, extra_postargs)
+    cc_args = self._get_cc_args(pp_opts, debug, extra_preargs)
+    display = "compile options: '%s'" % (' '.join(cc_args))
+    if extra_postargs:
+        display += "\nextra options: '%s'" % (' '.join(extra_postargs))
+    log.info(display)
+
+    # build any sources in same order as they were originally specified
+    #   especially important for fortran .f90 files using modules
+    if isinstance(self, FCompiler):
+        objects_to_build = build.keys()
+        for obj in objects:
+            if obj in objects_to_build:
+                src, ext = build[obj]
+                if self.compiler_type=='absoft':
+                    obj = cyg2win32(obj)
+                    src = cyg2win32(src)
+                self._compile(obj, src, ext, cc_args, extra_postargs, pp_opts)
+    else:
+        for obj, (src, ext) in build.items():
+            self._compile(obj, src, ext, cc_args, extra_postargs, pp_opts)
+
+    # Return *all* object filenames, not just the ones we just built.
+    return objects
+
+replace_method(CCompiler, 'compile', CCompiler_compile)
+
+def CCompiler_customize_cmd(self, cmd, ignore=()):
+    """ Customize compiler using distutils command.
+    """
+    log.info('customize %s using %s' % (self.__class__.__name__,
+                                        cmd.__class__.__name__))
+    def allow(attr):
+        return getattr(cmd, attr, None) is not None and attr not in ignore
+
+    if allow('include_dirs'):
+        self.set_include_dirs(cmd.include_dirs)
+    if allow('define'):
+        for (name,value) in cmd.define:
+            self.define_macro(name, value)
+    if allow('undef'):
+        for macro in cmd.undef:
+            self.undefine_macro(macro)
+    if allow('libraries'):
+        self.set_libraries(self.libraries + cmd.libraries)
+    if allow('library_dirs'):
+        self.set_library_dirs(self.library_dirs + cmd.library_dirs)
+    if allow('rpath'):
+        self.set_runtime_library_dirs(cmd.rpath)
+    if allow('link_objects'):
+        self.set_link_objects(cmd.link_objects)
+
+replace_method(CCompiler, 'customize_cmd', CCompiler_customize_cmd)
+
+def _compiler_to_string(compiler):
+    props = []
+    mx = 0
+    keys = compiler.executables.keys()
+    for key in ['version','libraries','library_dirs',
+                'object_switch','compile_switch',
+                'include_dirs','define','undef','rpath','link_objects']:
+        if key not in keys:
+            keys.append(key)
+    for key in keys:
+        if hasattr(compiler,key):
+            v = getattr(compiler, key)
+            mx = max(mx,len(key))
+            props.append((key,repr(v)))
+    lines = []
+    format = '%-' + repr(mx+1) + 's = %s'
+    for prop in props:
+        lines.append(format % prop)
+    return '\n'.join(lines)
+
+def CCompiler_show_customization(self):
+    if 0:
+        for attrname in ['include_dirs','define','undef',
+                         'libraries','library_dirs',
+                         'rpath','link_objects']:
+            attr = getattr(self,attrname,None)
+            if not attr:
+                continue
+            log.info("compiler '%s' is set to %s" % (attrname,attr))
+    try:
+        self.get_version()
+    except:
+        pass
+    if log._global_log.threshold<2:
+        print '*'*80
+        print self.__class__
+        print _compiler_to_string(self)
+        print '*'*80
+
+replace_method(CCompiler, 'show_customization', CCompiler_show_customization)
+
+def CCompiler_customize(self, dist, need_cxx=0):
+    # See FCompiler.customize for suggested usage.
+    log.info('customize %s' % (self.__class__.__name__))
+    customize_compiler(self)
+    if need_cxx:
+        # In general, distutils uses -Wstrict-prototypes, but this option is
+        # not valid for C++ code, only for C.  Remove it if it's there to
+        # avoid a spurious warning on every compilation.  All the default
+        # options used by distutils can be extracted with:
+
+        # from distutils import sysconfig
+        # sysconfig.get_config_vars('CC', 'CXX', 'OPT', 'BASECFLAGS',
+        # 'CCSHARED', 'LDSHARED', 'SO')
+        try:
+            self.compiler_so.remove('-Wstrict-prototypes')
+        except (AttributeError, ValueError):
+            pass
+
+        if hasattr(self,'compiler') and 'cc' in self.compiler[0]:
+            if not self.compiler_cxx:
+                if self.compiler[0].startswith('gcc'):
+                    a, b = 'gcc', 'g++'
+                else:
+                    a, b = 'cc', 'c++'
+                self.compiler_cxx = [self.compiler[0].replace(a,b)]\
+                                    + self.compiler[1:]
+        else:
+            if hasattr(self,'compiler'):
+                log.warn("#### %s #######" % (self.compiler,))
+            log.warn('Missing compiler_cxx fix for '+self.__class__.__name__)
+    return
+
+replace_method(CCompiler, 'customize', CCompiler_customize)
+
+def simple_version_match(pat=r'[-.\d]+', ignore='', start=''):
+    """
+    Simple matching of version numbers, for use in CCompiler and FCompiler
+    classes.
+
+    :Parameters:
+        pat : regex matching version numbers.
+        ignore : false or regex matching expressions to skip over.
+        start : false or regex matching the start of where to start looking
+                for version numbers.
+
+    :Returns:
+        A function that is appropiate to use as the .version_match
+        attribute of a CCompiler class.
+    """
+    def matcher(self, version_string):
+        pos = 0
+        if start:
+            m = re.match(start, version_string)
+            if not m:
+                return None
+            pos = m.end()
+        while 1:
+            m = re.search(pat, version_string[pos:])
+            if not m:
+                return None
+            if ignore and re.match(ignore, m.group(0)):
+                pos = m.end()
+                continue
+            break
+        return m.group(0)
+    return matcher
+
+def CCompiler_get_version(self, force=False, ok_status=[0]):
+    """Compiler version. Returns None if compiler is not available."""
+    if not force and hasattr(self,'version'):
+        return self.version
+    self.find_executables()
+    try:
+        version_cmd = self.version_cmd
+    except AttributeError:
+        return None
+    if not version_cmd or not version_cmd[0]:
+        return None
+    try:
+        matcher = self.version_match
+    except AttributeError:
+        try:
+            pat = self.version_pattern
+        except AttributeError:
+            return None
+        def matcher(version_string):
+            m = re.match(pat, version_string)
+            if not m:
+                return None
+            version = m.group('version')
+            return version
+
+    status, output = exec_command(version_cmd,use_tee=0)
+
+    version = None
+    if status in ok_status:
+        version = matcher(output)
+        if version:
+            version = LooseVersion(version)
+    self.version = version
+    return version
+
+replace_method(CCompiler, 'get_version', CCompiler_get_version)
+
+def CCompiler_cxx_compiler(self):
+    if self.compiler_type=='msvc': return self
+    cxx = copy(self)
+    cxx.compiler_so = [cxx.compiler_cxx[0]] + cxx.compiler_so[1:]
+    if sys.platform.startswith('aix') and 'ld_so_aix' in cxx.linker_so[0]:
+        # AIX needs the ld_so_aix script included with Python
+        cxx.linker_so = [cxx.linker_so[0], cxx.compiler_cxx[0]] \
+                        + cxx.linker_so[2:]
+    else:
+        cxx.linker_so = [cxx.compiler_cxx[0]] + cxx.linker_so[1:]
+    return cxx
+
+replace_method(CCompiler, 'cxx_compiler', CCompiler_cxx_compiler)
+
+compiler_class['intel'] = ('intelccompiler','IntelCCompiler',
+                           "Intel C Compiler for 32-bit applications")
+compiler_class['intele'] = ('intelccompiler','IntelItaniumCCompiler',
+                           "Intel C Itanium Compiler for Itanium-based applications")
+ccompiler._default_compilers += (('linux.*','intel'),('linux.*','intele'))
+
+if sys.platform == 'win32':
+    compiler_class['mingw32'] = ('mingw32ccompiler', 'Mingw32CCompiler',
+                                 "Mingw32 port of GNU C Compiler for Win32"\
+                                 "(for MSC built Python)")
+    if mingw32():
+        # On windows platforms, we want to default to mingw32 (gcc)
+        # because msvc can't build blitz stuff.
+        log.info('Setting mingw32 as default compiler for nt.')
+        ccompiler._default_compilers = (('nt', 'mingw32'),) \
+                                       + ccompiler._default_compilers
+
+
+_distutils_new_compiler = new_compiler
+def new_compiler (plat=None,
+                  compiler=None,
+                  verbose=0,
+                  dry_run=0,
+                  force=0):
+    # Try first C compilers from numpy.distutils.
+    if plat is None:
+        plat = os.name
+    try:
+        if compiler is None:
+            compiler = get_default_compiler(plat)
+        (module_name, class_name, long_description) = compiler_class[compiler]
+    except KeyError:
+        msg = "don't know how to compile C/C++ code on platform '%s'" % plat
+        if compiler is not None:
+            msg = msg + " with '%s' compiler" % compiler
+        raise DistutilsPlatformError, msg
+    module_name = "numpy.distutils." + module_name
+    try:
+        __import__ (module_name)
+    except ImportError, msg:
+        log.info('%s in numpy.distutils; trying from distutils',
+                 str(msg))
+        module_name = module_name[6:]
+        try:
+            __import__(module_name)
+        except ImportError, msg:
+            raise DistutilsModuleError, \
+                  "can't compile C/C++ code: unable to load module '%s'" % \
+                  module_name
+    try:
+        module = sys.modules[module_name]
+        klass = vars(module)[class_name]
+    except KeyError:
+        raise DistutilsModuleError, \
+              ("can't compile C/C++ code: unable to find class '%s' " +
+               "in module '%s'") % (class_name, module_name)
+    compiler = klass(None, dry_run, force)
+    log.debug('new_compiler returns %s' % (klass))
+    return compiler
+
+ccompiler.new_compiler = new_compiler
+
+_distutils_gen_lib_options = gen_lib_options
+def gen_lib_options(compiler, library_dirs, runtime_library_dirs, libraries):
+    library_dirs = quote_args(library_dirs)
+    runtime_library_dirs = quote_args(runtime_library_dirs)
+    r = _distutils_gen_lib_options(compiler, library_dirs,
+                                   runtime_library_dirs, libraries)
+    lib_opts = []
+    for i in r:
+        if is_sequence(i):
+            lib_opts.extend(list(i))
+        else:
+            lib_opts.append(i)
+    return lib_opts
+ccompiler.gen_lib_options = gen_lib_options
+
+# Also fix up the various compiler modules, which do
+# from distutils.ccompiler import gen_lib_options
+# Don't bother with mwerks, as we don't support Classic Mac.
+for _cc in ['msvc', 'bcpp', 'cygwinc', 'emxc', 'unixc']:
+    _m = sys.modules.get('distutils.'+_cc+'compiler')
+    if _m is not None:
+        setattr(_m, 'gen_lib_options', gen_lib_options)
+
+_distutils_gen_preprocess_options = gen_preprocess_options
+def gen_preprocess_options (macros, include_dirs):
+    include_dirs = quote_args(include_dirs)
+    return _distutils_gen_preprocess_options(macros, include_dirs)
+ccompiler.gen_preprocess_options = gen_preprocess_options
+
+##Fix distutils.util.split_quoted:
+# NOTE:  I removed this fix in revision 4481 (see ticket #619), but it appears
+# that removing this fix causes f2py problems on Windows XP (see ticket #723).
+# Specifically, on WinXP when gfortran is installed in a directory path, which
+# contains spaces, then f2py is unable to find it.
+import re
+import string
+_wordchars_re = re.compile(r'[^\\\'\"%s ]*' % string.whitespace)
+_squote_re = re.compile(r"'(?:[^'\\]|\\.)*'")
+_dquote_re = re.compile(r'"(?:[^"\\]|\\.)*"')
+_has_white_re = re.compile(r'\s')
+def split_quoted(s):
+    s = string.strip(s)
+    words = []
+    pos = 0
+
+    while s:
+        m = _wordchars_re.match(s, pos)
+        end = m.end()
+        if end == len(s):
+            words.append(s[:end])
+            break
+
+        if s[end] in string.whitespace: # unescaped, unquoted whitespace: now
+            words.append(s[:end])       # we definitely have a word delimiter
+            s = string.lstrip(s[end:])
+            pos = 0
+
+        elif s[end] == '\\':            # preserve whatever is being escaped;
+                                        # will become part of the current word
+            s = s[:end] + s[end+1:]
+            pos = end+1
+
+        else:
+            if s[end] == "'":           # slurp singly-quoted string
+                m = _squote_re.match(s, end)
+            elif s[end] == '"':         # slurp doubly-quoted string
+                m = _dquote_re.match(s, end)
+            else:
+                raise RuntimeError, \
+                      "this can't happen (bad char '%c')" % s[end]
+
+            if m is None:
+                raise ValueError, \
+                      "bad string (mismatched %s quotes?)" % s[end]
+
+            (beg, end) = m.span()
+            if _has_white_re.search(s[beg+1:end-1]):
+                s = s[:beg] + s[beg+1:end-1] + s[end:]
+                pos = m.end() - 2
+            else:
+                # Keeping quotes when a quoted word does not contain
+                # white-space. XXX: send a patch to distutils
+                pos = m.end()
+
+        if pos >= len(s):
+            words.append(s)
+            break
+
+    return words
+ccompiler.split_quoted = split_quoted
+##Fix distutils.util.split_quoted:
+
+# define DISTUTILS_USE_SDK when necessary to workaround distutils/msvccompiler.py bug
+msvc_on_amd64()
+
+from ConfigParser import SafeConfigParser, NoOptionError
+import re
+import os
+import shlex
+
+__all__ = ['FormatError', 'PkgNotFound', 'LibraryInfo', 'VariableSet',
+        'read_config', 'parse_flags']
+
+_VAR = re.compile('\$\{([a-zA-Z0-9_-]+)\}')
+
+class FormatError(IOError):
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return self.msg
+
+class PkgNotFound(IOError):
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return self.msg
+
+def parse_flags(line):
+    lexer = shlex.shlex(line)
+    lexer.whitespace_split = True
+
+    d = {'include_dirs': [], 'library_dirs': [], 'libraries': [],
+            'macros': [], 'ignored': []}
+    def next_token(t):
+        if t.startswith('-I'):
+            if len(t) > 2:
+                d['include_dirs'].append(t[2:])
+            else:
+                t = lexer.get_token()
+                d['include_dirs'].append(t)
+        elif t.startswith('-L'):
+            if len(t) > 2:
+                d['library_dirs'].append(t[2:])
+            else:
+                t = lexer.get_token()
+                d['library_dirs'].append(t)
+        elif t.startswith('-l'):
+            d['libraries'].append(t[2:])
+        elif t.startswith('-D'):
+            d['macros'].append(t[2:])
+        else:
+            d['ignored'].append(t)
+        return lexer.get_token()
+
+    t = lexer.get_token()
+    while t:
+        t = next_token(t)
+
+    return d
+
+def _escape_backslash(val):
+    return val.replace('\\', '\\\\')
+
+class LibraryInfo(object):
+    def __init__(self, name, description, version, sections, vars, requires=None):
+        self.name = name
+        self.description = description
+        if requires:
+            self.requires = requires
+        else:
+            self.requires = []
+        self.version = version
+        self._sections = sections
+        self.vars = vars
+
+    def sections(self):
+        return self._sections.keys()
+
+    def cflags(self, section="default"):
+        val = self.vars.interpolate(self._sections[section]['cflags'])
+        return _escape_backslash(val)
+
+    def libs(self, section="default"):
+        val = self.vars.interpolate(self._sections[section]['libs'])
+        return _escape_backslash(val)
+
+    def __str__(self):
+        m = ['Name: %s' % self.name]
+        m.append('Description: %s' % self.description)
+        if self.requires:
+            m.append('Requires:')
+        else:
+            m.append('Requires: %s' % ",".join(self.requires))
+        m.append('Version: %s' % self.version)
+
+        return "\n".join(m)
+
+class VariableSet(object):
+    def __init__(self, d):
+        self._raw_data = dict([(k, v) for k, v in d.items()])
+
+        self._re = {}
+        self._re_sub = {}
+
+        self._init_parse()
+
+    def _init_parse(self):
+        for k, v in self._raw_data.items():
+            self._init_parse_var(k, v)
+
+    def _init_parse_var(self, name, value):
+        self._re[name] = re.compile(r'\$\{%s\}' % name)
+        self._re_sub[name] = value
+
+    def interpolate(self, value):
+        # Brute force: we keep interpolating until there is no '${var}' anymore
+        # or until interpolated string is equal to input string
+        def _interpolate(value):
+            for k in self._re.keys():
+                value = self._re[k].sub(self._re_sub[k], value)
+            return value
+        while _VAR.search(value):
+            nvalue = _interpolate(value)
+            if nvalue == value:
+                break
+            value = nvalue
+
+        return value
+
+    def variables(self):
+        return self._raw_data.keys()
+
+    # Emulate a dict to set/get variables values
+    def __getitem__(self, name):
+        return self._raw_data[name]
+
+    def __setitem__(self, name, value):
+        self._raw_data[name] = value
+        self._init_parse_var(name, value)
+
+def parse_meta(config):
+    if not config.has_section('meta'):
+        raise FormatError("No meta section found !")
+
+    d = {}
+    for name, value in config.items('meta'):
+        d[name] = value
+
+    for k in ['name', 'description', 'version']:
+        if not d.has_key(k):
+            raise FormatError("Option %s (section [meta]) is mandatory, "
+                "but not found" % k)
+
+    if not d.has_key('requires'):
+        d['requires'] = []
+
+    return d
+
+def parse_variables(config):
+    if not config.has_section('variables'):
+        raise FormatError("No variables section found !")
+
+    d = {}
+
+    for name, value in config.items("variables"):
+        d[name] = value
+
+    return VariableSet(d)
+
+def parse_sections(config):
+    return meta_d, r
+
+def pkg_to_filename(pkg_name):
+    return "%s.ini" % pkg_name
+
+def parse_config(filename, dirs=None):
+    if dirs:
+        filenames = [os.path.join(d, filename) for d in dirs]
+    else:
+        filenames = [filename]
+
+    config = SafeConfigParser()
+    n = config.read(filenames)
+    if not len(n) >= 1:
+        raise PkgNotFound("Could not find file(s) %s" % str(filenames))
+
+    # Parse meta and variables sections
+    meta = parse_meta(config)
+
+    vars = {}
+    if config.has_section('variables'):
+        for name, value in config.items("variables"):
+            vars[name] = _escape_backslash(value)
+
+    # Parse "normal" sections
+    secs = [s for s in config.sections() if not s in ['meta', 'variables']]
+    sections = {}
+
+    requires = {}
+    for s in secs:
+        d = {}
+        if config.has_option(s, "requires"):
+            requires[s] = config.get(s, 'requires')
+
+        for name, value in config.items(s):
+            d[name] = value
+        sections[s] = d
+
+    return meta, vars, sections, requires
+
+def _read_config_imp(filenames, dirs=None):
+    def _read_config(f):
+        meta, vars, sections, reqs = parse_config(f, dirs)
+        # recursively add sections and variables of required libraries
+        for rname, rvalue in reqs.items():
+            nmeta, nvars, nsections, nreqs = _read_config(pkg_to_filename(rvalue))
+
+            # Update var dict for variables not in 'top' config file
+            for k, v in nvars.items():
+                if not vars.has_key(k):
+                    vars[k] = v
+
+            # Update sec dict
+            for oname, ovalue in nsections[rname].items():
+                sections[rname][oname] += ' %s' % ovalue
+
+        return meta, vars, sections, reqs
+
+    meta, vars, sections, reqs = _read_config(filenames)
+
+    return LibraryInfo(name=meta["name"], description=meta["description"],
+            version=meta["version"], sections=sections, vars=VariableSet(vars))
+
+# Trivial cache to cache LibraryInfo instances creation. To be really
+# efficient, the cache should be handled in read_config, since a same file can
+# be parsed many time outside LibraryInfo creation, but I doubt this will be a
+# problem in practice
+_CACHE = {}
+def read_config(pkgname, dirs=None):
+    try:
+        return _CACHE[pkgname]
+    except KeyError:
+        v = _read_config_imp(pkg_to_filename(pkgname), dirs)
+        _CACHE[pkgname] = v
+        return v
+
+# TODO:
+#   - implements version comparison (modversion + atleast)
+
+# pkg-config simple emulator - useful for debugging, and maybe later to query
+# the system
+if __name__ == '__main__':
+    import sys
+    from optparse import OptionParser
+    import glob
+
+    parser = OptionParser()
+    parser.add_option("--cflags", dest="cflags", action="store_true",
+                      help="output all preprocessor and compiler flags")
+    parser.add_option("--libs", dest="libs", action="store_true",
+                      help="output all linker flags")
+    parser.add_option("--use-section", dest="section",
+                      help="use this section instead of default for options")
+    parser.add_option("--version", dest="version", action="store_true",
+                      help="output version")
+    parser.add_option("--atleast-version", dest="min_version",
+                      help="Minimal version")
+    parser.add_option("--list-all", dest="list_all", action="store_true",
+                      help="Minimal version")
+    parser.add_option("--define-variable", dest="define_variable",
+                      help="Replace variable with the given value")
+
+    (options, args) = parser.parse_args(sys.argv)
+
+    if len(args) < 2:
+        raise ValueError("Expect package name on the command line:")
+
+    if options.list_all:
+        files = glob.glob("*.ini")
+        for f in files:
+            info = read_config(f)
+            print "%s\t%s - %s" % (info.name, info.name, info.description)
+
+    pkg_name = args[1]
+    import os
+    d = os.environ.get('NPY_PKG_CONFIG_PATH')
+    if d:
+        info = read_config(pkg_name, ['numpy/core/lib/npy-pkg-config', '.', d])
+    else:
+        info = read_config(pkg_name, ['numpy/core/lib/npy-pkg-config', '.'])
+
+    if options.section:
+        section = options.section
+    else:
+        section = "default"
+
+    if options.define_variable:
+        m = re.search('([\S]+)=([\S]+)', options.define_variable)
+        if not m:
+            raise ValueError("--define-variable option should be of " \
+                             "the form --define-variable=foo=bar")
+        else:
+            name = m.group(1)
+            value = m.group(2)
+        info.vars[name] = value
+
+    if options.cflags:
+        print info.cflags(section)
+    if options.libs:
+        print info.libs(section)
+    if options.version:
+        print info.version
+    if options.min_version:
+        print info.version >= options.min_version
+
+#!/usr/bin/env python
+import os.path
+
+def configuration(parent_package='',top_path=None):
+    from numpy.distutils.misc_util import Configuration
+    config = Configuration('distutils',parent_package,top_path)
+    config.add_subpackage('command')
+    config.add_subpackage('fcompiler')
+    config.add_data_dir('tests')
+    if os.path.exists("site.cfg"):
+        config.add_data_files('site.cfg')
+    config.make_config_py()
+    return config
+
+if __name__ == '__main__':
+    from numpy.distutils.core      import setup
+    setup(configuration=configuration)
+
+import os
+import re
+import sys
+import imp
+import copy
+import glob
+import atexit
+import tempfile
+import subprocess
+
+try:
+    set
+except NameError:
+    from sets import Set as set
+
+__all__ = ['Configuration', 'get_numpy_include_dirs', 'default_config_dict',
+           'dict_append', 'appendpath', 'generate_config_py',
+           'get_cmd', 'allpath', 'get_mathlibs',
+           'terminal_has_colors', 'red_text', 'green_text', 'yellow_text',
+           'blue_text', 'cyan_text', 'cyg2win32','mingw32','all_strings',
+           'has_f_sources', 'has_cxx_sources', 'filter_sources',
+           'get_dependencies', 'is_local_src_dir', 'get_ext_source_files',
+           'get_script_files', 'get_lib_source_files', 'get_data_files',
+           'dot_join', 'get_frame', 'minrelpath','njoin',
+           'is_sequence', 'is_string', 'as_list', 'gpaths', 'get_language',
+           'quote_args', 'get_build_architecture', 'get_info', 'get_pkg_info']
+
+class InstallableLib:
+    def __init__(self, name, build_info, target_dir):
+        self.name = name
+        self.build_info = build_info
+        self.target_dir = target_dir
+
+def quote_args(args):
+    # don't used _nt_quote_args as it does not check if
+    # args items already have quotes or not.
+    args = list(args)
+    for i in range(len(args)):
+        a = args[i]
+        if ' ' in a and a[0] not in '"\'':
+            args[i] = '"%s"' % (a)
+    return args
+
+def allpath(name):
+    "Convert a /-separated pathname to one using the OS's path separator."
+    splitted = name.split('/')
+    return os.path.join(*splitted)
+
+def rel_path(path, parent_path):
+    """Return path relative to parent_path.
+    """
+    pd = os.path.abspath(parent_path)
+    apath = os.path.abspath(path)
+    if len(apath)<len(pd):
+        return path
+    if apath==pd:
+        return ''
+    if pd == apath[:len(pd)]:
+        assert apath[len(pd)] in [os.sep],`path,apath[len(pd)]`
+        path = apath[len(pd)+1:]
+    return path
+
+def get_path_from_frame(frame, parent_path=None):
+    """Return path of the module given a frame object from the call stack.
+
+    Returned path is relative to parent_path when given,
+    otherwise it is absolute path.
+    """
+
+    # First, try to find if the file name is in the frame.
+    try:
+        caller_file = eval('__file__', frame.f_globals, frame.f_locals)
+        d = os.path.dirname(os.path.abspath(caller_file))
+    except NameError:
+        # __file__ is not defined, so let's try __name__. We try this second
+        # because setuptools spoofs __name__ to be '__main__' even though
+        # sys.modules['__main__'] might be something else, like easy_install(1).
+        caller_name = eval('__name__', frame.f_globals, frame.f_locals)
+        __import__(caller_name)
+        mod = sys.modules[caller_name]
+        if hasattr(mod, '__file__'):
+            d = os.path.dirname(os.path.abspath(mod.__file__))
+        else:
+            # we're probably running setup.py as execfile("setup.py")
+            # (likely we're building an egg)
+            d = os.path.abspath('.')
+            # hmm, should we use sys.argv[0] like in __builtin__ case?
+
+    if parent_path is not None:
+        d = rel_path(d, parent_path)
+
+    return d or '.'
+
+def njoin(*path):
+    """Join two or more pathname components +
+    - convert a /-separated pathname to one using the OS's path separator.
+    - resolve `..` and `.` from path.
+
+    Either passing n arguments as in njoin('a','b'), or a sequence
+    of n names as in njoin(['a','b']) is handled, or a mixture of such arguments.
+    """
+    paths = []
+    for p in path:
+        if is_sequence(p):
+            # njoin(['a', 'b'], 'c')
+            paths.append(njoin(*p))
+        else:
+            assert is_string(p)
+            paths.append(p)
+    path = paths
+    if not path:
+        # njoin()
+        joined = ''
+    else:
+        # njoin('a', 'b')
+        joined = os.path.join(*path)
+    if os.path.sep != '/':
+        joined = joined.replace('/',os.path.sep)
+    return minrelpath(joined)
+
+def get_mathlibs(path=None):
+    """Return the MATHLIB line from numpyconfig.h
+    """
+    if path is not None:
+        config_file = os.path.join(path,'numpyconfig.h')
+    else:
+        # Look for the file in each of the numpy include directories.
+        dirs = get_numpy_include_dirs()
+        for path in dirs:
+            fn = os.path.join(path,'numpyconfig.h')
+            if os.path.exists(fn):
+                config_file = fn
+                break
+        else:
+            raise DistutilsError('numpyconfig.h not found in numpy include '
+                'dirs %r' % (dirs,))
+
+    fid = open(config_file)
+    mathlibs = []
+    s = '#define MATHLIB'
+    for line in fid.readlines():
+        if line.startswith(s):
+            value = line[len(s):].strip()
+            if value:
+                mathlibs.extend(value.split(','))
+    fid.close()
+    return mathlibs
+
+def minrelpath(path):
+    """Resolve `..` and '.' from path.
+    """
+    if not is_string(path):
+        return path
+    if '.' not in path:
+        return path
+    l = path.split(os.sep)
+    while l:
+        try:
+            i = l.index('.',1)
+        except ValueError:
+            break
+        del l[i]
+    j = 1
+    while l:
+        try:
+            i = l.index('..',j)
+        except ValueError:
+            break
+        if l[i-1]=='..':
+            j += 1
+        else:
+            del l[i],l[i-1]
+            j = 1
+    if not l:
+        return ''
+    return os.sep.join(l)
+
+def _fix_paths(paths,local_path,include_non_existing):
+    assert is_sequence(paths), repr(type(paths))
+    new_paths = []
+    assert not is_string(paths),`paths`
+    for n in paths:
+        if is_string(n):
+            if '*' in n or '?' in n:
+                p = glob.glob(n)
+                p2 = glob.glob(njoin(local_path,n))
+                if p2:
+                    new_paths.extend(p2)
+                elif p:
+                    new_paths.extend(p)
+                else:
+                    if include_non_existing:
+                        new_paths.append(n)
+                    print 'could not resolve pattern in %r: %r' \
+                              % (local_path,n)
+            else:
+                n2 = njoin(local_path,n)
+                if os.path.exists(n2):
+                    new_paths.append(n2)
+                else:
+                    if os.path.exists(n):
+                        new_paths.append(n)
+                    elif include_non_existing:
+                        new_paths.append(n)
+                    if not os.path.exists(n):
+                        print 'non-existing path in %r: %r' \
+                              % (local_path,n)
+
+        elif is_sequence(n):
+            new_paths.extend(_fix_paths(n,local_path,include_non_existing))
+        else:
+            new_paths.append(n)
+    return [minrelpath(p) for p in new_paths]
+
+def gpaths(paths, local_path='', include_non_existing=True):
+    """Apply glob to paths and prepend local_path if needed.
+    """
+    if is_string(paths):
+        paths = (paths,)
+    return _fix_paths(paths,local_path, include_non_existing)
+
+
+_temporary_directory = None
+def clean_up_temporary_directory():
+    from numpy.distutils import log
+    global _temporary_directory
+    if not _temporary_directory:
+        return
+    log.debug('removing %s', _temporary_directory)
+    try:
+        os.rmdir(_temporary_directory)
+    except OSError:
+        pass
+    _temporary_directory = None
+
+def make_temp_file(suffix='', prefix='', text=True):
+    global _temporary_directory
+    if not _temporary_directory:
+        _temporary_directory = tempfile.mkdtemp()
+        atexit.register(clean_up_temporary_directory)
+    fid, name = tempfile.mkstemp(suffix=suffix,
+                                 prefix=prefix,
+                                 dir=_temporary_directory,
+                                 text=text)
+    fo = os.fdopen(fid, 'w')
+    return fo, name
+
+# Hooks for colored terminal output.
+# See also http://www.livinglogic.de/Python/ansistyle
+def terminal_has_colors():
+    if sys.platform=='cygwin' and 'USE_COLOR' not in os.environ:
+        # Avoid importing curses that causes illegal operation
+        # with a message:
+        #  PYTHON2 caused an invalid page fault in
+        #  module CYGNURSES7.DLL as 015f:18bbfc28
+        # Details: Python 2.3.3 [GCC 3.3.1 (cygming special)]
+        #          ssh to Win32 machine from debian
+        #          curses.version is 2.2
+        #          CYGWIN_98-4.10, release 1.5.7(0.109/3/2))
+        return 0
+    if hasattr(sys.stdout,'isatty') and sys.stdout.isatty():
+        try:
+            import curses
+            curses.setupterm()
+            if (curses.tigetnum("colors") >= 0
+                and curses.tigetnum("pairs") >= 0
+                and ((curses.tigetstr("setf") is not None
+                      and curses.tigetstr("setb") is not None)
+                     or (curses.tigetstr("setaf") is not None
+                         and curses.tigetstr("setab") is not None)
+                     or curses.tigetstr("scp") is not None)):
+                return 1
+        except Exception,msg:
+            pass
+    return 0
+
+if terminal_has_colors():
+    _colour_codes = dict(black=0, red=1, green=2, yellow=3,
+                         blue=4, magenta=5, cyan=6, white=7, default=9)
+    def colour_text(s, fg=None, bg=None, bold=False):
+        seq = []
+        if bold:
+            seq.append('1')
+        if fg:
+            fgcode = 30 + _colour_codes.get(fg.lower(), 0)
+            seq.append(str(fgcode))
+        if bg:
+            bgcode = 40 + _colour_codes.get(fg.lower(), 7)
+            seq.append(str(bgcode))
+        if seq:
+            return '\x1b[%sm%s\x1b[0m' % (';'.join(seq), s)
+        else:
+            return s
+else:
+    def colour_text(s, fg=None, bg=None):
+        return s
+
+def default_text(s):
+    return colour_text(s, 'default')
+def red_text(s):
+    return colour_text(s, 'red')
+def green_text(s):
+    return colour_text(s, 'green')
+def yellow_text(s):
+    return colour_text(s, 'yellow')
+def cyan_text(s):
+    return colour_text(s, 'cyan')
+def blue_text(s):
+    return colour_text(s, 'blue')
+
+#########################
+
+def cyg2win32(path):
+    if sys.platform=='cygwin' and path.startswith('/cygdrive'):
+        path = path[10] + ':' + os.path.normcase(path[11:])
+    return path
+
+def mingw32():
+    """Return true when using mingw32 environment.
+    """
+    if sys.platform=='win32':
+        if os.environ.get('OSTYPE','')=='msys':
+            return True
+        if os.environ.get('MSYSTEM','')=='MINGW32':
+            return True
+    return False
+
+def msvc_runtime_library():
+    "Return name of MSVC runtime library if Python was built with MSVC >= 7"
+    msc_pos = sys.version.find('MSC v.')
+    if msc_pos != -1:
+        msc_ver = sys.version[msc_pos+6:msc_pos+10]
+        lib = {'1300' : 'msvcr70',    # MSVC 7.0
+               '1310' : 'msvcr71',    # MSVC 7.1
+               '1400' : 'msvcr80',    # MSVC 8
+               '1500' : 'msvcr90',    # MSVC 9 (VS 2008)
+              }.get(msc_ver, None)
+    else:
+        lib = None
+    return lib
+
+def msvc_on_amd64():
+    if not (sys.platform=='win32' or os.name=='nt'):
+        return
+    if get_build_architecture() != 'AMD64':
+        return
+    if 'DISTUTILS_USE_SDK' in os.environ:
+        return
+    # try to avoid _MSVCCompiler__root attribute error
+    print 'Forcing DISTUTILS_USE_SDK=1'
+    os.environ['DISTUTILS_USE_SDK']='1'
+    return
+
+#########################
+
+#XXX need support for .C that is also C++
+cxx_ext_match = re.compile(r'.*[.](cpp|cxx|cc)\Z',re.I).match
+fortran_ext_match = re.compile(r'.*[.](f90|f95|f77|for|ftn|f)\Z',re.I).match
+f90_ext_match = re.compile(r'.*[.](f90|f95)\Z',re.I).match
+f90_module_name_match = re.compile(r'\s*module\s*(?P<name>[\w_]+)',re.I).match
+def _get_f90_modules(source):
+    """Return a list of Fortran f90 module names that
+    given source file defines.
+    """
+    if not f90_ext_match(source):
+        return []
+    modules = []
+    f = open(source,'r')
+    f_readlines = getattr(f,'xreadlines',f.readlines)
+    for line in f_readlines():
+        m = f90_module_name_match(line)
+        if m:
+            name = m.group('name')
+            modules.append(name)
+            # break  # XXX can we assume that there is one module per file?
+    f.close()
+    return modules
+
+def is_string(s):
+    return isinstance(s, str)
+
+def all_strings(lst):
+    """Return True if all items in lst are string objects. """
+    for item in lst:
+        if not is_string(item):
+            return False
+    return True
+
+def is_sequence(seq):
+    if is_string(seq):
+        return False
+    try:
+        len(seq)
+    except:
+        return False
+    return True
+
+def is_glob_pattern(s):
+    return is_string(s) and ('*' in s or '?' is s)
+
+def as_list(seq):
+    if is_sequence(seq):
+        return list(seq)
+    else:
+        return [seq]
+
+def get_language(sources):
+    # not used in numpy/scipy packages, use build_ext.detect_language instead
+    """Determine language value (c,f77,f90) from sources """
+    language = None
+    for source in sources:
+        if isinstance(source, str):
+            if f90_ext_match(source):
+                language = 'f90'
+                break
+            elif fortran_ext_match(source):
+                language = 'f77'
+    return language
+
+def has_f_sources(sources):
+    """Return True if sources contains Fortran files """
+    for source in sources:
+        if fortran_ext_match(source):
+            return True
+    return False
+
+def has_cxx_sources(sources):
+    """Return True if sources contains C++ files """
+    for source in sources:
+        if cxx_ext_match(source):
+            return True
+    return False
+
+def filter_sources(sources):
+    """Return four lists of filenames containing
+    C, C++, Fortran, and Fortran 90 module sources,
+    respectively.
+    """
+    c_sources = []
+    cxx_sources = []
+    f_sources = []
+    fmodule_sources = []
+    for source in sources:
+        if fortran_ext_match(source):
+            modules = _get_f90_modules(source)
+            if modules:
+                fmodule_sources.append(source)
+            else:
+                f_sources.append(source)
+        elif cxx_ext_match(source):
+            cxx_sources.append(source)
+        else:
+            c_sources.append(source)
+    return c_sources, cxx_sources, f_sources, fmodule_sources
+
+
+def _get_headers(directory_list):
+    # get *.h files from list of directories
+    headers = []
+    for d in directory_list:
+        head = glob.glob(os.path.join(d,"*.h")) #XXX: *.hpp files??
+        headers.extend(head)
+    return headers
+
+def _get_directories(list_of_sources):
+    # get unique directories from list of sources.
+    direcs = []
+    for f in list_of_sources:
+        d = os.path.split(f)
+        if d[0] != '' and not d[0] in direcs:
+            direcs.append(d[0])
+    return direcs
+
+def get_dependencies(sources):
+    #XXX scan sources for include statements
+    return _get_headers(_get_directories(sources))
+
+def is_local_src_dir(directory):
+    """Return true if directory is local directory.
+    """
+    if not is_string(directory):
+        return False
+    abs_dir = os.path.abspath(directory)
+    c = os.path.commonprefix([os.getcwd(),abs_dir])
+    new_dir = abs_dir[len(c):].split(os.sep)
+    if new_dir and not new_dir[0]:
+        new_dir = new_dir[1:]
+    if new_dir and new_dir[0]=='build':
+        return False
+    new_dir = os.sep.join(new_dir)
+    return os.path.isdir(new_dir)
+
+def general_source_files(top_path):
+    pruned_directories = {'CVS':1, '.svn':1, 'build':1}
+    prune_file_pat = re.compile(r'(?:[~#]|\.py[co]|\.o)$')
+    for dirpath, dirnames, filenames in os.walk(top_path, topdown=True):
+        pruned = [ d for d in dirnames if d not in pruned_directories ]
+        dirnames[:] = pruned
+        for f in filenames:
+            if not prune_file_pat.search(f):
+                yield os.path.join(dirpath, f)
+
+def general_source_directories_files(top_path):
+    """Return a directory name relative to top_path and
+    files contained.
+    """
+    pruned_directories = ['CVS','.svn','build']
+    prune_file_pat = re.compile(r'(?:[~#]|\.py[co]|\.o)$')
+    for dirpath, dirnames, filenames in os.walk(top_path, topdown=True):
+        pruned = [ d for d in dirnames if d not in pruned_directories ]
+        dirnames[:] = pruned
+        for d in dirnames:
+            dpath = os.path.join(dirpath, d)
+            rpath = rel_path(dpath, top_path)
+            files = []
+            for f in os.listdir(dpath):
+                fn = os.path.join(dpath,f)
+                if os.path.isfile(fn) and not prune_file_pat.search(fn):
+                    files.append(fn)
+            yield rpath, files
+    dpath = top_path
+    rpath = rel_path(dpath, top_path)
+    filenames = [os.path.join(dpath,f) for f in os.listdir(dpath) \
+                 if not prune_file_pat.search(f)]
+    files = [f for f in filenames if os.path.isfile(f)]
+    yield rpath, files
+
+
+def get_ext_source_files(ext):
+    # Get sources and any include files in the same directory.
+    filenames = []
+    sources = filter(is_string, ext.sources)
+    filenames.extend(sources)
+    filenames.extend(get_dependencies(sources))
+    for d in ext.depends:
+        if is_local_src_dir(d):
+            filenames.extend(list(general_source_files(d)))
+        elif os.path.isfile(d):
+            filenames.append(d)
+    return filenames
+
+def get_script_files(scripts):
+    scripts = filter(is_string, scripts)
+    return scripts
+
+def get_lib_source_files(lib):
+    filenames = []
+    sources = lib[1].get('sources',[])
+    sources = filter(is_string, sources)
+    filenames.extend(sources)
+    filenames.extend(get_dependencies(sources))
+    depends = lib[1].get('depends',[])
+    for d in depends:
+        if is_local_src_dir(d):
+            filenames.extend(list(general_source_files(d)))
+        elif os.path.isfile(d):
+            filenames.append(d)
+    return filenames
+
+def get_data_files(data):
+    if is_string(data):
+        return [data]
+    sources = data[1]
+    filenames = []
+    for s in sources:
+        if callable(s):
+            continue
+        if is_local_src_dir(s):
+            filenames.extend(list(general_source_files(s)))
+        elif is_string(s):
+            if os.path.isfile(s):
+                filenames.append(s)
+            else:
+                print 'Not existing data file:',s
+        else:
+            raise TypeError,repr(s)
+    return filenames
+
+def dot_join(*args):
+    return '.'.join([a for a in args if a])
+
+def get_frame(level=0):
+    """Return frame object from call stack with given level.
+    """
+    try:
+        return sys._getframe(level+1)
+    except AttributeError:
+        frame = sys.exc_info()[2].tb_frame
+        for _ in range(level+1):
+            frame = frame.f_back
+        return frame
+
+class SconsInfo(object):
+    def __init__(self, scons_path, parent_name, pre_hook,
+            post_hook, source_files, pkg_path):
+        self.scons_path = scons_path
+        self.parent_name = parent_name
+        self.pre_hook = pre_hook
+        self.post_hook = post_hook
+        self.source_files = source_files
+        if pkg_path:
+            self.pkg_path = pkg_path
+        else:
+            if scons_path:
+                self.pkg_path = os.path.dirname(scons_path)
+            else:
+                self.pkg_path = ''
+
+######################
+
+class Configuration(object):
+
+    _list_keys = ['packages', 'ext_modules', 'data_files', 'include_dirs',
+                  'libraries', 'headers', 'scripts', 'py_modules', 'scons_data',
+                  'installed_libraries']
+    _dict_keys = ['package_dir', 'installed_pkg_config']
+    _extra_keys = ['name', 'version']
+
+    numpy_include_dirs = []
+
+    def __init__(self,
+                 package_name=None,
+                 parent_name=None,
+                 top_path=None,
+                 package_path=None,
+                 caller_level=1,
+                 setup_name='setup.py',
+                 **attrs):
+        """Construct configuration instance of a package.
+
+        package_name -- name of the package
+                        Ex.: 'distutils'
+        parent_name  -- name of the parent package
+                        Ex.: 'numpy'
+        top_path     -- directory of the toplevel package
+                        Ex.: the directory where the numpy package source sits
+        package_path -- directory of package. Will be computed by magic from the
+                        directory of the caller module if not specified
+                        Ex.: the directory where numpy.distutils is
+        caller_level -- frame level to caller namespace, internal parameter.
+        """
+        self.name = dot_join(parent_name, package_name)
+        self.version = None
+
+        caller_frame = get_frame(caller_level)
+        self.local_path = get_path_from_frame(caller_frame, top_path)
+        # local_path -- directory of a file (usually setup.py) that
+        #               defines a configuration() function.
+        # local_path -- directory of a file (usually setup.py) that
+        #               defines a configuration() function.
+        if top_path is None:
+            top_path = self.local_path
+            self.local_path = ''
+        if package_path is None:
+            package_path = self.local_path
+        elif os.path.isdir(njoin(self.local_path,package_path)):
+            package_path = njoin(self.local_path,package_path)
+        if not os.path.isdir(package_path or '.'):
+            raise ValueError("%r is not a directory" % (package_path,))
+        self.top_path = top_path
+        self.package_path = package_path
+        # this is the relative path in the installed package
+        self.path_in_package = os.path.join(*self.name.split('.'))
+
+        self.list_keys = self._list_keys[:]
+        self.dict_keys = self._dict_keys[:]
+
+        for n in self.list_keys:
+            v = copy.copy(attrs.get(n, []))
+            setattr(self, n, as_list(v))
+
+        for n in self.dict_keys:
+            v = copy.copy(attrs.get(n, {}))
+            setattr(self, n, v)
+
+        known_keys = self.list_keys + self.dict_keys
+        self.extra_keys = self._extra_keys[:]
+        for n in attrs.keys():
+            if n in known_keys:
+                continue
+            a = attrs[n]
+            setattr(self,n,a)
+            if isinstance(a, list):
+                self.list_keys.append(n)
+            elif isinstance(a, dict):
+                self.dict_keys.append(n)
+            else:
+                self.extra_keys.append(n)
+
+        if os.path.exists(njoin(package_path,'__init__.py')):
+            self.packages.append(self.name)
+            self.package_dir[self.name] = package_path
+
+        self.options = dict(
+            ignore_setup_xxx_py = False,
+            assume_default_configuration = False,
+            delegate_options_to_subpackages = False,
+            quiet = False,
+            )
+
+        caller_instance = None
+        for i in range(1,3):
+            try:
+                f = get_frame(i)
+            except ValueError:
+                break
+            try:
+                caller_instance = eval('self',f.f_globals,f.f_locals)
+                break
+            except NameError:
+                pass
+        if isinstance(caller_instance, self.__class__):
+            if caller_instance.options['delegate_options_to_subpackages']:
+                self.set_options(**caller_instance.options)
+
+        self.setup_name = setup_name
+
+    def todict(self):
+        """
+        Return a dictionary compatible with the keyword arguments of distutils
+        setup function. 
+
+        Example
+        -------
+        >>> setup(\**config.todict()).
+        """
+
+        self._optimize_data_files()
+        d = {}
+        known_keys = self.list_keys + self.dict_keys + self.extra_keys
+        for n in known_keys:
+            a = getattr(self,n)
+            if a:
+                d[n] = a
+        return d
+
+    def info(self, message):
+        if not self.options['quiet']:
+            print message
+
+    def warn(self, message):
+        print>>sys.stderr, blue_text('Warning: %s' % (message,))
+
+    def set_options(self, **options):
+        """Configure Configuration instance.
+
+        The following options are available:
+        - ignore_setup_xxx_py
+        - assume_default_configuration
+        - delegate_options_to_subpackages
+        - quiet
+        """
+        for key, value in options.items():
+            if key in self.options:
+                self.options[key] = value
+            else:
+                raise ValueError,'Unknown option: '+key
+
+    def get_distribution(self):
+        """Return the distutils distribution object for self."""
+        from numpy.distutils.core import get_distribution
+        return get_distribution()
+
+    def _wildcard_get_subpackage(self, subpackage_name,
+                                 parent_name,
+                                 caller_level = 1):
+        l = subpackage_name.split('.')
+        subpackage_path = njoin([self.local_path]+l)
+        dirs = filter(os.path.isdir,glob.glob(subpackage_path))
+        config_list = []
+        for d in dirs:
+            if not os.path.isfile(njoin(d,'__init__.py')):
+                continue
+            if 'build' in d.split(os.sep):
+                continue
+            n = '.'.join(d.split(os.sep)[-len(l):])
+            c = self.get_subpackage(n,
+                                    parent_name = parent_name,
+                                    caller_level = caller_level+1)
+            config_list.extend(c)
+        return config_list
+
+    def _get_configuration_from_setup_py(self, setup_py,
+                                         subpackage_name,
+                                         subpackage_path,
+                                         parent_name,
+                                         caller_level = 1):
+        # In case setup_py imports local modules:
+        sys.path.insert(0,os.path.dirname(setup_py))
+        try:
+            fo_setup_py = open(setup_py, 'U')
+            setup_name = os.path.splitext(os.path.basename(setup_py))[0]
+            n = dot_join(self.name,subpackage_name,setup_name)
+            setup_module = imp.load_module('_'.join(n.split('.')),
+                                           fo_setup_py,
+                                           setup_py,
+                                           ('.py', 'U', 1))
+            fo_setup_py.close()
+            if not hasattr(setup_module,'configuration'):
+                if not self.options['assume_default_configuration']:
+                    self.warn('Assuming default configuration '\
+                              '(%s does not define configuration())'\
+                              % (setup_module))
+                config = Configuration(subpackage_name, parent_name,
+                                       self.top_path, subpackage_path,
+                                       caller_level = caller_level + 1)
+            else:
+                pn = dot_join(*([parent_name] + subpackage_name.split('.')[:-1]))
+                args = (pn,)
+                if setup_module.configuration.func_code.co_argcount > 1:
+                    args = args + (self.top_path,)
+                config = setup_module.configuration(*args)
+            if config.name!=dot_join(parent_name,subpackage_name):
+                self.warn('Subpackage %r configuration returned as %r' % \
+                          (dot_join(parent_name,subpackage_name), config.name))
+        finally:
+            del sys.path[0]
+        return config
+
+    def get_subpackage(self,subpackage_name,
+                       subpackage_path=None,
+                       parent_name=None,
+                       caller_level = 1):
+        """Return list of subpackage configurations.
+
+        Parameters
+        ----------
+        subpackage_name: str,None
+            Name of the subpackage to get the configuration. '*' in
+            subpackage_name is handled as a wildcard.
+        subpackage_path: str
+            If None, then the path is assumed to be the local path plus the
+            subpackage_name. If a setup.py file is not found in the
+            subpackage_path, then a default configuration is used.
+        parent_name: str
+            Parent name.
+        """
+        if subpackage_name is None:
+            if subpackage_path is None:
+                raise ValueError(
+                    "either subpackage_name or subpackage_path must be specified")
+            subpackage_name = os.path.basename(subpackage_path)
+
+        # handle wildcards
+        l = subpackage_name.split('.')
+        if subpackage_path is None and '*' in subpackage_name:
+            return self._wildcard_get_subpackage(subpackage_name,
+                                                 parent_name,
+                                                 caller_level = caller_level+1)
+        assert '*' not in subpackage_name,`subpackage_name, subpackage_path,parent_name`
+        if subpackage_path is None:
+            subpackage_path = njoin([self.local_path] + l)
+        else:
+            subpackage_path = njoin([subpackage_path] + l[:-1])
+            subpackage_path = self.paths([subpackage_path])[0]
+        setup_py = njoin(subpackage_path, self.setup_name)
+        if not self.options['ignore_setup_xxx_py']:
+            if not os.path.isfile(setup_py):
+                setup_py = njoin(subpackage_path,
+                                 'setup_%s.py' % (subpackage_name))
+        if not os.path.isfile(setup_py):
+            if not self.options['assume_default_configuration']:
+                self.warn('Assuming default configuration '\
+                          '(%s/{setup_%s,setup}.py was not found)' \
+                          % (os.path.dirname(setup_py), subpackage_name))
+            config = Configuration(subpackage_name, parent_name,
+                                   self.top_path, subpackage_path,
+                                   caller_level = caller_level+1)
+        else:
+            config = self._get_configuration_from_setup_py(
+                setup_py,
+                subpackage_name,
+                subpackage_path,
+                parent_name,
+                caller_level = caller_level + 1)
+        if config:
+            return [config]
+        else:
+            return []
+
+    def add_subpackage(self,subpackage_name,
+                       subpackage_path=None,
+                       standalone = False):
+        """Add a sub-package to the current Configuration instance. 
+        
+        This is useful in a setup.py script for adding sub-packages to a
+        package.
+
+        Parameters
+        ----------
+        subpackage_name: str
+            name of the subpackage
+        subpackage_path: str
+            if given, the subpackage path such as the subpackage is in
+            subpackage_path / subpackage_name. If None,the subpackage is
+            assumed to be located in the local path / subpackage_name.
+        standalone: bool
+        """
+
+        if standalone:
+            parent_name = None
+        else:
+            parent_name = self.name
+        config_list = self.get_subpackage(subpackage_name,subpackage_path,
+                                          parent_name = parent_name,
+                                          caller_level = 2)
+        if not config_list:
+            self.warn('No configuration returned, assuming unavailable.')
+        for config in config_list:
+            d = config
+            if isinstance(config, Configuration):
+                d = config.todict()
+            assert isinstance(d,dict),`type(d)`
+
+            self.info('Appending %s configuration to %s' \
+                      % (d.get('name'), self.name))
+            self.dict_append(**d)
+
+        dist = self.get_distribution()
+        if dist is not None:
+            self.warn('distutils distribution has been initialized,'\
+                      ' it may be too late to add a subpackage '+ subpackage_name)
+
+    def add_data_dir(self,data_path):
+        """Recursively add files under data_path to data_files list.
+
+        Recursively add files under data_path to the list of data_files to be
+        installed (and distributed). The data_path can be either a relative
+        path-name, or an absolute path-name, or a 2-tuple where the first
+        argument shows where in the install directory the data directory
+        should be installed to. 
+
+        Parameters
+        ----------
+        data_path: seq,str
+            Argument can be either
+
+                * 2-sequence (<datadir suffix>,<path to data directory>)
+                * path to data directory where python datadir suffix defaults
+                  to package dir.
+
+        Notes
+        -----
+        Rules for installation paths:
+          foo/bar -> (foo/bar, foo/bar) -> parent/foo/bar
+          (gun, foo/bar) -> parent/gun
+          foo/* -> (foo/a, foo/a), (foo/b, foo/b) -> parent/foo/a, parent/foo/b
+          (gun, foo/*) -> (gun, foo/a), (gun, foo/b) -> gun
+          (gun/*, foo/*) -> parent/gun/a, parent/gun/b
+          /foo/bar -> (bar, /foo/bar) -> parent/bar
+          (gun, /foo/bar) -> parent/gun
+          (fun/*/gun/*, sun/foo/bar) -> parent/fun/foo/gun/bar
+
+        Examples
+        --------
+        For example suppose the source directory contains fun/foo.dat and
+        fun/bar/car.dat::
+
+            >>> self.add_data_dir('fun')
+            >>> self.add_data_dir(('sun', 'fun'))
+            >>> self.add_data_dir(('gun', '/full/path/to/fun'))
+
+        Will install data-files to the locations::
+
+            <package install directory>/
+              fun/
+                foo.dat
+                bar/
+                  car.dat
+              sun/
+                foo.dat
+                bar/
+                  car.dat
+              gun/
+                foo.dat
+                car.dat
+        """
+        if is_sequence(data_path):
+            d, data_path = data_path
+        else:
+            d = None
+        if is_sequence(data_path):
+            [self.add_data_dir((d,p)) for p in data_path]
+            return
+        if not is_string(data_path):
+            raise TypeError("not a string: %r" % (data_path,))
+        if d is None:
+            if os.path.isabs(data_path):
+                return self.add_data_dir((os.path.basename(data_path), data_path))
+            return self.add_data_dir((data_path, data_path))
+        paths = self.paths(data_path, include_non_existing=False)
+        if is_glob_pattern(data_path):
+            if is_glob_pattern(d):
+                pattern_list = allpath(d).split(os.sep)
+                pattern_list.reverse()
+                # /a/*//b/ -> /a/*/b
+                rl = range(len(pattern_list)-1); rl.reverse()
+                for i in rl:
+                    if not pattern_list[i]:
+                        del pattern_list[i]
+                #
+                for path in paths:
+                    if not os.path.isdir(path):
+                        print 'Not a directory, skipping',path
+                        continue
+                    rpath = rel_path(path, self.local_path)
+                    path_list = rpath.split(os.sep)
+                    path_list.reverse()
+                    target_list = []
+                    i = 0
+                    for s in pattern_list:
+                        if is_glob_pattern(s):
+                            if i>=len(path_list):
+                                raise ValueError,'cannot fill pattern %r with %r' \
+                                      % (d, path)
+                            target_list.append(path_list[i])
+                        else:
+                            assert s==path_list[i],`s,path_list[i],data_path,d,path,rpath`
+                            target_list.append(s)
+                        i += 1
+                    if path_list[i:]:
+                        self.warn('mismatch of pattern_list=%s and path_list=%s'\
+                                  % (pattern_list,path_list))
+                    target_list.reverse()
+                    self.add_data_dir((os.sep.join(target_list),path))
+            else:
+                for path in paths:
+                    self.add_data_dir((d,path))
+            return
+        assert not is_glob_pattern(d),`d`
+
+        dist = self.get_distribution()
+        if dist is not None and dist.data_files is not None:
+            data_files = dist.data_files
+        else:
+            data_files = self.data_files
+
+        for path in paths:
+            for d1,f in list(general_source_directories_files(path)):
+                target_path = os.path.join(self.path_in_package,d,d1)
+                data_files.append((target_path, f))
+
+    def _optimize_data_files(self):
+        data_dict = {}
+        for p,files in self.data_files:
+            if p not in data_dict:
+                data_dict[p] = set()
+            for f in files:
+                data_dict[p].add(f)
+        self.data_files[:] = [(p,list(files)) for p,files in data_dict.items()]
+
+    def add_data_files(self,*files):
+        """Add data files to configuration data_files.
+
+        Parameters
+        ----------
+        files: sequence
+            Argument(s) can be either
+
+                * 2-sequence (<datadir prefix>,<path to data file(s)>)
+                * paths to data files where python datadir prefix defaults
+                  to package dir.
+
+        Notes
+        -----
+        The form of each element of the files sequence is very flexible
+        allowing many combinations of where to get the files from the package
+        and where they should ultimately be installed on the system. The most
+        basic usage is for an element of the files argument sequence to be a
+        simple filename. This will cause that file from the local path to be
+        installed to the installation path of the self.name package (package
+        path). The file argument can also be a relative path in which case the
+        entire relative path will be installed into the package directory.
+        Finally, the file can be an absolute path name in which case the file
+        will be found at the absolute path name but installed to the package
+        path.
+
+        This basic behavior can be augmented by passing a 2-tuple in as the
+        file argument. The first element of the tuple should specify the
+        relative path (under the package install directory) where the
+        remaining sequence of files should be installed to (it has nothing to
+        do with the file-names in the source distribution). The second element
+        of the tuple is the sequence of files that should be installed. The
+        files in this sequence can be filenames, relative paths, or absolute
+        paths. For absolute paths the file will be installed in the top-level
+        package installation directory (regardless of the first argument).
+        Filenames and relative path names will be installed in the package
+        install directory under the path name given as the first element of
+        the tuple.
+
+        Rules for installation paths:
+
+          #. file.txt -> (., file.txt)-> parent/file.txt
+          #. foo/file.txt -> (foo, foo/file.txt) -> parent/foo/file.txt
+          #. /foo/bar/file.txt -> (., /foo/bar/file.txt) -> parent/file.txt
+          #. *.txt -> parent/a.txt, parent/b.txt
+          #. foo/*.txt -> parent/foo/a.txt, parent/foo/b.txt
+          #. */*.txt -> (*, */*.txt) -> parent/c/a.txt, parent/d/b.txt
+          #. (sun, file.txt) -> parent/sun/file.txt
+          #. (sun, bar/file.txt) -> parent/sun/file.txt
+          #. (sun, /foo/bar/file.txt) -> parent/sun/file.txt
+          #. (sun, *.txt) -> parent/sun/a.txt, parent/sun/b.txt
+          #. (sun, bar/*.txt) -> parent/sun/a.txt, parent/sun/b.txt
+          #. (sun/*, */*.txt) -> parent/sun/c/a.txt, parent/d/b.txt
+
+        An additional feature is that the path to a data-file can actually be
+        a function that takes no arguments and returns the actual path(s) to
+        the data-files. This is useful when the data files are generated while
+        building the package.
+
+        Examples
+        --------
+        Add files to the list of data_files to be included with the package.
+
+            >>> self.add_data_files('foo.dat',
+                    ('fun', ['gun.dat', 'nun/pun.dat', '/tmp/sun.dat']),
+                    'bar/cat.dat',
+                    '/full/path/to/can.dat')
+
+        will install these data files to::
+
+            <package install directory>/
+             foo.dat
+             fun/
+               gun.dat
+               nun/
+                 pun.dat
+             sun.dat
+             bar/
+               car.dat
+             can.dat
+
+        where <package install directory> is the package (or sub-package)
+        directory such as '/usr/lib/python2.4/site-packages/mypackage' ('C:
+        \\Python2.4 \\Lib \\site-packages \\mypackage') or
+        '/usr/lib/python2.4/site- packages/mypackage/mysubpackage' ('C:
+        \\Python2.4 \\Lib \\site-packages \\mypackage \\mysubpackage').
+        """
+
+        if len(files)>1:
+            for f in files:
+                self.add_data_files(f)
+            return
+        assert len(files)==1
+        if is_sequence(files[0]):
+            d,files = files[0]
+        else:
+            d = None
+        if is_string(files):
+            filepat = files
+        elif is_sequence(files):
+            if len(files)==1:
+                filepat = files[0]
+            else:
+                for f in files:
+                    self.add_data_files((d,f))
+                return
+        else:
+            raise TypeError,`type(files)`
+
+        if d is None:
+            if callable(filepat):
+                d = ''
+            elif os.path.isabs(filepat):
+                d = ''
+            else:
+                d = os.path.dirname(filepat)
+            self.add_data_files((d,files))
+            return
+
+        paths = self.paths(filepat, include_non_existing=False)
+        if is_glob_pattern(filepat):
+            if is_glob_pattern(d):
+                pattern_list = d.split(os.sep)
+                pattern_list.reverse()
+                for path in paths:
+                    path_list = path.split(os.sep)
+                    path_list.reverse()
+                    path_list.pop() # filename
+                    target_list = []
+                    i = 0
+                    for s in pattern_list:
+                        if is_glob_pattern(s):
+                            target_list.append(path_list[i])
+                            i += 1
+                        else:
+                            target_list.append(s)
+                    target_list.reverse()
+                    self.add_data_files((os.sep.join(target_list), path))
+            else:
+                self.add_data_files((d,paths))
+            return
+        assert not is_glob_pattern(d),`d,filepat`
+
+        dist = self.get_distribution()
+        if dist is not None and dist.data_files is not None:
+            data_files = dist.data_files
+        else:
+            data_files = self.data_files
+
+        data_files.append((os.path.join(self.path_in_package,d),paths))
+
+    ### XXX Implement add_py_modules
+
+    def add_include_dirs(self,*paths):
+        """Add paths to configuration include directories.
+
+        Add the given sequence of paths to the beginning of the include_dirs
+        list. This list will be visible to all extension modules of the
+        current package.
+        """
+        include_dirs = self.paths(paths)
+        dist = self.get_distribution()
+        if dist is not None:
+            dist.include_dirs.extend(include_dirs)
+        else:
+            self.include_dirs.extend(include_dirs)
+
+    def add_numarray_include_dirs(self):
+        import numpy.numarray.util as nnu
+        self.add_include_dirs(*nnu.get_numarray_include_dirs())
+
+    def add_headers(self,*files):
+        """Add installable headers to configuration.
+
+        Add the given sequence of files to the beginning of the headers list.
+        By default, headers will be installed under <python-
+        include>/<self.name.replace('.','/')>/ directory. If an item of files
+        is a tuple, then its first argument specifies the actual installation
+        location relative to the <python-include> path.
+
+        Parameters
+        ----------
+        files: str, seq
+            Argument(s) can be either:
+
+                * 2-sequence (<includedir suffix>,<path to header file(s)>)
+                * path(s) to header file(s) where python includedir suffix will
+                  default to package name.
+        """
+        headers = []
+        for path in files:
+            if is_string(path):
+                [headers.append((self.name,p)) for p in self.paths(path)]
+            else:
+                if not isinstance(path, (tuple, list)) or len(path) != 2:
+                    raise TypeError(repr(path))
+                [headers.append((path[0],p)) for p in self.paths(path[1])]
+        dist = self.get_distribution()
+        if dist is not None:
+            dist.headers.extend(headers)
+        else:
+            self.headers.extend(headers)
+
+    def paths(self,*paths,**kws):
+        """Apply glob to paths and prepend local_path if needed.
+
+        Applies glob.glob(...) to each path in the sequence (if needed) and
+        pre-pends the local_path if needed. Because this is called on all
+        source lists, this allows wildcard characters to be specified in lists
+        of sources for extension modules and libraries and scripts and allows
+        path-names be relative to the source directory.
+
+        """
+        include_non_existing = kws.get('include_non_existing',True)
+        return gpaths(paths,
+                      local_path = self.local_path,
+                      include_non_existing=include_non_existing)
+
+    def _fix_paths_dict(self,kw):
+        for k in kw.keys():
+            v = kw[k]
+            if k in ['sources','depends','include_dirs','library_dirs',
+                     'module_dirs','extra_objects']:
+                new_v = self.paths(v)
+                kw[k] = new_v
+
+    def add_extension(self,name,sources,**kw):
+        """Add extension to configuration.
+
+        Create and add an Extension instance to the ext_modules list. This
+        method also takes the following optional keyword arguments that are
+        passed on to the Extension constructor.
+
+        Parameters
+        ----------
+        name: str
+            name of the extension
+        sources: seq
+            list of the sources. The list of sources may contain functions
+            (called source generators) which must take an extension instance
+            and a build directory as inputs and return a source file or list of
+            source files or None. If None is returned then no sources are
+            generated. If the Extension instance has no sources after
+            processing all source generators, then no extension module is
+            built.
+        include_dirs:
+        define_macros:
+        undef_macros:
+        library_dirs:
+        libraries:
+        runtime_library_dirs:
+        extra_objects:
+        extra_compile_args:
+        extra_link_args:
+        export_symbols:
+        swig_opts:
+        depends:
+            The depends list contains paths to files or directories that the
+            sources of the extension module depend on. If any path in the
+            depends list is newer than the extension module, then the module
+            will be rebuilt.
+        language:
+        f2py_options:
+        module_dirs:
+        extra_info: dict,list
+            dict or list of dict of keywords to be appended to keywords.
+
+        Notes
+        -----
+        The self.paths(...) method is applied to all lists that may contain
+        paths. 
+        """
+        ext_args = copy.copy(kw)
+        ext_args['name'] = dot_join(self.name,name)
+        ext_args['sources'] = sources
+
+        if 'extra_info' in ext_args:
+            extra_info = ext_args['extra_info']
+            del ext_args['extra_info']
+            if isinstance(extra_info, dict):
+                extra_info = [extra_info]
+            for info in extra_info:
+                assert isinstance(info, dict), repr(info)
+                dict_append(ext_args,**info)
+
+        self._fix_paths_dict(ext_args)
+
+        # Resolve out-of-tree dependencies
+        libraries = ext_args.get('libraries',[])
+        libnames = []
+        ext_args['libraries'] = []
+        for libname in libraries:
+            if isinstance(libname,tuple):
+                self._fix_paths_dict(libname[1])
+
+            # Handle library names of the form libname@relative/path/to/library
+            if '@' in libname:
+                lname,lpath = libname.split('@',1)
+                lpath = os.path.abspath(njoin(self.local_path,lpath))
+                if os.path.isdir(lpath):
+                    c = self.get_subpackage(None,lpath,
+                                            caller_level = 2)
+                    if isinstance(c,Configuration):
+                        c = c.todict()
+                    for l in [l[0] for l in c.get('libraries',[])]:
+                        llname = l.split('__OF__',1)[0]
+                        if llname == lname:
+                            c.pop('name',None)
+                            dict_append(ext_args,**c)
+                            break
+                    continue
+            libnames.append(libname)
+
+        ext_args['libraries'] = libnames + ext_args['libraries']
+
+        from numpy.distutils.core import Extension
+        ext = Extension(**ext_args)
+        self.ext_modules.append(ext)
+
+        dist = self.get_distribution()
+        if dist is not None:
+            self.warn('distutils distribution has been initialized,'\
+                      ' it may be too late to add an extension '+name)
+        return ext
+
+    def add_library(self,name,sources,**build_info):
+        """Add library to configuration.
+
+        Parameters
+        ----------
+        name: str
+            name of the extension
+        sources: seq
+            list of the sources. The list of sources may contain functions
+            (called source generators) which must take an extension instance
+            and a build directory as inputs and return a source file or list of
+            source files or None. If None is returned then no sources are
+            generated. If the Extension instance has no sources after
+            processing all source generators, then no extension module is
+            built.
+        build_info: dict
+            The following keys are allowed:
+
+                * depends
+                * macros
+                * include_dirs
+                * extra_compiler_args
+                * f2py_options
+                * language
+        """
+        self._add_library(name, sources, None, build_info)
+
+        dist = self.get_distribution()
+        if dist is not None:
+            self.warn('distutils distribution has been initialized,'\
+                      ' it may be too late to add a library '+ name)
+
+    def _add_library(self, name, sources, install_dir, build_info):
+        """Common implementation for add_library and add_installed_library. Do
+        not use directly"""
+        build_info = copy.copy(build_info)
+        name = name #+ '__OF__' + self.name
+        build_info['sources'] = sources
+
+        # Sometimes, depends is not set up to an empty list by default, and if
+        # depends is not given to add_library, distutils barfs (#1134)
+        if not build_info.has_key('depends'):
+            build_info['depends'] = []
+
+        self._fix_paths_dict(build_info)
+
+        # Add to libraries list so that it is build with build_clib
+        self.libraries.append((name, build_info))
+
+    def add_installed_library(self, name, sources, install_dir, build_info=None):
+        """Similar to add_library, but the corresponding library is installed.
+
+        Most C libraries are only used to build python extensions, but
+        libraries built through this method will be installed so that they can
+        be reused by third-party. install_dir is relative to the current
+        subpackage.
+
+        Parameters
+        ----------
+        name: str
+            name of the installed library
+        sources: seq
+            list of source files of the library
+        install_dir: str
+            path where to install the library (relatively to the current
+            sub-package)
+
+        See also
+        --------
+        add_library, add_npy_pkg_config, get_info
+
+        Notes
+        -----
+        The best way to encode the necessary options to link against those C
+        libraries is to use a libname.ini file, and use get_info to retrieve
+        those informations (see add_npy_pkg_config method for more
+        information).
+        """
+        if not build_info:
+            build_info = {}
+
+        install_dir = os.path.join(self.package_path, install_dir)
+        self._add_library(name, sources, install_dir, build_info)
+        self.installed_libraries.append(InstallableLib(name, build_info, install_dir))
+
+    def add_npy_pkg_config(self, template, install_dir, subst_dict=None):
+        """Generate a npy-pkg config file from the template, and install it in
+        given install directory, using subst_dict for variable substitution.
+
+        Parameters
+        ----------
+        template: str
+            the path of the template, relatively to the current package path
+        install_dir: str
+            where to install the npy-pkg config file, relatively to the current
+            package path
+        subst_dict: dict (None by default)
+            if given, any string of the form @key@ will be replaced by
+            subst_dict[key] in the template file when installed. The install
+            prefix is always available through the variable @prefix@, since the
+            install prefix is not easy to get reliably from setup.py.
+
+        See also
+        --------
+        add_installed_library, get_info
+
+        Notes
+        -----
+        This works for both standard installs and in-place builds, i.e. the
+        @prefix@ refer to the source directory for in-place builds.
+
+        Examples
+        --------
+        config.add_npy_pkg_config('foo.ini.in', 'lib', {'foo': bar})
+
+        Assuming the foo.ini.in file has the following content::
+
+            [meta]
+            Name=@foo@
+            Version=1.0
+            Description=dummy description
+
+            [default]
+            Cflags=-I@prefix@/include
+            Libs=
+
+        The generated file will have the following content::
+
+            [meta]
+            Name=bar
+            Version=1.0
+            Description=dummy description
+
+            [default]
+            Cflags=-Iprefix_dir/include
+            Libs=
+
+        and will be installed as foo.ini in the 'lib' subpath.
+        """
+        if subst_dict is None:
+            subst_dict = {}
+        basename = os.path.splitext(template)[0]
+        template = os.path.join(self.package_path, template)
+
+        if self.installed_pkg_config.has_key(self.name):
+            self.installed_pkg_config[self.name].append((template, install_dir,
+                subst_dict))
+        else:
+            self.installed_pkg_config[self.name] = [(template, install_dir,
+                subst_dict)]
+
+    def add_scons_installed_library(self, name, install_dir):
+        """Add an scons-built installable library to distutils.
+        """
+        install_dir = os.path.join(self.package_path, install_dir)
+        self.installed_libraries.append(InstallableLib(name, {}, install_dir))
+
+    def add_sconscript(self, sconscript, subpackage_path=None,
+                       standalone = False, pre_hook = None,
+                       post_hook = None, source_files = None, package_path=None):
+        """Add a sconscript to configuration.
+
+        pre_hook and post hook should be sequences of callable, which will be
+        use before and after executing scons. The callable should be defined as
+        callable(*args, **kw). It is ugly, but well, hooks are ugly anyway...
+
+        sconscript can be None, which can be useful to add only post/pre
+        hooks."""
+        if standalone:
+            parent_name = None
+        else:
+            parent_name = self.name
+
+        dist = self.get_distribution()
+        # Convert the sconscript name to a relative filename (relative from top
+        # setup.py's directory)
+        fullsconsname = self.paths(sconscript)[0]
+
+        # XXX: Think about a way to automatically register source files from
+        # scons...
+        full_source_files = []
+        if source_files:
+            full_source_files.extend([self.paths(i)[0] for i in source_files])
+
+        scons_info = SconsInfo(fullsconsname, parent_name,
+                               pre_hook, post_hook,
+                               full_source_files, package_path)
+        if dist is not None:
+            dist.scons_data.append(scons_info)
+            self.warn('distutils distribution has been initialized,'\
+                      ' it may be too late to add a subpackage '+ subpackage_name)
+            # XXX: we add a fake extension, to correctly initialize some
+            # options in distutils command.
+            dist.add_extension('', sources = [])
+        else:
+            self.scons_data.append(scons_info)
+            # XXX: we add a fake extension, to correctly initialize some
+            # options in distutils command.
+            self.add_extension('', sources = [])
+
+    def add_scripts(self,*files):
+        """Add scripts to configuration.
+
+        Add the sequence of files to the beginning of the scripts list.
+        Scripts will be installed under the <prefix>/bin/ directory.
+
+        """
+        scripts = self.paths(files)
+        dist = self.get_distribution()
+        if dist is not None:
+            dist.scripts.extend(scripts)
+        else:
+            self.scripts.extend(scripts)
+
+    def dict_append(self,**dict):
+        for key in self.list_keys:
+            a = getattr(self,key)
+            a.extend(dict.get(key,[]))
+        for key in self.dict_keys:
+            a = getattr(self,key)
+            a.update(dict.get(key,{}))
+        known_keys = self.list_keys + self.dict_keys + self.extra_keys
+        for key in dict.keys():
+            if key not in known_keys:
+                a = getattr(self, key, None)
+                if a and a==dict[key]: continue
+                self.warn('Inheriting attribute %r=%r from %r' \
+                          % (key,dict[key],dict.get('name','?')))
+                setattr(self,key,dict[key])
+                self.extra_keys.append(key)
+            elif key in self.extra_keys:
+                self.info('Ignoring attempt to set %r (from %r to %r)' \
+                          % (key, getattr(self,key), dict[key]))
+            elif key in known_keys:
+                # key is already processed above
+                pass
+            else:
+                raise ValueError, "Don't know about key=%r" % (key)
+
+    def __str__(self):
+        from pprint import pformat
+        known_keys = self.list_keys + self.dict_keys + self.extra_keys
+        s = '<'+5*'-' + '\n'
+        s += 'Configuration of '+self.name+':\n'
+        known_keys.sort()
+        for k in known_keys:
+            a = getattr(self,k,None)
+            if a:
+                s += '%s = %s\n' % (k,pformat(a))
+        s += 5*'-' + '>'
+        return s
+
+    def get_config_cmd(self):
+        """
+        Returns the numpy.distutils config command instance.
+        """
+        cmd = get_cmd('config')
+        cmd.ensure_finalized()
+        cmd.dump_source = 0
+        cmd.noisy = 0
+        old_path = os.environ.get('PATH')
+        if old_path:
+            path = os.pathsep.join(['.',old_path])
+            os.environ['PATH'] = path
+        return cmd
+
+    def get_build_temp_dir(self):
+        """
+        Return a path to a temporary directory where temporary files should be
+        placed.
+        """
+        cmd = get_cmd('build')
+        cmd.ensure_finalized()
+        return cmd.build_temp
+
+    def have_f77c(self):
+        """Check for availability of Fortran 77 compiler.
+
+        Use it inside source generating function to ensure that
+        setup distribution instance has been initialized.
+
+        Notes
+        -----
+        True if a Fortran 77 compiler is available (because a simple Fortran 77
+        code was able to be compiled successfully).
+        """
+        simple_fortran_subroutine = '''
+        subroutine simple
+        end
+        '''
+        config_cmd = self.get_config_cmd()
+        flag = config_cmd.try_compile(simple_fortran_subroutine,lang='f77')
+        return flag
+
+    def have_f90c(self):
+        """Check for availability of Fortran 90 compiler.
+
+        Use it inside source generating function to ensure that
+        setup distribution instance has been initialized.
+
+        Notes
+        -----
+        True if a Fortran 90 compiler is available (because a simple Fortran
+        90 code was able to be compiled successfully)
+        """
+        simple_fortran_subroutine = '''
+        subroutine simple
+        end
+        '''
+        config_cmd = self.get_config_cmd()
+        flag = config_cmd.try_compile(simple_fortran_subroutine,lang='f90')
+        return flag
+
+    def append_to(self, extlib):
+        """Append libraries, include_dirs to extension or library item.
+        """
+        if is_sequence(extlib):
+            lib_name, build_info = extlib
+            dict_append(build_info,
+                        libraries=self.libraries,
+                        include_dirs=self.include_dirs)
+        else:
+            from numpy.distutils.core import Extension
+            assert isinstance(extlib,Extension), repr(extlib)
+            extlib.libraries.extend(self.libraries)
+            extlib.include_dirs.extend(self.include_dirs)
+
+    def _get_svn_revision(self,path):
+        """Return path's SVN revision number.
+        """
+        revision = None
+        m = None
+        try:
+            p = subprocess.Popen(['svnversion'], shell=True,
+                    stdout=subprocess.PIPE, stderr=STDOUT,
+                    close_fds=True)
+            sout = p.stdout
+            m = re.match(r'(?P<revision>\d+)', sout.read())
+        except:
+            pass
+        if m:
+            revision = int(m.group('revision'))
+            return revision
+        if sys.platform=='win32' and os.environ.get('SVN_ASP_DOT_NET_HACK',None):
+            entries = njoin(path,'_svn','entries')
+        else:
+            entries = njoin(path,'.svn','entries')
+        if os.path.isfile(entries):
+            f = open(entries)
+            fstr = f.read()
+            f.close()
+            if fstr[:5] == '<?xml':  # pre 1.4
+                m = re.search(r'revision="(?P<revision>\d+)"',fstr)
+                if m:
+                    revision = int(m.group('revision'))
+            else:  # non-xml entries file --- check to be sure that
+                m = re.search(r'dir[\n\r]+(?P<revision>\d+)', fstr)
+                if m:
+                    revision = int(m.group('revision'))
+        return revision
+
+    def get_version(self, version_file=None, version_variable=None):
+        """Try to get version string of a package.
+
+        Return a version string of the current package or None if the version
+        information could not be detected. 
+        
+        Notes
+        -----
+        This method scans files named
+        __version__.py, <packagename>_version.py, version.py, and
+        __svn_version__.py for string variables version, __version\__, and
+        <packagename>_version, until a version number is found.
+        """
+        version = getattr(self,'version',None)
+        if version is not None:
+            return version
+
+        # Get version from version file.
+        if version_file is None:
+            files = ['__version__.py',
+                     self.name.split('.')[-1]+'_version.py',
+                     'version.py',
+                     '__svn_version__.py']
+        else:
+            files = [version_file]
+        if version_variable is None:
+            version_vars = ['version',
+                            '__version__',
+                            self.name.split('.')[-1]+'_version']
+        else:
+            version_vars = [version_variable]
+        for f in files:
+            fn = njoin(self.local_path,f)
+            if os.path.isfile(fn):
+                info = (open(fn),fn,('.py','U',1))
+                name = os.path.splitext(os.path.basename(fn))[0]
+                n = dot_join(self.name,name)
+                try:
+                    version_module = imp.load_module('_'.join(n.split('.')),*info)
+                except ImportError,msg:
+                    self.warn(str(msg))
+                    version_module = None
+                if version_module is None:
+                    continue
+
+                for a in version_vars:
+                    version = getattr(version_module,a,None)
+                    if version is not None:
+                        break
+                if version is not None:
+                    break
+
+        if version is not None:
+            self.version = version
+            return version
+
+        # Get version as SVN revision number
+        revision = self._get_svn_revision(self.local_path)
+        if revision is not None:
+            version = str(revision)
+            self.version = version
+
+        return version
+
+    def make_svn_version_py(self, delete=True):
+        """Appends a data function to the data_files list that will generate
+        __svn_version__.py file to the current package directory. 
+        
+        Generate package __svn_version__.py file from SVN revision number,
+        it will be removed after python exits but will be available
+        when sdist, etc commands are executed.
+
+        Notes
+        -----
+        If __svn_version__.py existed before, nothing is done.
+
+        This is
+        intended for working with source directories that are in an SVN
+        repository.
+        """
+        target = njoin(self.local_path,'__svn_version__.py')
+        revision = self._get_svn_revision(self.local_path)
+        if os.path.isfile(target) or revision is None:
+            return
+        else:
+            def generate_svn_version_py():
+                if not os.path.isfile(target):
+                    version = str(revision)
+                    self.info('Creating %s (version=%r)' % (target,version))
+                    f = open(target,'w')
+                    f.write('version = %r\n' % (version))
+                    f.close()
+
+                import atexit
+                def rm_file(f=target,p=self.info):
+                    if delete:
+                        try: os.remove(f); p('removed '+f)
+                        except OSError: pass
+                        try: os.remove(f+'c'); p('removed '+f+'c')
+                        except OSError: pass
+
+                atexit.register(rm_file)
+
+                return target
+
+            self.add_data_files(('', generate_svn_version_py()))
+
+    def make_config_py(self,name='__config__'):
+        """Generate package __config__.py file containing system_info
+        information used during building the package.
+
+        This file is installed to the
+        package installation directory.
+
+        """
+        self.py_modules.append((self.name,name,generate_config_py))
+
+    def scons_make_config_py(self, name = '__config__'):
+        """Generate package __config__.py file containing system_info
+        information used during building the package.
+        """
+        self.py_modules.append((self.name, name, scons_generate_config_py))
+
+    def get_info(self,*names):
+        """Get resources information.
+
+        Return information (from system_info.get_info) for all of the names in
+        the argument list in a single dictionary.
+        """
+        from system_info import get_info, dict_append
+        info_dict = {}
+        for a in names:
+            dict_append(info_dict,**get_info(a))
+        return info_dict
+
+
+def get_cmd(cmdname, _cache={}):
+    if cmdname not in _cache:
+        import distutils.core
+        dist = distutils.core._setup_distribution
+        if dist is None:
+            from distutils.errors import DistutilsInternalError
+            raise DistutilsInternalError(
+                  'setup distribution instance not initialized')
+        cmd = dist.get_command_obj(cmdname)
+        _cache[cmdname] = cmd
+    return _cache[cmdname]
+
+def get_numpy_include_dirs():
+    # numpy_include_dirs are set by numpy/core/setup.py, otherwise []
+    include_dirs = Configuration.numpy_include_dirs[:]
+    if not include_dirs:
+        import numpy
+        include_dirs = [ numpy.get_include() ]
+    # else running numpy/core/setup.py
+    return include_dirs
+
+def get_npy_pkg_dir():
+    """Return the path where to find the npy-pkg-config directory."""
+    # XXX: import here for bootstrapping reasons
+    import numpy
+    d = os.path.join(os.path.dirname(numpy.__file__),
+            'core', 'lib', 'npy-pkg-config')
+    return d
+
+def get_pkg_info(pkgname, dirs=None):
+    """Given a clib package name, returns a info dict with the necessary
+    options to use the clib.
+
+    Parameters
+    ----------
+    pkgname: str
+        name of the package (should match the name of the .ini file, without
+        the extension, e.g. foo for the file foo.ini)
+    dirs: seq {None}
+        if given, should be a sequence of additional directories where to look
+        for npy-pkg-config files. Those directories are search prior to the
+        numpy one.
+
+    Note
+    ----
+    Raise a numpy.distutils.PkgNotFound exception if the package is not
+    found.
+
+    See Also
+    --------
+    add_npy_pkg_info, add_installed_library, get_info
+    """
+    from numpy.distutils.npy_pkg_config import read_config
+
+    if dirs:
+        dirs.append(get_npy_pkg_dir())
+    else:
+        dirs = [get_npy_pkg_dir()]
+    return read_config(pkgname, dirs)
+
+def get_info(pkgname, dirs=None):
+    """Given a clib package name, returns a info dict with the necessary
+    options to use the clib.
+
+    Parameters
+    ----------
+    pkgname: str
+        name of the package (should match the name of the .ini file, without
+        the extension, e.g. foo for the file foo.ini)
+    dirs: seq {None}
+        if given, should be a sequence of additional directories where to look
+        for npy-pkg-config files. Those directories are search prior to the
+        numpy one.
+
+    Note
+    ----
+    Raise a numpy.distutils.PkgNotFound exception if the package is not
+    found.
+
+    See Also
+    --------
+    add_npy_pkg_info, add_installed_library, get_pkg_info
+
+    Example
+    -------
+    To get the necessary informations for the npymath library from NumPy:
+
+    >>> npymath_info = get_info('npymath')
+    >>> config.add_extension('foo', sources=['foo.c'], extra_info=npymath_info)
+    """
+    from numpy.distutils.npy_pkg_config import parse_flags
+    pkg_info = get_pkg_info(pkgname, dirs)
+
+    # Translate LibraryInfo instance into a build_info dict
+    info = parse_flags(pkg_info.cflags())
+    for k, v in parse_flags(pkg_info.libs()).items():
+        info[k].extend(v)
+
+    # add_extension extra_info argument is ANAL
+    info['define_macros'] = info['macros']
+    del info['macros']
+    del info['ignored']
+
+    return info
+
+def is_bootstrapping():
+    import __builtin__
+    try:
+        __builtin__.__NUMPY_SETUP__
+        return True
+    except AttributeError:
+        return False
+        __NUMPY_SETUP__ = False
+
+def scons_generate_config_py(target):
+    """generate config.py file containing system_info information
+    used during building the package.
+
+    usage:
+        config['py_modules'].append((packagename, '__config__',generate_config_py))
+    """
+    from distutils.dir_util import mkpath
+    from numscons import get_scons_configres_dir, get_scons_configres_filename
+    d = {}
+    mkpath(os.path.dirname(target))
+    f = open(target, 'w')
+    f.write('# this file is generated by %s\n' % (os.path.abspath(sys.argv[0])))
+    f.write('# it contains system_info results at the time of building this package.\n')
+    f.write('__all__ = ["show"]\n\n')
+    confdir = get_scons_configres_dir()
+    confilename = get_scons_configres_filename()
+    for root, dirs, files in os.walk(confdir):
+        if files:
+            file = os.path.join(root, confilename)
+            assert root.startswith(confdir)
+            pkg_name = '.'.join(root[len(confdir)+1:].split(os.sep))
+            fid = open(file, 'r')
+            try:
+                cnt = fid.read()
+                d[pkg_name] = eval(cnt)
+            finally:
+                fid.close()
+    # d is a dictionary whose keys are package names, and values the
+    # corresponding configuration. Each configuration is itself a dictionary
+    # (lib : libinfo)
+    f.write('_config = %s\n' % d)
+    f.write(r'''
+def show():
+    for pkg, config in _config.items():
+        print "package %s configuration:" % pkg
+        for lib, libc in config.items():
+            print '    %s' % lib
+            for line in libc.split('\n'):
+                print '\t%s' % line
+    ''')
+    f.close()
+    return target
+
+#########################
+
+def default_config_dict(name = None, parent_name = None, local_path=None):
+    """Return a configuration dictionary for usage in
+    configuration() function defined in file setup_<name>.py.
+    """
+    import warnings
+    warnings.warn('Use Configuration(%r,%r,top_path=%r) instead of '\
+                  'deprecated default_config_dict(%r,%r,%r)'
+                  % (name, parent_name, local_path,
+                     name, parent_name, local_path,
+                     ))
+    c = Configuration(name, parent_name, local_path)
+    return c.todict()
+
+
+def dict_append(d, **kws):
+    for k, v in kws.items():
+        if k in d:
+            ov = d[k]
+            if isinstance(ov,str):
+                d[k] = v
+            else:
+                d[k].extend(v)
+        else:
+            d[k] = v
+
+def appendpath(prefix, path):
+    if os.path.sep != '/':
+        prefix = prefix.replace('/', os.path.sep)
+        path = path.replace('/', os.path.sep)
+    drive = ''
+    if os.path.isabs(path):
+        drive = os.path.splitdrive(prefix)[0]
+        absprefix = os.path.splitdrive(os.path.abspath(prefix))[1]
+        pathdrive, path = os.path.splitdrive(path)
+        d = os.path.commonprefix([absprefix, path])
+        if os.path.join(absprefix[:len(d)], absprefix[len(d):]) != absprefix \
+           or os.path.join(path[:len(d)], path[len(d):]) != path:
+            # Handle invalid paths
+            d = os.path.dirname(d)
+        subpath = path[len(d):]
+        if os.path.isabs(subpath):
+            subpath = subpath[1:]
+    else:
+        subpath = path
+    return os.path.normpath(njoin(drive + prefix, subpath))
+
+def generate_config_py(target):
+    """Generate config.py file containing system_info information
+    used during building the package.
+
+    Usage:
+        config['py_modules'].append((packagename, '__config__',generate_config_py))
+    """
+    from numpy.distutils.system_info import system_info
+    from distutils.dir_util import mkpath
+    mkpath(os.path.dirname(target))
+    f = open(target, 'w')
+    f.write('# This file is generated by %s\n' % (os.path.abspath(sys.argv[0])))
+    f.write('# It contains system_info results at the time of building this package.\n')
+    f.write('__all__ = ["get_info","show"]\n\n')
+    for k, i in system_info.saved_results.items():
+        f.write('%s=%r\n' % (k, i))
+    f.write(r'''
+def get_info(name):
+    g = globals()
+    return g.get(name, g.get(name + "_info", {}))
+
+def show():
+    for name,info_dict in globals().items():
+        if name[0] == "_" or type(info_dict) is not type({}): continue
+        print name + ":"
+        if not info_dict:
+            print "  NOT AVAILABLE"
+        for k,v in info_dict.items():
+            v = str(v)
+            if k == "sources" and len(v) > 200:
+                v = v[:60] + " ...\n... " + v[-60:]
+            print "    %s = %s" % (k,v)
+        print
+    ''')
+
+    f.close()
+    return target
+
+def msvc_version(compiler):
+    """Return version major and minor of compiler instance if it is
+    MSVC, raise an exception otherwise."""
+    if not compiler.compiler_type == "msvc":
+        raise ValueError("Compiler instance is not msvc (%s)"\
+                         % compiler.compiler_type)
+    return compiler._MSVCCompiler__version
+
+if sys.version[:3] >= '2.5':
+    def get_build_architecture():
+        from distutils.msvccompiler import get_build_architecture
+        return get_build_architecture()
+else:
+    #copied from python 2.5.1 distutils/msvccompiler.py
+    def get_build_architecture():
+        """Return the processor architecture.
+
+        Possible results are "Intel", "Itanium", or "AMD64".
+        """
+        prefix = " bit ("
+        i = sys.version.find(prefix)
+        if i == -1:
+            return "Intel"
+        j = sys.version.find(")", i)
+        return sys.version[i+len(prefix):j]
+
+# Colored log, requires Python 2.3 or up.
+
+import sys
+from distutils.log import *
+from distutils.log import Log as old_Log
+from distutils.log import _global_log
+from misc_util import red_text, default_text, cyan_text, green_text, is_sequence, is_string
+
+
+def _fix_args(args,flag=1):
+    if is_string(args):
+        return args.replace('%','%%')
+    if flag and is_sequence(args):
+        return tuple([_fix_args(a,flag=0) for a in args])
+    return args
+
+class Log(old_Log):
+    def _log(self, level, msg, args):
+        if level >= self.threshold:
+            if args:
+                msg = msg % _fix_args(args)
+            if 0:
+                if msg.startswith('copying ') and msg.find(' -> ') != -1:
+                    return
+                if msg.startswith('byte-compiling '):
+                    return
+            print _global_color_map[level](msg)
+            sys.stdout.flush()
+
+    def good(self, msg, *args):
+        """If we'd log WARN messages, log this message as a 'nice' anti-warn
+        message.
+        """
+        if WARN >= self.threshold:
+            if args:
+                print green_text(msg % _fix_args(args))
+            else:
+                print green_text(msg)
+            sys.stdout.flush()
+_global_log.__class__ = Log
+
+good = _global_log.good
+
+def set_threshold(level, force=False):
+    prev_level = _global_log.threshold
+    if prev_level > DEBUG or force:
+        # If we're running at DEBUG, don't change the threshold, as there's
+        # likely a good reason why we're running at this level.
+        _global_log.threshold = level
+        if level <= DEBUG:
+            info('set_threshold: setting thershold to DEBUG level, it can be changed only with force argument')
+    else:
+        info('set_threshold: not changing thershold from DEBUG level %s to %s' % (prev_level,level))
+    return prev_level
+
+def set_verbosity(v, force=False):
+    prev_level = _global_log.threshold
+    if v < 0:
+        set_threshold(ERROR, force)
+    elif v == 0:
+        set_threshold(WARN, force)
+    elif v == 1:
+        set_threshold(INFO, force)
+    elif v >= 2:
+        set_threshold(DEBUG, force)
+    return {FATAL:-2,ERROR:-1,WARN:0,INFO:1,DEBUG:2}.get(prev_level,1)
+
+_global_color_map = {
+    DEBUG:cyan_text,
+    INFO:default_text,
+    WARN:red_text,
+    ERROR:red_text,
+    FATAL:red_text
+}
+
+# don't use INFO,.. flags in set_verbosity, these flags are for set_threshold.
+set_verbosity(0, force=True)
+
+""" Functions for converting from DOS to UNIX line endings
+"""
+
+import sys, re, os
+
+def dos2unix(file):
+    "Replace CRLF with LF in argument files.  Print names of changed files."
+    if os.path.isdir(file):
+        print file, "Directory!"
+        return
+
+    data = open(file, "rb").read()
+    if '\0' in data:
+        print file, "Binary!"
+        return
+
+    newdata = re.sub("\r\n", "\n", data)
+    if newdata != data:
+        print 'dos2unix:', file
+        f = open(file, "wb")
+        f.write(newdata)
+        f.close()
+        return file
+    else:
+        print file, 'ok'
+
+def dos2unix_one_dir(modified_files,dir_name,file_names):
+    for file in file_names:
+        full_path = os.path.join(dir_name,file)
+        file = dos2unix(full_path)
+        if file is not None:
+            modified_files.append(file)
+
+def dos2unix_dir(dir_name):
+    modified_files = []
+    os.path.walk(dir_name,dos2unix_one_dir,modified_files)
+    return modified_files
+#----------------------------------
+
+def unix2dos(file):
+    "Replace LF with CRLF in argument files.  Print names of changed files."
+    if os.path.isdir(file):
+        print file, "Directory!"
+        return
+
+    data = open(file, "rb").read()
+    if '\0' in data:
+        print file, "Binary!"
+        return
+    newdata = re.sub("\r\n", "\n", data)
+    newdata = re.sub("\n", "\r\n", newdata)
+    if newdata != data:
+        print 'unix2dos:', file
+        f = open(file, "wb")
+        f.write(newdata)
+        f.close()
+        return file
+    else:
+        print file, 'ok'
+
+def unix2dos_one_dir(modified_files,dir_name,file_names):
+    for file in file_names:
+        full_path = os.path.join(dir_name,file)
+        unix2dos(full_path)
+        if file is not None:
+            modified_files.append(file)
+
+def unix2dos_dir(dir_name):
+    modified_files = []
+    os.path.walk(dir_name,unix2dos_one_dir,modified_files)
+    return modified_files
+
+if __name__ == "__main__":
+    dos2unix_dir(sys.argv[1])
+
+import re
+import sys
+import os
+import subprocess
+
+__doc__ = """This module generates a DEF file from the symbols in
+an MSVC-compiled DLL import library.  It correctly discriminates between
+data and functions.  The data is collected from the output of the program
+nm(1).
+
+Usage:
+    python lib2def.py [libname.lib] [output.def]
+or
+    python lib2def.py [libname.lib] > output.def
+
+libname.lib defaults to python<py_ver>.lib and output.def defaults to stdout
+
+Author: Robert Kern <kernr@mail.ncifcrf.gov>
+Last Update: April 30, 1999
+"""
+
+__version__ = '0.1a'
+
+py_ver = "%d%d" % tuple(sys.version_info[:2])
+
+DEFAULT_NM = 'nm -Cs'
+
+DEF_HEADER = """LIBRARY         python%s.dll
+;CODE           PRELOAD MOVEABLE DISCARDABLE
+;DATA           PRELOAD SINGLE
+
+EXPORTS
+""" % py_ver
+# the header of the DEF file
+
+FUNC_RE = re.compile(r"^(.*) in python%s\.dll" % py_ver, re.MULTILINE)
+DATA_RE = re.compile(r"^_imp__(.*) in python%s\.dll" % py_ver, re.MULTILINE)
+
+def parse_cmd():
+    """Parses the command-line arguments.
+
+libfile, deffile = parse_cmd()"""
+    if len(sys.argv) == 3:
+        if sys.argv[1][-4:] == '.lib' and sys.argv[2][-4:] == '.def':
+            libfile, deffile = sys.argv[1:]
+        elif sys.argv[1][-4:] == '.def' and sys.argv[2][-4:] == '.lib':
+            deffile, libfile = sys.argv[1:]
+        else:
+            print "I'm assuming that your first argument is the library"
+            print "and the second is the DEF file."
+    elif len(sys.argv) == 2:
+        if sys.argv[1][-4:] == '.def':
+            deffile = sys.argv[1]
+            libfile = 'python%s.lib' % py_ver
+        elif sys.argv[1][-4:] == '.lib':
+            deffile = None
+            libfile = sys.argv[1]
+    else:
+        libfile = 'python%s.lib' % py_ver
+        deffile = None
+    return libfile, deffile
+
+def getnm(nm_cmd = ['nm', '-Cs', 'python%s.lib' % py_ver]):
+    """Returns the output of nm_cmd via a pipe.
+
+nm_output = getnam(nm_cmd = 'nm -Cs py_lib')"""
+    f = subprocess.Popen(nm_cmd, shell=True, stdout=subprocess.PIPE)
+    nm_output = f.stdout.read()
+    f.stdout.close()
+    return nm_output
+
+def parse_nm(nm_output):
+    """Returns a tuple of lists: dlist for the list of data
+symbols and flist for the list of function symbols.
+
+dlist, flist = parse_nm(nm_output)"""
+    data = DATA_RE.findall(nm_output)
+    func = FUNC_RE.findall(nm_output)
+
+    flist = []
+    for sym in data:
+        if sym in func and (sym[:2] == 'Py' or sym[:3] == '_Py' or sym[:4] == 'init'):
+            flist.append(sym)
+
+    dlist = []
+    for sym in data:
+        if sym not in flist and (sym[:2] == 'Py' or sym[:3] == '_Py'):
+            dlist.append(sym)
+
+    dlist.sort()
+    flist.sort()
+    return dlist, flist
+
+def output_def(dlist, flist, header, file = sys.stdout):
+    """Outputs the final DEF file to a file defaulting to stdout.
+
+output_def(dlist, flist, header, file = sys.stdout)"""
+    for data_sym in dlist:
+        header = header + '\t%s DATA\n' % data_sym
+    header = header + '\n' # blank line
+    for func_sym in flist:
+        header = header + '\t%s\n' % func_sym
+    file.write(header)
+
+if __name__ == '__main__':
+    libfile, deffile = parse_cmd()
+    if deffile is None:
+        deffile = sys.stdout
+    else:
+        deffile = open(deffile, 'w')
+    nm_cmd = [str(DEFAULT_NM), str(libfile)]
+    nm_output = getnm(nm_cmd)
+    dlist, flist = parse_nm(nm_output)
+    output_def(dlist, flist, DEF_HEADER, deffile)
+
+#!/bin/env python
+"""
+This file defines a set of system_info classes for getting
+information about various resources (libraries, library directories,
+include directories, etc.) in the system. Currently, the following
+classes are available:
+
+  atlas_info
+  atlas_threads_info
+  atlas_blas_info
+  atlas_blas_threads_info
+  lapack_atlas_info
+  blas_info
+  lapack_info
+  blas_opt_info       # usage recommended
+  lapack_opt_info     # usage recommended
+  fftw_info,dfftw_info,sfftw_info
+  fftw_threads_info,dfftw_threads_info,sfftw_threads_info
+  djbfft_info
+  x11_info
+  lapack_src_info
+  blas_src_info
+  numpy_info
+  numarray_info
+  numpy_info
+  boost_python_info
+  agg2_info
+  wx_info
+  gdk_pixbuf_xlib_2_info
+  gdk_pixbuf_2_info
+  gdk_x11_2_info
+  gtkp_x11_2_info
+  gtkp_2_info
+  xft_info
+  freetype2_info
+  umfpack_info
+
+Usage:
+    info_dict = get_info(<name>)
+  where <name> is a string 'atlas','x11','fftw','lapack','blas',
+  'lapack_src', 'blas_src', etc. For a complete list of allowed names,
+  see the definition of get_info() function below.
+
+  Returned info_dict is a dictionary which is compatible with
+  distutils.setup keyword arguments. If info_dict == {}, then the
+  asked resource is not available (system_info could not find it).
+
+  Several *_info classes specify an environment variable to specify
+  the locations of software. When setting the corresponding environment
+  variable to 'None' then the software will be ignored, even when it
+  is available in system.
+
+Global parameters:
+  system_info.search_static_first - search static libraries (.a)
+             in precedence to shared ones (.so, .sl) if enabled.
+  system_info.verbosity - output the results to stdout if enabled.
+
+The file 'site.cfg' is looked for in
+
+1) Directory of main setup.py file being run.
+2) Home directory of user running the setup.py file as ~/.numpy-site.cfg
+3) System wide directory (location of this file...)
+
+The first one found is used to get system configuration options The
+format is that used by ConfigParser (i.e., Windows .INI style). The
+section ALL has options that are the default for each section. The
+available sections are fftw, atlas, and x11. Appropiate defaults are
+used if nothing is specified.
+
+The order of finding the locations of resources is the following:
+ 1. environment variable
+ 2. section in site.cfg
+ 3. ALL section in site.cfg
+Only the first complete match is returned.
+
+Example:
+----------
+[ALL]
+library_dirs = /usr/lib:/usr/local/lib:/opt/lib
+include_dirs = /usr/include:/usr/local/include:/opt/include
+src_dirs = /usr/local/src:/opt/src
+# search static libraries (.a) in preference to shared ones (.so)
+search_static_first = 0
+
+[fftw]
+fftw_libs = rfftw, fftw
+fftw_opt_libs = rfftw_threaded, fftw_threaded
+# if the above aren't found, look for {s,d}fftw_libs and {s,d}fftw_opt_libs
+
+[atlas]
+library_dirs = /usr/lib/3dnow:/usr/lib/3dnow/atlas
+# for overriding the names of the atlas libraries
+atlas_libs = lapack, f77blas, cblas, atlas
+
+[x11]
+library_dirs = /usr/X11R6/lib
+include_dirs = /usr/X11R6/include
+----------
+
+Authors:
+  Pearu Peterson <pearu@cens.ioc.ee>, February 2002
+  David M. Cooke <cookedm@physics.mcmaster.ca>, April 2002
+
+Copyright 2002 Pearu Peterson all rights reserved,
+Pearu Peterson <pearu@cens.ioc.ee>
+Permission to use, modify, and distribute this software is given under the
+terms of the NumPy (BSD style) license.  See LICENSE.txt that came with
+this distribution for specifics.
+
+NO WARRANTY IS EXPRESSED OR IMPLIED.  USE AT YOUR OWN RISK.
+"""
+
+import sys
+import os
+import re
+import copy
+import warnings
+from glob import glob
+import ConfigParser
+
+from distutils.errors import DistutilsError
+from distutils.dist import Distribution
+import distutils.sysconfig
+from distutils import log
+
+from numpy.distutils.exec_command import \
+    find_executable, exec_command, get_pythonexe
+from numpy.distutils.misc_util import is_sequence, is_string
+from numpy.distutils.command.config import config as cmd_config
+
+# Determine number of bits
+import platform
+_bits = {'32bit':32,'64bit':64}
+platform_bits = _bits[platform.architecture()[0]]
+
+def libpaths(paths,bits):
+    """Return a list of library paths valid on 32 or 64 bit systems.
+
+    Inputs:
+      paths : sequence
+        A sequence of strings (typically paths)
+      bits : int
+        An integer, the only valid values are 32 or 64.  A ValueError exception
+      is raised otherwise.
+
+    Examples:
+
+    Consider a list of directories
+    >>> paths = ['/usr/X11R6/lib','/usr/X11/lib','/usr/lib']
+
+    For a 32-bit platform, this is already valid:
+    >>> libpaths(paths,32)
+    ['/usr/X11R6/lib', '/usr/X11/lib', '/usr/lib']
+
+    On 64 bits, we prepend the '64' postfix
+    >>> libpaths(paths,64)
+    ['/usr/X11R6/lib64', '/usr/X11R6/lib', '/usr/X11/lib64', '/usr/X11/lib',
+    '/usr/lib64', '/usr/lib']
+    """
+    if bits not in (32, 64):
+        raise ValueError("Invalid bit size in libpaths: 32 or 64 only")
+
+    # Handle 32bit case
+    if bits==32:
+        return paths
+
+    # Handle 64bit case
+    out = []
+    for p in paths:
+        out.extend([p+'64', p])
+
+    return out
+
+
+if sys.platform == 'win32':
+    default_lib_dirs = ['C:\\',
+                        os.path.join(distutils.sysconfig.EXEC_PREFIX,
+                                     'libs')]
+    default_include_dirs = []
+    default_src_dirs = ['.']
+    default_x11_lib_dirs = []
+    default_x11_include_dirs = []
+else:
+    default_lib_dirs = libpaths(['/usr/local/lib','/opt/lib','/usr/lib',
+                                 '/opt/local/lib','/sw/lib'], platform_bits)
+    default_include_dirs = ['/usr/local/include',
+                            '/opt/include', '/usr/include',
+                            '/opt/local/include', '/sw/include',
+                            '/usr/include/suitesparse']
+    default_src_dirs = ['.','/usr/local/src', '/opt/src','/sw/src']
+
+    default_x11_lib_dirs = libpaths(['/usr/X11R6/lib','/usr/X11/lib',
+                                     '/usr/lib'], platform_bits)
+    default_x11_include_dirs = ['/usr/X11R6/include','/usr/X11/include',
+                                '/usr/include']
+
+if os.path.join(sys.prefix, 'lib') not in default_lib_dirs:
+    default_lib_dirs.insert(0,os.path.join(sys.prefix, 'lib'))
+    default_include_dirs.append(os.path.join(sys.prefix, 'include'))
+    default_src_dirs.append(os.path.join(sys.prefix, 'src'))
+
+default_lib_dirs = filter(os.path.isdir, default_lib_dirs)
+default_include_dirs = filter(os.path.isdir, default_include_dirs)
+default_src_dirs = filter(os.path.isdir, default_src_dirs)
+
+so_ext = distutils.sysconfig.get_config_vars('SO')[0] or ''
+
+def get_standard_file(fname):
+    """Returns a list of files named 'fname' from
+    1) System-wide directory (directory-location of this module)
+    2) Users HOME directory (os.environ['HOME'])
+    3) Local directory
+    """
+    # System-wide file
+    filenames = []
+    try:
+        f = __file__
+    except NameError:
+        f = sys.argv[0]
+    else:
+        sysfile = os.path.join(os.path.split(os.path.abspath(f))[0],
+                               fname)
+        if os.path.isfile(sysfile):
+            filenames.append(sysfile)
+
+    # Home directory
+    # And look for the user config file
+    try:
+        f = os.environ['HOME']
+    except KeyError:
+        pass
+    else:
+        user_file = os.path.join(f, fname)
+        if os.path.isfile(user_file):
+            filenames.append(user_file)
+
+    # Local file
+    if os.path.isfile(fname):
+        filenames.append(os.path.abspath(fname))
+
+    return filenames
+
+def get_info(name,notfound_action=0):
+    """
+    notfound_action:
+      0 - do nothing
+      1 - display warning message
+      2 - raise error
+    """
+    cl = {'atlas':atlas_info,  # use lapack_opt or blas_opt instead
+          'atlas_threads':atlas_threads_info,                # ditto
+          'atlas_blas':atlas_blas_info,
+          'atlas_blas_threads':atlas_blas_threads_info,
+          'lapack_atlas':lapack_atlas_info,  # use lapack_opt instead
+          'lapack_atlas_threads':lapack_atlas_threads_info,  # ditto
+          'mkl':mkl_info,
+          'lapack_mkl':lapack_mkl_info,      # use lapack_opt instead
+          'blas_mkl':blas_mkl_info,          # use blas_opt instead
+          'x11':x11_info,
+          'fft_opt':fft_opt_info,
+          'fftw':fftw_info,
+          'fftw2':fftw2_info,
+          'fftw3':fftw3_info,
+          'dfftw':dfftw_info,
+          'sfftw':sfftw_info,
+          'fftw_threads':fftw_threads_info,
+          'dfftw_threads':dfftw_threads_info,
+          'sfftw_threads':sfftw_threads_info,
+          'djbfft':djbfft_info,
+          'blas':blas_info,                  # use blas_opt instead
+          'lapack':lapack_info,              # use lapack_opt instead
+          'lapack_src':lapack_src_info,
+          'blas_src':blas_src_info,
+          'numpy':numpy_info,
+          'f2py':f2py_info,
+          'Numeric':Numeric_info,
+          'numeric':Numeric_info,
+          'numarray':numarray_info,
+          'numerix':numerix_info,
+          'lapack_opt':lapack_opt_info,
+          'blas_opt':blas_opt_info,
+          'boost_python':boost_python_info,
+          'agg2':agg2_info,
+          'wx':wx_info,
+          'gdk_pixbuf_xlib_2':gdk_pixbuf_xlib_2_info,
+          'gdk-pixbuf-xlib-2.0':gdk_pixbuf_xlib_2_info,
+          'gdk_pixbuf_2':gdk_pixbuf_2_info,
+          'gdk-pixbuf-2.0':gdk_pixbuf_2_info,
+          'gdk':gdk_info,
+          'gdk_2':gdk_2_info,
+          'gdk-2.0':gdk_2_info,
+          'gdk_x11_2':gdk_x11_2_info,
+          'gdk-x11-2.0':gdk_x11_2_info,
+          'gtkp_x11_2':gtkp_x11_2_info,
+          'gtk+-x11-2.0':gtkp_x11_2_info,
+          'gtkp_2':gtkp_2_info,
+          'gtk+-2.0':gtkp_2_info,
+          'xft':xft_info,
+          'freetype2':freetype2_info,
+          'umfpack':umfpack_info,
+          'amd':amd_info,
+          }.get(name.lower(),system_info)
+    return cl().get_info(notfound_action)
+
+class NotFoundError(DistutilsError):
+    """Some third-party program or library is not found."""
+
+class AtlasNotFoundError(NotFoundError):
+    """
+    Atlas (http://math-atlas.sourceforge.net/) libraries not found.
+    Directories to search for the libraries can be specified in the
+    numpy/distutils/site.cfg file (section [atlas]) or by setting
+    the ATLAS environment variable."""
+
+class LapackNotFoundError(NotFoundError):
+    """
+    Lapack (http://www.netlib.org/lapack/) libraries not found.
+    Directories to search for the libraries can be specified in the
+    numpy/distutils/site.cfg file (section [lapack]) or by setting
+    the LAPACK environment variable."""
+
+class LapackSrcNotFoundError(LapackNotFoundError):
+    """
+    Lapack (http://www.netlib.org/lapack/) sources not found.
+    Directories to search for the sources can be specified in the
+    numpy/distutils/site.cfg file (section [lapack_src]) or by setting
+    the LAPACK_SRC environment variable."""
+
+class BlasNotFoundError(NotFoundError):
+    """
+    Blas (http://www.netlib.org/blas/) libraries not found.
+    Directories to search for the libraries can be specified in the
+    numpy/distutils/site.cfg file (section [blas]) or by setting
+    the BLAS environment variable."""
+
+class BlasSrcNotFoundError(BlasNotFoundError):
+    """
+    Blas (http://www.netlib.org/blas/) sources not found.
+    Directories to search for the sources can be specified in the
+    numpy/distutils/site.cfg file (section [blas_src]) or by setting
+    the BLAS_SRC environment variable."""
+
+class FFTWNotFoundError(NotFoundError):
+    """
+    FFTW (http://www.fftw.org/) libraries not found.
+    Directories to search for the libraries can be specified in the
+    numpy/distutils/site.cfg file (section [fftw]) or by setting
+    the FFTW environment variable."""
+
+class DJBFFTNotFoundError(NotFoundError):
+    """
+    DJBFFT (http://cr.yp.to/djbfft.html) libraries not found.
+    Directories to search for the libraries can be specified in the
+    numpy/distutils/site.cfg file (section [djbfft]) or by setting
+    the DJBFFT environment variable."""
+
+class NumericNotFoundError(NotFoundError):
+    """
+    Numeric (http://www.numpy.org/) module not found.
+    Get it from above location, install it, and retry setup.py."""
+
+class X11NotFoundError(NotFoundError):
+    """X11 libraries not found."""
+
+class UmfpackNotFoundError(NotFoundError):
+    """
+    UMFPACK sparse solver (http://www.cise.ufl.edu/research/sparse/umfpack/)
+    not found. Directories to search for the libraries can be specified in the
+    numpy/distutils/site.cfg file (section [umfpack]) or by setting
+    the UMFPACK environment variable."""
+
+class system_info:
+
+    """ get_info() is the only public method. Don't use others.
+    """
+    section = 'ALL'
+    dir_env_var = None
+    search_static_first = 0 # XXX: disabled by default, may disappear in
+                            # future unless it is proved to be useful.
+    verbosity = 1
+    saved_results = {}
+
+    notfounderror = NotFoundError
+
+    def __init__ (self,
+                  default_lib_dirs=default_lib_dirs,
+                  default_include_dirs=default_include_dirs,
+                  verbosity = 1,
+                  ):
+        self.__class__.info = {}
+        self.local_prefixes = []
+        defaults = {}
+        defaults['libraries'] = ''
+        defaults['library_dirs'] = os.pathsep.join(default_lib_dirs)
+        defaults['include_dirs'] = os.pathsep.join(default_include_dirs)
+        defaults['src_dirs'] = os.pathsep.join(default_src_dirs)
+        defaults['search_static_first'] = str(self.search_static_first)
+        self.cp = ConfigParser.ConfigParser(defaults)
+        self.files = []
+        self.files.extend(get_standard_file('.numpy-site.cfg'))
+        self.files.extend(get_standard_file('site.cfg'))
+        self.parse_config_files()
+        if self.section is not None:
+            self.search_static_first = self.cp.getboolean(self.section,
+                                                          'search_static_first')
+        assert isinstance(self.search_static_first, int)
+
+    def parse_config_files(self):
+        self.cp.read(self.files)
+        if not self.cp.has_section(self.section):
+            if self.section is not None:
+                self.cp.add_section(self.section)
+
+    def calc_libraries_info(self):
+        libs = self.get_libraries()
+        dirs = self.get_lib_dirs()
+        info = {}
+        for lib in libs:
+            i = None
+            for d in dirs:
+                i = self.check_libs(d,[lib])
+                if i is not None:
+                    break
+            if i is not None:
+                dict_append(info,**i)
+            else:
+                log.info('Library %s was not found. Ignoring' % (lib))
+        return info
+
+    def set_info(self,**info):
+        if info:
+            lib_info = self.calc_libraries_info()
+            dict_append(info,**lib_info)
+        self.saved_results[self.__class__.__name__] = info
+
+    def has_info(self):
+        return self.__class__.__name__ in self.saved_results
+
+    def get_info(self,notfound_action=0):
+        """ Return a dictonary with items that are compatible
+            with numpy.distutils.setup keyword arguments.
+        """
+        flag = 0
+        if not self.has_info():
+            flag = 1
+            log.info(self.__class__.__name__ + ':')
+            if hasattr(self, 'calc_info'):
+                self.calc_info()
+            if notfound_action:
+                if not self.has_info():
+                    if notfound_action==1:
+                        warnings.warn(self.notfounderror.__doc__)
+                    elif notfound_action==2:
+                        raise self.notfounderror,self.notfounderror.__doc__
+                    else:
+                        raise ValueError(repr(notfound_action))
+
+            if not self.has_info():
+                log.info('  NOT AVAILABLE')
+                self.set_info()
+            else:
+                log.info('  FOUND:')
+
+        res = self.saved_results.get(self.__class__.__name__)
+        if self.verbosity>0 and flag:
+            for k,v in res.items():
+                v = str(v)
+                if k in ['sources','libraries'] and len(v)>270:
+                    v = v[:120]+'...\n...\n...'+v[-120:]
+                log.info('    %s = %s', k, v)
+            log.info('')
+
+        return copy.deepcopy(res)
+
+    def get_paths(self, section, key):
+        dirs = self.cp.get(section, key).split(os.pathsep)
+        env_var = self.dir_env_var
+        if env_var:
+            if is_sequence(env_var):
+                e0 = env_var[-1]
+                for e in env_var:
+                    if e in os.environ:
+                        e0 = e
+                        break
+                if not env_var[0]==e0:
+                    log.info('Setting %s=%s' % (env_var[0],e0))
+                env_var = e0
+        if env_var and env_var in os.environ:
+            d = os.environ[env_var]
+            if d=='None':
+                log.info('Disabled %s: %s',self.__class__.__name__,'(%s is None)' \
+                      % (env_var,))
+                return []
+            if os.path.isfile(d):
+                dirs = [os.path.dirname(d)] + dirs
+                l = getattr(self,'_lib_names',[])
+                if len(l)==1:
+                    b = os.path.basename(d)
+                    b = os.path.splitext(b)[0]
+                    if b[:3]=='lib':
+                        log.info('Replacing _lib_names[0]==%r with %r' \
+                              % (self._lib_names[0], b[3:]))
+                        self._lib_names[0] = b[3:]
+            else:
+                ds = d.split(os.pathsep)
+                ds2 = []
+                for d in ds:
+                    if os.path.isdir(d):
+                        ds2.append(d)
+                        for dd in ['include','lib']:
+                            d1 = os.path.join(d,dd)
+                            if os.path.isdir(d1):
+                                ds2.append(d1)
+                dirs = ds2 + dirs
+        default_dirs = self.cp.get(self.section, key).split(os.pathsep)
+        dirs.extend(default_dirs)
+        ret = []
+        for d in dirs:
+            if not os.path.isdir(d):
+                warnings.warn('Specified path %s is invalid.' % d)
+                continue
+
+            if d not in ret:
+                ret.append(d)
+
+        log.debug('( %s = %s )', key, ':'.join(ret))
+        return ret
+
+    def get_lib_dirs(self, key='library_dirs'):
+        return self.get_paths(self.section, key)
+
+    def get_include_dirs(self, key='include_dirs'):
+        return self.get_paths(self.section, key)
+
+    def get_src_dirs(self, key='src_dirs'):
+        return self.get_paths(self.section, key)
+
+    def get_libs(self, key, default):
+        try:
+            libs = self.cp.get(self.section, key)
+        except ConfigParser.NoOptionError:
+            if not default:
+                return []
+            if is_string(default):
+                return [default]
+            return default
+        return [b for b in [a.strip() for a in libs.split(',')] if b]
+
+    def get_libraries(self, key='libraries'):
+        return self.get_libs(key,'')
+
+    def library_extensions(self):
+        static_exts = ['.a']
+        if sys.platform == 'win32':
+            static_exts.append('.lib')  # .lib is used by MSVC
+        if self.search_static_first:
+            exts = static_exts + [so_ext]
+        else:
+            exts = [so_ext] + static_exts
+        if sys.platform == 'cygwin':
+            exts.append('.dll.a')
+        if sys.platform == 'darwin':
+            exts.append('.dylib')
+        # Debian and Ubuntu added a g3f suffix to shared library to deal with
+        # g77 -> gfortran ABI transition
+        # XXX: disabled, it hides more problem than it solves.
+        #if sys.platform[:5] == 'linux':
+        #    exts.append('.so.3gf')
+        return exts
+
+    def check_libs(self,lib_dir,libs,opt_libs =[]):
+        """If static or shared libraries are available then return
+        their info dictionary.
+
+        Checks for all libraries as shared libraries first, then
+        static (or vice versa if self.search_static_first is True).
+        """
+        exts = self.library_extensions()
+        info = None
+        for ext in exts:
+            info = self._check_libs(lib_dir,libs,opt_libs,[ext])
+            if info is not None:
+                break
+        if not info:
+            log.info('  libraries %s not found in %s', ','.join(libs), lib_dir)
+        return info
+
+    def check_libs2(self, lib_dir, libs, opt_libs =[]):
+        """If static or shared libraries are available then return
+        their info dictionary.
+
+        Checks each library for shared or static.
+        """
+        exts = self.library_extensions()
+        info = self._check_libs(lib_dir,libs,opt_libs,exts)
+        if not info:
+            log.info('  libraries %s not found in %s', ','.join(libs), lib_dir)
+        return info
+
+    def _lib_list(self, lib_dir, libs, exts):
+        assert is_string(lib_dir)
+        liblist = []
+        # under windows first try without 'lib' prefix
+        if sys.platform == 'win32':
+            lib_prefixes = ['', 'lib']
+        else:
+            lib_prefixes = ['lib']
+        # for each library name, see if we can find a file for it.
+        for l in libs:
+            for ext in exts:
+                for prefix in lib_prefixes:
+                    p = self.combine_paths(lib_dir, prefix+l+ext)
+                    if p:
+                        break
+                if p:
+                    assert len(p)==1
+                    # ??? splitext on p[0] would do this for cygwin
+                    # doesn't seem correct
+                    if ext == '.dll.a':
+                        l += '.dll'
+                    liblist.append(l)
+                    break
+        return liblist
+
+    def _check_libs(self, lib_dir, libs, opt_libs, exts):
+        found_libs = self._lib_list(lib_dir, libs, exts)
+        if len(found_libs) == len(libs):
+            info = {'libraries' : found_libs, 'library_dirs' : [lib_dir]}
+            opt_found_libs = self._lib_list(lib_dir, opt_libs, exts)
+            if len(opt_found_libs) == len(opt_libs):
+                info['libraries'].extend(opt_found_libs)
+            return info
+        else:
+            return None
+
+    def combine_paths(self,*args):
+        """Return a list of existing paths composed by all combinations
+        of items from the arguments.
+        """
+        return combine_paths(*args,**{'verbosity':self.verbosity})
+
+
+class fft_opt_info(system_info):
+
+    def calc_info(self):
+        info = {}
+        fftw_info = get_info('fftw3') or get_info('fftw2') or get_info('dfftw')
+        djbfft_info = get_info('djbfft')
+        if fftw_info:
+            dict_append(info,**fftw_info)
+            if djbfft_info:
+                dict_append(info,**djbfft_info)
+            self.set_info(**info)
+            return
+
+
+class fftw_info(system_info):
+    #variables to override
+    section = 'fftw'
+    dir_env_var = 'FFTW'
+    notfounderror = FFTWNotFoundError
+    ver_info  = [ { 'name':'fftw3',
+                    'libs':['fftw3'],
+                    'includes':['fftw3.h'],
+                    'macros':[('SCIPY_FFTW3_H',None)]},
+                  { 'name':'fftw2',
+                    'libs':['rfftw', 'fftw'],
+                    'includes':['fftw.h','rfftw.h'],
+                    'macros':[('SCIPY_FFTW_H',None)]}]
+
+    def __init__(self):
+        system_info.__init__(self)
+
+    def calc_ver_info(self,ver_param):
+        """Returns True on successful version detection, else False"""
+        lib_dirs = self.get_lib_dirs()
+        incl_dirs = self.get_include_dirs()
+        incl_dir = None
+        libs = self.get_libs(self.section+'_libs', ver_param['libs'])
+        info = None
+        for d in lib_dirs:
+            r = self.check_libs(d,libs)
+            if r is not None:
+                info = r
+                break
+        if info is not None:
+            flag = 0
+            for d in incl_dirs:
+                if len(self.combine_paths(d,ver_param['includes']))==len(ver_param['includes']):
+                    dict_append(info,include_dirs=[d])
+                    flag = 1
+                    incl_dirs = [d]
+                    incl_dir = d
+                    break
+            if flag:
+                dict_append(info,define_macros=ver_param['macros'])
+            else:
+                info = None
+        if info is not None:
+            self.set_info(**info)
+            return True
+        else:
+            log.info('  %s not found' % (ver_param['name']))
+            return False
+
+    def calc_info(self):
+        for i in self.ver_info:
+            if self.calc_ver_info(i):
+                break
+
+class fftw2_info(fftw_info):
+    #variables to override
+    section = 'fftw'
+    dir_env_var = 'FFTW'
+    notfounderror = FFTWNotFoundError
+    ver_info  = [ { 'name':'fftw2',
+                    'libs':['rfftw', 'fftw'],
+                    'includes':['fftw.h','rfftw.h'],
+                    'macros':[('SCIPY_FFTW_H',None)]}
+                  ]
+
+class fftw3_info(fftw_info):
+    #variables to override
+    section = 'fftw3'
+    dir_env_var = 'FFTW3'
+    notfounderror = FFTWNotFoundError
+    ver_info  = [ { 'name':'fftw3',
+                    'libs':['fftw3'],
+                    'includes':['fftw3.h'],
+                    'macros':[('SCIPY_FFTW3_H',None)]},
+                  ]
+
+class dfftw_info(fftw_info):
+    section = 'fftw'
+    dir_env_var = 'FFTW'
+    ver_info  = [ { 'name':'dfftw',
+                    'libs':['drfftw','dfftw'],
+                    'includes':['dfftw.h','drfftw.h'],
+                    'macros':[('SCIPY_DFFTW_H',None)]} ]
+
+class sfftw_info(fftw_info):
+    section = 'fftw'
+    dir_env_var = 'FFTW'
+    ver_info  = [ { 'name':'sfftw',
+                    'libs':['srfftw','sfftw'],
+                    'includes':['sfftw.h','srfftw.h'],
+                    'macros':[('SCIPY_SFFTW_H',None)]} ]
+
+class fftw_threads_info(fftw_info):
+    section = 'fftw'
+    dir_env_var = 'FFTW'
+    ver_info  = [ { 'name':'fftw threads',
+                    'libs':['rfftw_threads','fftw_threads'],
+                    'includes':['fftw_threads.h','rfftw_threads.h'],
+                    'macros':[('SCIPY_FFTW_THREADS_H',None)]} ]
+
+class dfftw_threads_info(fftw_info):
+    section = 'fftw'
+    dir_env_var = 'FFTW'
+    ver_info  = [ { 'name':'dfftw threads',
+                    'libs':['drfftw_threads','dfftw_threads'],
+                    'includes':['dfftw_threads.h','drfftw_threads.h'],
+                    'macros':[('SCIPY_DFFTW_THREADS_H',None)]} ]
+
+class sfftw_threads_info(fftw_info):
+    section = 'fftw'
+    dir_env_var = 'FFTW'
+    ver_info  = [ { 'name':'sfftw threads',
+                    'libs':['srfftw_threads','sfftw_threads'],
+                    'includes':['sfftw_threads.h','srfftw_threads.h'],
+                    'macros':[('SCIPY_SFFTW_THREADS_H',None)]} ]
+
+class djbfft_info(system_info):
+    section = 'djbfft'
+    dir_env_var = 'DJBFFT'
+    notfounderror = DJBFFTNotFoundError
+
+    def get_paths(self, section, key):
+        pre_dirs = system_info.get_paths(self, section, key)
+        dirs = []
+        for d in pre_dirs:
+            dirs.extend(self.combine_paths(d,['djbfft'])+[d])
+        return [ d for d in dirs if os.path.isdir(d) ]
+
+    def calc_info(self):
+        lib_dirs = self.get_lib_dirs()
+        incl_dirs = self.get_include_dirs()
+        info = None
+        for d in lib_dirs:
+            p = self.combine_paths (d,['djbfft.a'])
+            if p:
+                info = {'extra_objects':p}
+                break
+            p = self.combine_paths (d,['libdjbfft.a','libdjbfft'+so_ext])
+            if p:
+                info = {'libraries':['djbfft'],'library_dirs':[d]}
+                break
+        if info is None:
+            return
+        for d in incl_dirs:
+            if len(self.combine_paths(d,['fftc8.h','fftfreq.h']))==2:
+                dict_append(info,include_dirs=[d],
+                            define_macros=[('SCIPY_DJBFFT_H',None)])
+                self.set_info(**info)
+                return
+        return
+
+class mkl_info(system_info):
+    section = 'mkl'
+    dir_env_var = 'MKL'
+    _lib_mkl = ['mkl','vml','guide']
+
+    def get_mkl_rootdir(self):
+        mklroot = os.environ.get('MKLROOT',None)
+        if mklroot is not None:
+            return mklroot
+        paths = os.environ.get('LD_LIBRARY_PATH','').split(os.pathsep)
+        ld_so_conf = '/etc/ld.so.conf'
+        if os.path.isfile(ld_so_conf):
+            for d in open(ld_so_conf,'r').readlines():
+                d = d.strip()
+                if d: paths.append(d)
+        intel_mkl_dirs = []
+        for path in paths:
+            path_atoms = path.split(os.sep)
+            for m in path_atoms:
+                if m.startswith('mkl'):
+                    d = os.sep.join(path_atoms[:path_atoms.index(m)+2])
+                    intel_mkl_dirs.append(d)
+                    break
+        for d in paths:
+            dirs = glob(os.path.join(d,'mkl','*')) + glob(os.path.join(d,'mkl*'))
+            for d in dirs:
+                if os.path.isdir(os.path.join(d,'lib')):
+                    return d
+        return None
+
+    def __init__(self):
+        mklroot = self.get_mkl_rootdir()
+        if mklroot is None:
+            system_info.__init__(self)
+        else:
+            from cpuinfo import cpu
+            l = 'mkl' # use shared library
+            if cpu.is_Itanium():
+                plt = '64'
+                #l = 'mkl_ipf'
+            elif cpu.is_Xeon():
+                plt = 'em64t'
+                #l = 'mkl_em64t'
+            else:
+                plt = '32'
+                #l = 'mkl_ia32'
+            if l not in self._lib_mkl:
+                self._lib_mkl.insert(0,l)
+            system_info.__init__(self,
+                                 default_lib_dirs=[os.path.join(mklroot,'lib',plt)],
+                                 default_include_dirs=[os.path.join(mklroot,'include')])
+
+    def calc_info(self):
+        lib_dirs = self.get_lib_dirs()
+        incl_dirs = self.get_include_dirs()
+        mkl_libs = self.get_libs('mkl_libs',self._lib_mkl)
+        mkl = None
+        for d in lib_dirs:
+            mkl = self.check_libs2(d,mkl_libs)
+            if mkl is not None:
+                break
+        if mkl is None:
+            return
+        info = {}
+        dict_append(info,**mkl)
+        dict_append(info,
+                    define_macros=[('SCIPY_MKL_H',None)],
+                    include_dirs = incl_dirs)
+        if sys.platform == 'win32':
+            pass # win32 has no pthread library
+        else:
+            dict_append(info, libraries=['pthread'])
+        self.set_info(**info)
+
+class lapack_mkl_info(mkl_info):
+
+    def calc_info(self):
+        mkl = get_info('mkl')
+        if not mkl:
+            return
+        if sys.platform == 'win32':
+            lapack_libs = self.get_libs('lapack_libs',['mkl_lapack'])
+        else:
+            lapack_libs = self.get_libs('lapack_libs',['mkl_lapack32','mkl_lapack64'])
+
+        info = {'libraries': lapack_libs}
+        dict_append(info,**mkl)
+        self.set_info(**info)
+
+class blas_mkl_info(mkl_info):
+    pass
+
+class atlas_info(system_info):
+    section = 'atlas'
+    dir_env_var = 'ATLAS'
+    _lib_names = ['f77blas','cblas']
+    if sys.platform[:7]=='freebsd':
+        _lib_atlas = ['atlas_r']
+        _lib_lapack = ['alapack_r']
+    else:
+        _lib_atlas = ['atlas']
+        _lib_lapack = ['lapack']
+
+    notfounderror = AtlasNotFoundError
+
+    def get_paths(self, section, key):
+        pre_dirs = system_info.get_paths(self, section, key)
+        dirs = []
+        for d in pre_dirs:
+            dirs.extend(self.combine_paths(d,['atlas*','ATLAS*',
+                                         'sse','3dnow','sse2'])+[d])
+        return [ d for d in dirs if os.path.isdir(d) ]
+
+    def calc_info(self):
+        lib_dirs = self.get_lib_dirs()
+        info = {}
+        atlas_libs = self.get_libs('atlas_libs',
+                                   self._lib_names + self._lib_atlas)
+        lapack_libs = self.get_libs('lapack_libs',self._lib_lapack)
+        atlas = None
+        lapack = None
+        atlas_1 = None
+        for d in lib_dirs:
+            atlas = self.check_libs2(d,atlas_libs,[])
+            lapack_atlas = self.check_libs2(d,['lapack_atlas'],[])
+            if atlas is not None:
+                lib_dirs2 = [d] + self.combine_paths(d,['atlas*','ATLAS*'])
+                for d2 in lib_dirs2:
+                    lapack = self.check_libs2(d2,lapack_libs,[])
+                    if lapack is not None:
+                        break
+                else:
+                    lapack = None
+                if lapack is not None:
+                    break
+            if atlas:
+                atlas_1 = atlas
+        log.info(self.__class__)
+        if atlas is None:
+            atlas = atlas_1
+        if atlas is None:
+            return
+        include_dirs = self.get_include_dirs()
+        h = (self.combine_paths(lib_dirs+include_dirs,'cblas.h') or [None])[0]
+        if h:
+            h = os.path.dirname(h)
+            dict_append(info,include_dirs=[h])
+        info['language'] = 'c'
+        if lapack is not None:
+            dict_append(info,**lapack)
+            dict_append(info,**atlas)
+        elif 'lapack_atlas' in atlas['libraries']:
+            dict_append(info,**atlas)
+            dict_append(info,define_macros=[('ATLAS_WITH_LAPACK_ATLAS',None)])
+            self.set_info(**info)
+            return
+        else:
+            dict_append(info,**atlas)
+            dict_append(info,define_macros=[('ATLAS_WITHOUT_LAPACK',None)])
+            message = """
+*********************************************************************
+    Could not find lapack library within the ATLAS installation.
+*********************************************************************
+"""
+            warnings.warn(message)
+            self.set_info(**info)
+            return
+
+        # Check if lapack library is complete, only warn if it is not.
+        lapack_dir = lapack['library_dirs'][0]
+        lapack_name = lapack['libraries'][0]
+        lapack_lib = None
+        lib_prefixes = ['lib']
+        if sys.platform == 'win32':
+            lib_prefixes.append('')
+        for e in self.library_extensions():
+            for prefix in lib_prefixes:
+                fn = os.path.join(lapack_dir,prefix+lapack_name+e)
+                if os.path.exists(fn):
+                    lapack_lib = fn
+                    break
+            if lapack_lib:
+                break
+        if lapack_lib is not None:
+            sz = os.stat(lapack_lib)[6]
+            if sz <= 4000*1024:
+                message = """
+*********************************************************************
+    Lapack library (from ATLAS) is probably incomplete:
+      size of %s is %sk (expected >4000k)
+
+    Follow the instructions in the KNOWN PROBLEMS section of the file
+    numpy/INSTALL.txt.
+*********************************************************************
+""" % (lapack_lib,sz/1024)
+                warnings.warn(message)
+            else:
+                info['language'] = 'f77'
+
+        self.set_info(**info)
+
+class atlas_blas_info(atlas_info):
+    _lib_names = ['f77blas','cblas']
+
+    def calc_info(self):
+        lib_dirs = self.get_lib_dirs()
+        info = {}
+        atlas_libs = self.get_libs('atlas_libs',
+                                   self._lib_names + self._lib_atlas)
+        atlas = None
+        for d in lib_dirs:
+            atlas = self.check_libs2(d,atlas_libs,[])
+            if atlas is not None:
+                break
+        if atlas is None:
+            return
+        include_dirs = self.get_include_dirs()
+        h = (self.combine_paths(lib_dirs+include_dirs,'cblas.h') or [None])[0]
+        if h:
+            h = os.path.dirname(h)
+            dict_append(info,include_dirs=[h])
+        info['language'] = 'c'
+
+        dict_append(info,**atlas)
+
+        self.set_info(**info)
+        return
+
+
+class atlas_threads_info(atlas_info):
+    dir_env_var = ['PTATLAS','ATLAS']
+    _lib_names = ['ptf77blas','ptcblas']
+
+class atlas_blas_threads_info(atlas_blas_info):
+    dir_env_var = ['PTATLAS','ATLAS']
+    _lib_names = ['ptf77blas','ptcblas']
+
+class lapack_atlas_info(atlas_info):
+    _lib_names = ['lapack_atlas'] + atlas_info._lib_names
+
+class lapack_atlas_threads_info(atlas_threads_info):
+    _lib_names = ['lapack_atlas'] + atlas_threads_info._lib_names
+
+class lapack_info(system_info):
+    section = 'lapack'
+    dir_env_var = 'LAPACK'
+    _lib_names = ['lapack']
+    notfounderror = LapackNotFoundError
+
+    def calc_info(self):
+        lib_dirs = self.get_lib_dirs()
+
+        lapack_libs = self.get_libs('lapack_libs', self._lib_names)
+        for d in lib_dirs:
+            lapack = self.check_libs(d,lapack_libs,[])
+            if lapack is not None:
+                info = lapack
+                break
+        else:
+            return
+        info['language'] = 'f77'
+        self.set_info(**info)
+
+class lapack_src_info(system_info):
+    section = 'lapack_src'
+    dir_env_var = 'LAPACK_SRC'
+    notfounderror = LapackSrcNotFoundError
+
+    def get_paths(self, section, key):
+        pre_dirs = system_info.get_paths(self, section, key)
+        dirs = []
+        for d in pre_dirs:
+            dirs.extend([d] + self.combine_paths(d,['LAPACK*/SRC','SRC']))
+        return [ d for d in dirs if os.path.isdir(d) ]
+
+    def calc_info(self):
+        src_dirs = self.get_src_dirs()
+        src_dir = ''
+        for d in src_dirs:
+            if os.path.isfile(os.path.join(d,'dgesv.f')):
+                src_dir = d
+                break
+        if not src_dir:
+            #XXX: Get sources from netlib. May be ask first.
+            return
+        # The following is extracted from LAPACK-3.0/SRC/Makefile.
+        # Added missing names from lapack-lite-3.1.1/SRC/Makefile
+        # while keeping removed names for Lapack-3.0 compatibility.
+        allaux='''
+        ilaenv ieeeck lsame lsamen xerbla
+        iparmq
+        ''' # *.f
+        laux = '''
+        bdsdc bdsqr disna labad lacpy ladiv lae2 laebz laed0 laed1
+        laed2 laed3 laed4 laed5 laed6 laed7 laed8 laed9 laeda laev2
+        lagtf lagts lamch lamrg lanst lapy2 lapy3 larnv larrb larre
+        larrf lartg laruv las2 lascl lasd0 lasd1 lasd2 lasd3 lasd4
+        lasd5 lasd6 lasd7 lasd8 lasd9 lasda lasdq lasdt laset lasq1
+        lasq2 lasq3 lasq4 lasq5 lasq6 lasr lasrt lassq lasv2 pttrf
+        stebz stedc steqr sterf
+
+        larra larrc larrd larr larrk larrj larrr laneg laisnan isnan
+        lazq3 lazq4
+        ''' # [s|d]*.f
+        lasrc = '''
+        gbbrd gbcon gbequ gbrfs gbsv gbsvx gbtf2 gbtrf gbtrs gebak
+        gebal gebd2 gebrd gecon geequ gees geesx geev geevx gegs gegv
+        gehd2 gehrd gelq2 gelqf gels gelsd gelss gelsx gelsy geql2
+        geqlf geqp3 geqpf geqr2 geqrf gerfs gerq2 gerqf gesc2 gesdd
+        gesv gesvd gesvx getc2 getf2 getrf getri getrs ggbak ggbal
+        gges ggesx ggev ggevx ggglm gghrd gglse ggqrf ggrqf ggsvd
+        ggsvp gtcon gtrfs gtsv gtsvx gttrf gttrs gtts2 hgeqz hsein
+        hseqr labrd lacon laein lags2 lagtm lahqr lahrd laic1 lals0
+        lalsa lalsd langb lange langt lanhs lansb lansp lansy lantb
+        lantp lantr lapll lapmt laqgb laqge laqp2 laqps laqsb laqsp
+        laqsy lar1v lar2v larf larfb larfg larft larfx largv larrv
+        lartv larz larzb larzt laswp lasyf latbs latdf latps latrd
+        latrs latrz latzm lauu2 lauum pbcon pbequ pbrfs pbstf pbsv
+        pbsvx pbtf2 pbtrf pbtrs pocon poequ porfs posv posvx potf2
+        potrf potri potrs ppcon ppequ pprfs ppsv ppsvx pptrf pptri
+        pptrs ptcon pteqr ptrfs ptsv ptsvx pttrs ptts2 spcon sprfs
+        spsv spsvx sptrf sptri sptrs stegr stein sycon syrfs sysv
+        sysvx sytf2 sytrf sytri sytrs tbcon tbrfs tbtrs tgevc tgex2
+        tgexc tgsen tgsja tgsna tgsy2 tgsyl tpcon tprfs tptri tptrs
+        trcon trevc trexc trrfs trsen trsna trsyl trti2 trtri trtrs
+        tzrqf tzrzf
+
+        lacn2 lahr2 stemr laqr0 laqr1 laqr2 laqr3 laqr4 laqr5
+        ''' # [s|c|d|z]*.f
+        sd_lasrc = '''
+        laexc lag2 lagv2 laln2 lanv2 laqtr lasy2 opgtr opmtr org2l
+        org2r orgbr orghr orgl2 orglq orgql orgqr orgr2 orgrq orgtr
+        orm2l orm2r ormbr ormhr orml2 ormlq ormql ormqr ormr2 ormr3
+        ormrq ormrz ormtr rscl sbev sbevd sbevx sbgst sbgv sbgvd sbgvx
+        sbtrd spev spevd spevx spgst spgv spgvd spgvx sptrd stev stevd
+        stevr stevx syev syevd syevr syevx sygs2 sygst sygv sygvd
+        sygvx sytd2 sytrd
+        ''' # [s|d]*.f
+        cz_lasrc = '''
+        bdsqr hbev hbevd hbevx hbgst hbgv hbgvd hbgvx hbtrd hecon heev
+        heevd heevr heevx hegs2 hegst hegv hegvd hegvx herfs hesv
+        hesvx hetd2 hetf2 hetrd hetrf hetri hetrs hpcon hpev hpevd
+        hpevx hpgst hpgv hpgvd hpgvx hprfs hpsv hpsvx hptrd hptrf
+        hptri hptrs lacgv lacp2 lacpy lacrm lacrt ladiv laed0 laed7
+        laed8 laesy laev2 lahef lanhb lanhe lanhp lanht laqhb laqhe
+        laqhp larcm larnv lartg lascl laset lasr lassq pttrf rot spmv
+        spr stedc steqr symv syr ung2l ung2r ungbr unghr ungl2 unglq
+        ungql ungqr ungr2 ungrq ungtr unm2l unm2r unmbr unmhr unml2
+        unmlq unmql unmqr unmr2 unmr3 unmrq unmrz unmtr upgtr upmtr
+        ''' # [c|z]*.f
+        #######
+        sclaux = laux + ' econd '                  # s*.f
+        dzlaux = laux + ' secnd '                  # d*.f
+        slasrc = lasrc + sd_lasrc                  # s*.f
+        dlasrc = lasrc + sd_lasrc                  # d*.f
+        clasrc = lasrc + cz_lasrc + ' srot srscl ' # c*.f
+        zlasrc = lasrc + cz_lasrc + ' drot drscl ' # z*.f
+        oclasrc = ' icmax1 scsum1 '                # *.f
+        ozlasrc = ' izmax1 dzsum1 '                # *.f
+        sources = ['s%s.f'%f for f in (sclaux+slasrc).split()] \
+                  + ['d%s.f'%f for f in (dzlaux+dlasrc).split()] \
+                  + ['c%s.f'%f for f in (clasrc).split()] \
+                  + ['z%s.f'%f for f in (zlasrc).split()] \
+                  + ['%s.f'%f for f in (allaux+oclasrc+ozlasrc).split()]
+        sources = [os.path.join(src_dir,f) for f in sources]
+        # Lapack 3.1:
+        src_dir2 = os.path.join(src_dir,'..','INSTALL')
+        sources += [os.path.join(src_dir2,p+'lamch.f') for p in 'sdcz']
+        # Lapack 3.2.1:
+        sources += [os.path.join(src_dir,p+'larfp.f') for p in 'sdcz']
+        sources += [os.path.join(src_dir,'ila'+p+'lr.f') for p in 'sdcz']
+        sources += [os.path.join(src_dir,'ila'+p+'lc.f') for p in 'sdcz']
+        # Should we check here actual existence of source files?
+        # Yes, the file listing is different between 3.0 and 3.1
+        # versions.
+        sources = [f for f in sources if os.path.isfile(f)]
+        info = {'sources':sources,'language':'f77'}
+        self.set_info(**info)
+
+atlas_version_c_text = r'''
+/* This file is generated from numpy/distutils/system_info.py */
+void ATL_buildinfo(void);
+int main(void) {
+  ATL_buildinfo();
+  return 0;
+}
+'''
+
+_cached_atlas_version = {}
+def get_atlas_version(**config):
+    libraries = config.get('libraries', [])
+    library_dirs = config.get('library_dirs', [])
+    key = (tuple(libraries), tuple(library_dirs))
+    if key in _cached_atlas_version:
+        return _cached_atlas_version[key]
+    c = cmd_config(Distribution())
+    atlas_version = None
+    try:
+        s, o = c.get_output(atlas_version_c_text,
+                            libraries=libraries, library_dirs=library_dirs)
+    except: # failed to get version from file -- maybe on Windows
+        # look at directory name
+        for o in library_dirs:
+            m = re.search(r'ATLAS_(?P<version>\d+[.]\d+[.]\d+)_',o)
+            if m:
+                atlas_version = m.group('version')
+            if atlas_version is not None:
+                break
+        # final choice --- look at ATLAS_VERSION environment
+        #   variable
+        if atlas_version is None:
+            atlas_version = os.environ.get('ATLAS_VERSION',None)
+        return atlas_version or '?.?.?'
+
+    if not s:
+        m = re.search(r'ATLAS version (?P<version>\d+[.]\d+[.]\d+)',o)
+        if m:
+            atlas_version = m.group('version')
+    if atlas_version is None:
+        if re.search(r'undefined symbol: ATL_buildinfo',o,re.M):
+            atlas_version = '3.2.1_pre3.3.6'
+        else:
+            log.info('Status: %d', s)
+            log.info('Output: %s', o)
+    _cached_atlas_version[key] = atlas_version
+    return atlas_version
+
+from distutils.util import get_platform
+
+class lapack_opt_info(system_info):
+
+    notfounderror = LapackNotFoundError
+
+    def calc_info(self):
+
+        if sys.platform=='darwin' and not os.environ.get('ATLAS',None):
+            args = []
+            link_args = []
+            if get_platform()[-4:] == 'i386':
+                intel = 1
+            else:
+                intel = 0
+            if os.path.exists('/System/Library/Frameworks/Accelerate.framework/'):
+                if intel:
+                    args.extend(['-msse3'])
+                else:
+                    args.extend(['-faltivec'])
+                link_args.extend(['-Wl,-framework','-Wl,Accelerate'])
+            elif os.path.exists('/System/Library/Frameworks/vecLib.framework/'):
+                if intel:
+                    args.extend(['-msse3'])
+                else:
+                    args.extend(['-faltivec'])
+                link_args.extend(['-Wl,-framework','-Wl,vecLib'])
+            if args:
+                self.set_info(extra_compile_args=args,
+                              extra_link_args=link_args,
+                              define_macros=[('NO_ATLAS_INFO',3)])
+                return
+
+        lapack_mkl_info = get_info('lapack_mkl')
+        if lapack_mkl_info:
+            self.set_info(**lapack_mkl_info)
+            return
+
+        atlas_info = get_info('atlas_threads')
+        if not atlas_info:
+            atlas_info = get_info('atlas')
+        #atlas_info = {} ## uncomment for testing
+        atlas_version = None
+        need_lapack = 0
+        need_blas = 0
+        info = {}
+        if atlas_info:
+            version_info = atlas_info.copy()
+            atlas_version = get_atlas_version(**version_info)
+            if 'define_macros' not in atlas_info:
+                atlas_info['define_macros'] = []
+            if atlas_version is None:
+                atlas_info['define_macros'].append(('NO_ATLAS_INFO',2))
+            else:
+                atlas_info['define_macros'].append(('ATLAS_INFO',
+                                                    '"\\"%s\\""' % atlas_version))
+            if atlas_version=='3.2.1_pre3.3.6':
+                atlas_info['define_macros'].append(('NO_ATLAS_INFO',4))
+            l = atlas_info.get('define_macros',[])
+            if ('ATLAS_WITH_LAPACK_ATLAS',None) in l \
+                   or ('ATLAS_WITHOUT_LAPACK',None) in l:
+                need_lapack = 1
+            info = atlas_info
+        else:
+            warnings.warn(AtlasNotFoundError.__doc__)
+            need_blas = 1
+            need_lapack = 1
+            dict_append(info,define_macros=[('NO_ATLAS_INFO',1)])
+
+        if need_lapack:
+            lapack_info = get_info('lapack')
+            #lapack_info = {} ## uncomment for testing
+            if lapack_info:
+                dict_append(info,**lapack_info)
+            else:
+                warnings.warn(LapackNotFoundError.__doc__)
+                lapack_src_info = get_info('lapack_src')
+                if not lapack_src_info:
+                    warnings.warn(LapackSrcNotFoundError.__doc__)
+                    return
+                dict_append(info,libraries=[('flapack_src',lapack_src_info)])
+
+        if need_blas:
+            blas_info = get_info('blas')
+            #blas_info = {} ## uncomment for testing
+            if blas_info:
+                dict_append(info,**blas_info)
+            else:
+                warnings.warn(BlasNotFoundError.__doc__)
+                blas_src_info = get_info('blas_src')
+                if not blas_src_info:
+                    warnings.warn(BlasSrcNotFoundError.__doc__)
+                    return
+                dict_append(info,libraries=[('fblas_src',blas_src_info)])
+
+        self.set_info(**info)
+        return
+
+
+class blas_opt_info(system_info):
+
+    notfounderror = BlasNotFoundError
+
+    def calc_info(self):
+
+        if sys.platform=='darwin' and not os.environ.get('ATLAS',None):
+            args = []
+            link_args = []
+            if get_platform()[-4:] == 'i386':
+                intel = 1
+            else:
+                intel = 0
+            if os.path.exists('/System/Library/Frameworks/Accelerate.framework/'):
+                if intel:
+                    args.extend(['-msse3'])
+                else:
+                    args.extend(['-faltivec'])
+                args.extend([
+                    '-I/System/Library/Frameworks/vecLib.framework/Headers'])
+                link_args.extend(['-Wl,-framework','-Wl,Accelerate'])
+            elif os.path.exists('/System/Library/Frameworks/vecLib.framework/'):
+                if intel:
+                    args.extend(['-msse3'])
+                else:
+                    args.extend(['-faltivec'])
+                args.extend([
+                    '-I/System/Library/Frameworks/vecLib.framework/Headers'])
+                link_args.extend(['-Wl,-framework','-Wl,vecLib'])
+            if args:
+                self.set_info(extra_compile_args=args,
+                              extra_link_args=link_args,
+                              define_macros=[('NO_ATLAS_INFO',3)])
+                return
+
+        blas_mkl_info = get_info('blas_mkl')
+        if blas_mkl_info:
+            self.set_info(**blas_mkl_info)
+            return
+
+        atlas_info = get_info('atlas_blas_threads')
+        if not atlas_info:
+            atlas_info = get_info('atlas_blas')
+        atlas_version = None
+        need_blas = 0
+        info = {}
+        if atlas_info:
+            version_info = atlas_info.copy()
+            atlas_version = get_atlas_version(**version_info)
+            if 'define_macros' not in atlas_info:
+                atlas_info['define_macros'] = []
+            if atlas_version is None:
+                atlas_info['define_macros'].append(('NO_ATLAS_INFO',2))
+            else:
+                atlas_info['define_macros'].append(('ATLAS_INFO',
+                                                    '"\\"%s\\""' % atlas_version))
+            info = atlas_info
+        else:
+            warnings.warn(AtlasNotFoundError.__doc__)
+            need_blas = 1
+            dict_append(info,define_macros=[('NO_ATLAS_INFO',1)])
+
+        if need_blas:
+            blas_info = get_info('blas')
+            if blas_info:
+                dict_append(info,**blas_info)
+            else:
+                warnings.warn(BlasNotFoundError.__doc__)
+                blas_src_info = get_info('blas_src')
+                if not blas_src_info:
+                    warnings.warn(BlasSrcNotFoundError.__doc__)
+                    return
+                dict_append(info,libraries=[('fblas_src',blas_src_info)])
+
+        self.set_info(**info)
+        return
+
+
+class blas_info(system_info):
+    section = 'blas'
+    dir_env_var = 'BLAS'
+    _lib_names = ['blas']
+    notfounderror = BlasNotFoundError
+
+    def calc_info(self):
+        lib_dirs = self.get_lib_dirs()
+
+        blas_libs = self.get_libs('blas_libs', self._lib_names)
+        for d in lib_dirs:
+            blas = self.check_libs(d,blas_libs,[])
+            if blas is not None:
+                info = blas
+                break
+        else:
+            return
+        info['language'] = 'f77'  # XXX: is it generally true?
+        self.set_info(**info)
+
+
+class blas_src_info(system_info):
+    section = 'blas_src'
+    dir_env_var = 'BLAS_SRC'
+    notfounderror = BlasSrcNotFoundError
+
+    def get_paths(self, section, key):
+        pre_dirs = system_info.get_paths(self, section, key)
+        dirs = []
+        for d in pre_dirs:
+            dirs.extend([d] + self.combine_paths(d,['blas']))
+        return [ d for d in dirs if os.path.isdir(d) ]
+
+    def calc_info(self):
+        src_dirs = self.get_src_dirs()
+        src_dir = ''
+        for d in src_dirs:
+            if os.path.isfile(os.path.join(d,'daxpy.f')):
+                src_dir = d
+                break
+        if not src_dir:
+            #XXX: Get sources from netlib. May be ask first.
+            return
+        blas1 = '''
+        caxpy csscal dnrm2 dzasum saxpy srotg zdotc ccopy cswap drot
+        dznrm2 scasum srotm zdotu cdotc dasum drotg icamax scnrm2
+        srotmg zdrot cdotu daxpy drotm idamax scopy sscal zdscal crotg
+        dcabs1 drotmg isamax sdot sswap zrotg cscal dcopy dscal izamax
+        snrm2 zaxpy zscal csrot ddot dswap sasum srot zcopy zswap
+        scabs1
+        '''
+        blas2 = '''
+        cgbmv chpmv ctrsv dsymv dtrsv sspr2 strmv zhemv ztpmv cgemv
+        chpr dgbmv dsyr lsame ssymv strsv zher ztpsv cgerc chpr2 dgemv
+        dsyr2 sgbmv ssyr xerbla zher2 ztrmv cgeru ctbmv dger dtbmv
+        sgemv ssyr2 zgbmv zhpmv ztrsv chbmv ctbsv dsbmv dtbsv sger
+        stbmv zgemv zhpr chemv ctpmv dspmv dtpmv ssbmv stbsv zgerc
+        zhpr2 cher ctpsv dspr dtpsv sspmv stpmv zgeru ztbmv cher2
+        ctrmv dspr2 dtrmv sspr stpsv zhbmv ztbsv
+        '''
+        blas3 = '''
+        cgemm csymm ctrsm dsyrk sgemm strmm zhemm zsyr2k chemm csyr2k
+        dgemm dtrmm ssymm strsm zher2k zsyrk cher2k csyrk dsymm dtrsm
+        ssyr2k zherk ztrmm cherk ctrmm dsyr2k ssyrk zgemm zsymm ztrsm
+        '''
+        sources = [os.path.join(src_dir,f+'.f') \
+                   for f in (blas1+blas2+blas3).split()]
+        #XXX: should we check here actual existence of source files?
+        sources = [f for f in sources if os.path.isfile(f)]
+        info = {'sources':sources,'language':'f77'}
+        self.set_info(**info)
+
+class x11_info(system_info):
+    section = 'x11'
+    notfounderror = X11NotFoundError
+
+    def __init__(self):
+        system_info.__init__(self,
+                             default_lib_dirs=default_x11_lib_dirs,
+                             default_include_dirs=default_x11_include_dirs)
+
+    def calc_info(self):
+        if sys.platform  in ['win32']:
+            return
+        lib_dirs = self.get_lib_dirs()
+        include_dirs = self.get_include_dirs()
+        x11_libs = self.get_libs('x11_libs', ['X11'])
+        for lib_dir in lib_dirs:
+            info = self.check_libs(lib_dir, x11_libs, [])
+            if info is not None:
+                break
+        else:
+            return
+        inc_dir = None
+        for d in include_dirs:
+            if self.combine_paths(d, 'X11/X.h'):
+                inc_dir = d
+                break
+        if inc_dir is not None:
+            dict_append(info, include_dirs=[inc_dir])
+        self.set_info(**info)
+
+class _numpy_info(system_info):
+    section = 'Numeric'
+    modulename = 'Numeric'
+    notfounderror = NumericNotFoundError
+
+    def __init__(self):
+        include_dirs = []
+        try:
+            module = __import__(self.modulename)
+            prefix = []
+            for name in module.__file__.split(os.sep):
+                if name=='lib':
+                    break
+                prefix.append(name)
+            include_dirs.append(distutils.sysconfig.get_python_inc(
+                                        prefix=os.sep.join(prefix)))
+        except ImportError:
+            pass
+        py_incl_dir = distutils.sysconfig.get_python_inc()
+        include_dirs.append(py_incl_dir)
+        for d in default_include_dirs:
+            d = os.path.join(d, os.path.basename(py_incl_dir))
+            if d not in include_dirs:
+                include_dirs.append(d)
+        system_info.__init__(self,
+                             default_lib_dirs=[],
+                             default_include_dirs=include_dirs)
+
+    def calc_info(self):
+        try:
+            module = __import__(self.modulename)
+        except ImportError:
+            return
+        info = {}
+        macros = []
+        for v in ['__version__','version']:
+            vrs = getattr(module,v,None)
+            if vrs is None:
+                continue
+            macros = [(self.modulename.upper()+'_VERSION',
+                      '"\\"%s\\""' % (vrs)),
+                      (self.modulename.upper(),None)]
+            break
+##         try:
+##             macros.append(
+##                 (self.modulename.upper()+'_VERSION_HEX',
+##                  hex(vstr2hex(module.__version__))),
+##                 )
+##         except Exception,msg:
+##             print msg
+        dict_append(info, define_macros = macros)
+        include_dirs = self.get_include_dirs()
+        inc_dir = None
+        for d in include_dirs:
+            if self.combine_paths(d,
+                                  os.path.join(self.modulename,
+                                               'arrayobject.h')):
+                inc_dir = d
+                break
+        if inc_dir is not None:
+            dict_append(info, include_dirs=[inc_dir])
+        if info:
+            self.set_info(**info)
+        return
+
+class numarray_info(_numpy_info):
+    section = 'numarray'
+    modulename = 'numarray'
+
+class Numeric_info(_numpy_info):
+    section = 'Numeric'
+    modulename = 'Numeric'
+
+class numpy_info(_numpy_info):
+    section = 'numpy'
+    modulename = 'numpy'
+
+class numerix_info(system_info):
+    section = 'numerix'
+    def calc_info(self):
+        which = None, None
+        if os.getenv("NUMERIX"):
+            which = os.getenv("NUMERIX"), "environment var"
+        # If all the above fail, default to numpy.
+        if which[0] is None:
+            which = "numpy", "defaulted"
+            try:
+                import numpy
+                which = "numpy", "defaulted"
+            except ImportError,msg1:
+                try:
+                    import Numeric
+                    which = "numeric", "defaulted"
+                except ImportError,msg2:
+                    try:
+                        import numarray
+                        which = "numarray", "defaulted"
+                    except ImportError,msg3:
+                        log.info(msg1)
+                        log.info(msg2)
+                        log.info(msg3)
+        which = which[0].strip().lower(), which[1]
+        if which[0] not in ["numeric", "numarray", "numpy"]:
+            raise ValueError("numerix selector must be either 'Numeric' "
+                             "or 'numarray' or 'numpy' but the value obtained"
+                             " from the %s was '%s'." % (which[1], which[0]))
+        os.environ['NUMERIX'] = which[0]
+        self.set_info(**get_info(which[0]))
+
+class f2py_info(system_info):
+    def calc_info(self):
+        try:
+            import numpy.f2py as f2py
+        except ImportError:
+            return
+        f2py_dir = os.path.join(os.path.dirname(f2py.__file__),'src')
+        self.set_info(sources = [os.path.join(f2py_dir,'fortranobject.c')],
+                      include_dirs = [f2py_dir])
+        return
+
+class boost_python_info(system_info):
+    section = 'boost_python'
+    dir_env_var = 'BOOST'
+
+    def get_paths(self, section, key):
+        pre_dirs = system_info.get_paths(self, section, key)
+        dirs = []
+        for d in pre_dirs:
+            dirs.extend([d] + self.combine_paths(d,['boost*']))
+        return [ d for d in dirs if os.path.isdir(d) ]
+
+    def calc_info(self):
+        src_dirs = self.get_src_dirs()
+        src_dir = ''
+        for d in src_dirs:
+            if os.path.isfile(os.path.join(d,'libs','python','src','module.cpp')):
+                src_dir = d
+                break
+        if not src_dir:
+            return
+        py_incl_dir = distutils.sysconfig.get_python_inc()
+        srcs_dir = os.path.join(src_dir,'libs','python','src')
+        bpl_srcs = glob(os.path.join(srcs_dir,'*.cpp'))
+        bpl_srcs += glob(os.path.join(srcs_dir,'*','*.cpp'))
+        info = {'libraries':[('boost_python_src',{'include_dirs':[src_dir,py_incl_dir],
+                                                  'sources':bpl_srcs})],
+                'include_dirs':[src_dir],
+                }
+        if info:
+            self.set_info(**info)
+        return
+
+class agg2_info(system_info):
+    section = 'agg2'
+    dir_env_var = 'AGG2'
+
+    def get_paths(self, section, key):
+        pre_dirs = system_info.get_paths(self, section, key)
+        dirs = []
+        for d in pre_dirs:
+            dirs.extend([d] + self.combine_paths(d,['agg2*']))
+        return [ d for d in dirs if os.path.isdir(d) ]
+
+    def calc_info(self):
+        src_dirs = self.get_src_dirs()
+        src_dir = ''
+        for d in src_dirs:
+            if os.path.isfile(os.path.join(d,'src','agg_affine_matrix.cpp')):
+                src_dir = d
+                break
+        if not src_dir:
+            return
+        if sys.platform=='win32':
+            agg2_srcs = glob(os.path.join(src_dir,'src','platform','win32','agg_win32_bmp.cpp'))
+        else:
+            agg2_srcs = glob(os.path.join(src_dir,'src','*.cpp'))
+            agg2_srcs += [os.path.join(src_dir,'src','platform','X11','agg_platform_support.cpp')]
+
+        info = {'libraries':[('agg2_src',{'sources':agg2_srcs,
+                                          'include_dirs':[os.path.join(src_dir,'include')],
+                                          })],
+                'include_dirs':[os.path.join(src_dir,'include')],
+                }
+        if info:
+            self.set_info(**info)
+        return
+
+class _pkg_config_info(system_info):
+    section = None
+    config_env_var = 'PKG_CONFIG'
+    default_config_exe = 'pkg-config'
+    append_config_exe = ''
+    version_macro_name = None
+    release_macro_name = None
+    version_flag = '--modversion'
+    cflags_flag = '--cflags'
+
+    def get_config_exe(self):
+        if self.config_env_var in os.environ:
+            return os.environ[self.config_env_var]
+        return self.default_config_exe
+    def get_config_output(self, config_exe, option):
+        s,o = exec_command(config_exe+' '+self.append_config_exe+' '+option,use_tee=0)
+        if not s:
+            return o
+
+    def calc_info(self):
+        config_exe = find_executable(self.get_config_exe())
+        if not config_exe:
+            log.warn('File not found: %s. Cannot determine %s info.' \
+                  % (config_exe, self.section))
+            return
+        info = {}
+        macros = []
+        libraries = []
+        library_dirs = []
+        include_dirs = []
+        extra_link_args = []
+        extra_compile_args = []
+        version = self.get_config_output(config_exe,self.version_flag)
+        if version:
+            macros.append((self.__class__.__name__.split('.')[-1].upper(),
+                           '"\\"%s\\""' % (version)))
+            if self.version_macro_name:
+                macros.append((self.version_macro_name+'_%s' % (version.replace('.','_')),None))
+        if self.release_macro_name:
+            release = self.get_config_output(config_exe,'--release')
+            if release:
+                macros.append((self.release_macro_name+'_%s' % (release.replace('.','_')),None))
+        opts = self.get_config_output(config_exe,'--libs')
+        if opts:
+            for opt in opts.split():
+                if opt[:2]=='-l':
+                    libraries.append(opt[2:])
+                elif opt[:2]=='-L':
+                    library_dirs.append(opt[2:])
+                else:
+                    extra_link_args.append(opt)
+        opts = self.get_config_output(config_exe,self.cflags_flag)
+        if opts:
+            for opt in opts.split():
+                if opt[:2]=='-I':
+                    include_dirs.append(opt[2:])
+                elif opt[:2]=='-D':
+                    if '=' in opt:
+                        n,v = opt[2:].split('=')
+                        macros.append((n,v))
+                    else:
+                        macros.append((opt[2:],None))
+                else:
+                    extra_compile_args.append(opt)
+        if macros: dict_append(info, define_macros = macros)
+        if libraries: dict_append(info, libraries = libraries)
+        if library_dirs: dict_append(info, library_dirs = library_dirs)
+        if include_dirs: dict_append(info, include_dirs = include_dirs)
+        if extra_link_args: dict_append(info, extra_link_args = extra_link_args)
+        if extra_compile_args: dict_append(info, extra_compile_args = extra_compile_args)
+        if info:
+            self.set_info(**info)
+        return
+
+class wx_info(_pkg_config_info):
+    section = 'wx'
+    config_env_var = 'WX_CONFIG'
+    default_config_exe = 'wx-config'
+    append_config_exe = ''
+    version_macro_name = 'WX_VERSION'
+    release_macro_name = 'WX_RELEASE'
+    version_flag = '--version'
+    cflags_flag = '--cxxflags'
+
+class gdk_pixbuf_xlib_2_info(_pkg_config_info):
+    section = 'gdk_pixbuf_xlib_2'
+    append_config_exe = 'gdk-pixbuf-xlib-2.0'
+    version_macro_name = 'GDK_PIXBUF_XLIB_VERSION'
+
+class gdk_pixbuf_2_info(_pkg_config_info):
+    section = 'gdk_pixbuf_2'
+    append_config_exe = 'gdk-pixbuf-2.0'
+    version_macro_name = 'GDK_PIXBUF_VERSION'
+
+class gdk_x11_2_info(_pkg_config_info):
+    section = 'gdk_x11_2'
+    append_config_exe = 'gdk-x11-2.0'
+    version_macro_name = 'GDK_X11_VERSION'
+
+class gdk_2_info(_pkg_config_info):
+    section = 'gdk_2'
+    append_config_exe = 'gdk-2.0'
+    version_macro_name = 'GDK_VERSION'
+
+class gdk_info(_pkg_config_info):
+    section = 'gdk'
+    append_config_exe = 'gdk'
+    version_macro_name = 'GDK_VERSION'
+
+class gtkp_x11_2_info(_pkg_config_info):
+    section = 'gtkp_x11_2'
+    append_config_exe = 'gtk+-x11-2.0'
+    version_macro_name = 'GTK_X11_VERSION'
+
+
+class gtkp_2_info(_pkg_config_info):
+    section = 'gtkp_2'
+    append_config_exe = 'gtk+-2.0'
+    version_macro_name = 'GTK_VERSION'
+
+class xft_info(_pkg_config_info):
+    section = 'xft'
+    append_config_exe = 'xft'
+    version_macro_name = 'XFT_VERSION'
+
+class freetype2_info(_pkg_config_info):
+    section = 'freetype2'
+    append_config_exe = 'freetype2'
+    version_macro_name = 'FREETYPE2_VERSION'
+
+class amd_info(system_info):
+    section = 'amd'
+    dir_env_var = 'AMD'
+    _lib_names = ['amd']
+
+    def calc_info(self):
+        lib_dirs = self.get_lib_dirs()
+
+        amd_libs = self.get_libs('amd_libs', self._lib_names)
+        for d in lib_dirs:
+            amd = self.check_libs(d,amd_libs,[])
+            if amd is not None:
+                info = amd
+                break
+        else:
+            return
+
+        include_dirs = self.get_include_dirs()
+
+        inc_dir = None
+        for d in include_dirs:
+            p = self.combine_paths(d,'amd.h')
+            if p:
+                inc_dir = os.path.dirname(p[0])
+                break
+        if inc_dir is not None:
+            dict_append(info, include_dirs=[inc_dir],
+                        define_macros=[('SCIPY_AMD_H',None)],
+                        swig_opts = ['-I' + inc_dir])
+
+        self.set_info(**info)
+        return
+
+class umfpack_info(system_info):
+    section = 'umfpack'
+    dir_env_var = 'UMFPACK'
+    notfounderror = UmfpackNotFoundError
+    _lib_names = ['umfpack']
+
+    def calc_info(self):
+        lib_dirs = self.get_lib_dirs()
+
+        umfpack_libs = self.get_libs('umfpack_libs', self._lib_names)
+        for d in lib_dirs:
+            umf = self.check_libs(d,umfpack_libs,[])
+            if umf is not None:
+                info = umf
+                break
+        else:
+            return
+
+        include_dirs = self.get_include_dirs()
+
+        inc_dir = None
+        for d in include_dirs:
+            p = self.combine_paths(d,['','umfpack'],'umfpack.h')
+            if p:
+                inc_dir = os.path.dirname(p[0])
+                break
+        if inc_dir is not None:
+            dict_append(info, include_dirs=[inc_dir],
+                        define_macros=[('SCIPY_UMFPACK_H',None)],
+                        swig_opts = ['-I' + inc_dir])
+
+        amd = get_info('amd')
+        dict_append(info, **get_info('amd'))
+
+        self.set_info(**info)
+        return
+
+## def vstr2hex(version):
+##     bits = []
+##     n = [24,16,8,4,0]
+##     r = 0
+##     for s in version.split('.'):
+##         r |= int(s) << n[0]
+##         del n[0]
+##     return r
+
+#--------------------------------------------------------------------
+
+def combine_paths(*args,**kws):
+    """ Return a list of existing paths composed by all combinations of
+        items from arguments.
+    """
+    r = []
+    for a in args:
+        if not a: continue
+        if is_string(a):
+            a = [a]
+        r.append(a)
+    args = r
+    if not args: return []
+    if len(args)==1:
+        result = reduce(lambda a,b:a+b,map(glob,args[0]),[])
+    elif len (args)==2:
+        result = []
+        for a0 in args[0]:
+            for a1 in args[1]:
+                result.extend(glob(os.path.join(a0,a1)))
+    else:
+        result = combine_paths(*(combine_paths(args[0],args[1])+args[2:]))
+    verbosity = kws.get('verbosity',1)
+    log.debug('(paths: %s)', ','.join(result))
+    return result
+
+language_map = {'c':0,'c++':1,'f77':2,'f90':3}
+inv_language_map = {0:'c',1:'c++',2:'f77',3:'f90'}
+def dict_append(d,**kws):
+    languages = []
+    for k,v in kws.items():
+        if k=='language':
+            languages.append(v)
+            continue
+        if k in d:
+            if k in ['library_dirs','include_dirs','define_macros']:
+                [d[k].append(vv) for vv in v if vv not in d[k]]
+            else:
+                d[k].extend(v)
+        else:
+            d[k] = v
+    if languages:
+        l = inv_language_map[max([language_map.get(l,0) for l in languages])]
+        d['language'] = l
+    return
+
+def parseCmdLine(argv=(None,)):
+    import optparse
+    parser = optparse.OptionParser("usage: %prog [-v] [info objs]")
+    parser.add_option('-v', '--verbose', action='store_true', dest='verbose',
+                      default=False,
+                      help='be verbose and print more messages')
+
+    opts, args = parser.parse_args(args=argv[1:])
+    return opts, args
+
+def show_all(argv=None):
+    import inspect
+    if argv is None:
+        argv = sys.argv
+    opts, args = parseCmdLine(argv)
+    if opts.verbose:
+        log.set_threshold(log.DEBUG)
+    else:
+        log.set_threshold(log.INFO)
+    show_only = []
+    for n in args:
+        if n[-5:] != '_info':
+            n = n + '_info'
+        show_only.append(n)
+    show_all = not show_only
+    _gdict_ = globals().copy()
+    for name, c in _gdict_.iteritems():
+        if not inspect.isclass(c):
+            continue
+        if not issubclass(c, system_info) or c is system_info:
+            continue
+        if not show_all:
+            if name not in show_only:
+                continue
+            del show_only[show_only.index(name)]
+        conf = c()
+        conf.verbosity = 2
+        r = conf.get_info()
+    if show_only:
+        log.info('Info classes not defined: %s',','.join(show_only))
+
+if __name__ == "__main__":
+    show_all()
+
+
+from __version__ import version as __version__
+
+# Must import local ccompiler ASAP in order to get
+# customized CCompiler.spawn effective.
+import ccompiler
+import unixccompiler
+
+from info import __doc__
+from npy_pkg_config import *
+
+try:
+    import __config__
+    _INSTALLED = True
+except ImportError:
+    _INSTALLED = False
+
+if _INSTALLED:
+    from numpy.testing import Tester
+    test = Tester().test
+    bench = Tester().bench
+
+
+import sys
+from distutils.core import *
+
+if 'setuptools' in sys.modules:
+    have_setuptools = True
+    from setuptools import setup as old_setup
+    # easy_install imports math, it may be picked up from cwd
+    from setuptools.command import easy_install
+    try:
+        # very old versions of setuptools don't have this
+        from setuptools.command import bdist_egg
+    except ImportError:
+        have_setuptools = False
+else:
+    from distutils.core import setup as old_setup
+    have_setuptools = False
+
+import warnings
+import distutils.core
+import distutils.dist
+
+from numpy.distutils.extension import Extension
+from numpy.distutils.numpy_distribution import NumpyDistribution
+from numpy.distutils.command import config, config_compiler, \
+     build, build_py, build_ext, build_clib, build_src, build_scripts, \
+     sdist, install_data, install_headers, install, bdist_rpm, scons, \
+     install_clib
+from numpy.distutils.misc_util import get_data_files, is_sequence, is_string
+
+numpy_cmdclass = {'build':            build.build,
+                  'build_src':        build_src.build_src,
+                  'build_scripts':    build_scripts.build_scripts,
+                  'config_cc':        config_compiler.config_cc,
+                  'config_fc':        config_compiler.config_fc,
+                  'config':           config.config,
+                  'build_ext':        build_ext.build_ext,
+                  'build_py':         build_py.build_py,
+                  'build_clib':       build_clib.build_clib,
+                  'sdist':            sdist.sdist,
+                  'scons':            scons.scons,
+                  'install_data':     install_data.install_data,
+                  'install_headers':  install_headers.install_headers,
+                  'install_clib':     install_clib.install_clib,
+                  'install':          install.install,
+                  'bdist_rpm':        bdist_rpm.bdist_rpm,
+                  }
+if have_setuptools:
+    # Use our own versions of develop and egg_info to ensure that build_src is
+    # handled appropriately.
+    from numpy.distutils.command import develop, egg_info
+    numpy_cmdclass['bdist_egg'] = bdist_egg.bdist_egg
+    numpy_cmdclass['develop'] = develop.develop
+    numpy_cmdclass['easy_install'] = easy_install.easy_install
+    numpy_cmdclass['egg_info'] = egg_info.egg_info
+
+def _dict_append(d, **kws):
+    for k,v in kws.items():
+        if k not in d:
+            d[k] = v
+            continue
+        dv = d[k]
+        if isinstance(dv, tuple):
+            d[k] = dv + tuple(v)
+        elif isinstance(dv, list):
+            d[k] = dv + list(v)
+        elif isinstance(dv, dict):
+            _dict_append(dv, **v)
+        elif is_string(dv):
+            d[k] = dv + v
+        else:
+            raise TypeError, repr(type(dv))
+
+def _command_line_ok(_cache=[]):
+    """ Return True if command line does not contain any
+    help or display requests.
+    """
+    if _cache:
+        return _cache[0]
+    ok = True
+    display_opts = ['--'+n for n in Distribution.display_option_names]
+    for o in Distribution.display_options:
+        if o[1]:
+            display_opts.append('-'+o[1])
+    for arg in sys.argv:
+        if arg.startswith('--help') or arg=='-h' or arg in display_opts:
+            ok = False
+            break
+    _cache.append(ok)
+    return ok
+
+def get_distribution(always=False):
+    dist = distutils.core._setup_distribution
+    # XXX Hack to get numpy installable with easy_install.
+    # The problem is easy_install runs it's own setup(), which
+    # sets up distutils.core._setup_distribution. However,
+    # when our setup() runs, that gets overwritten and lost.
+    # We can't use isinstance, as the DistributionWithoutHelpCommands
+    # class is local to a function in setuptools.command.easy_install
+    if dist is not None and \
+            'DistributionWithoutHelpCommands' in repr(dist):
+        #raise NotImplementedError("setuptools not supported yet for numpy.scons branch")
+        dist = None
+    if always and dist is None:
+        dist = NumpyDistribution()
+    return dist
+
+def _exit_interactive_session(_cache=[]):
+    if _cache:
+        return # been here
+    _cache.append(1)
+    print '-'*72
+    raw_input('Press ENTER to close the interactive session..')
+    print '='*72
+
+def setup(**attr):
+
+    if len(sys.argv)<=1 and not attr.get('script_args',[]):
+        from interactive import interactive_sys_argv
+        import atexit
+        atexit.register(_exit_interactive_session)
+        sys.argv[:] = interactive_sys_argv(sys.argv)
+        if len(sys.argv)>1:
+            return setup(**attr)
+
+    cmdclass = numpy_cmdclass.copy()
+
+    new_attr = attr.copy()
+    if 'cmdclass' in new_attr:
+        cmdclass.update(new_attr['cmdclass'])
+    new_attr['cmdclass'] = cmdclass
+
+    if 'configuration' in new_attr:
+        # To avoid calling configuration if there are any errors
+        # or help request in command in the line.
+        configuration = new_attr.pop('configuration')
+
+        old_dist = distutils.core._setup_distribution
+        old_stop = distutils.core._setup_stop_after
+        distutils.core._setup_distribution = None
+        distutils.core._setup_stop_after = "commandline"
+        try:
+            dist = setup(**new_attr)
+        finally:
+            distutils.core._setup_distribution = old_dist
+            distutils.core._setup_stop_after = old_stop
+        if dist.help or not _command_line_ok():
+            # probably displayed help, skip running any commands
+            return dist
+
+        # create setup dictionary and append to new_attr
+        config = configuration()
+        if hasattr(config,'todict'):
+            config = config.todict()
+        _dict_append(new_attr, **config)
+
+    # Move extension source libraries to libraries
+    libraries = []
+    for ext in new_attr.get('ext_modules',[]):
+        new_libraries = []
+        for item in ext.libraries:
+            if is_sequence(item):
+                lib_name, build_info = item
+                _check_append_ext_library(libraries, item)
+                new_libraries.append(lib_name)
+            elif is_string(item):
+                new_libraries.append(item)
+            else:
+                raise TypeError("invalid description of extension module "
+                                "library %r" % (item,))
+        ext.libraries = new_libraries
+    if libraries:
+        if 'libraries' not in new_attr:
+            new_attr['libraries'] = []
+        for item in libraries:
+            _check_append_library(new_attr['libraries'], item)
+
+    # sources in ext_modules or libraries may contain header files
+    if ('ext_modules' in new_attr or 'libraries' in new_attr) \
+       and 'headers' not in new_attr:
+        new_attr['headers'] = []
+
+    # Use our custom NumpyDistribution class instead of distutils' one
+    new_attr['distclass'] = NumpyDistribution
+
+    return old_setup(**new_attr)
+
+def _check_append_library(libraries, item):
+    for libitem in libraries:
+        if is_sequence(libitem):
+            if is_sequence(item):
+                if item[0]==libitem[0]:
+                    if item[1] is libitem[1]:
+                        return
+                    warnings.warn("[0] libraries list contains %r with"
+                                  " different build_info" % (item[0],))
+                    break
+            else:
+                if item==libitem[0]:
+                    warnings.warn("[1] libraries list contains %r with"
+                                  " no build_info" % (item[0],))
+                    break
+        else:
+            if is_sequence(item):
+                if item[0]==libitem:
+                    warnings.warn("[2] libraries list contains %r with"
+                                  " no build_info" % (item[0],))
+                    break
+            else:
+                if item==libitem:
+                    return
+    libraries.append(item)
+
+def _check_append_ext_library(libraries, (lib_name,build_info)):
+    for item in libraries:
+        if is_sequence(item):
+            if item[0]==lib_name:
+                if item[1] is build_info:
+                    return
+                warnings.warn("[3] libraries list contains %r with"
+                              " different build_info" % (lib_name,))
+                break
+        elif item==lib_name:
+            warnings.warn("[4] libraries list contains %r with"
+                          " no build_info" % (lib_name,))
+            break
+    libraries.append((lib_name,build_info))
+
+major = 0
+minor = 4
+micro = 0
+version = '%(major)d.%(minor)d.%(micro)d' % (locals())
+
+#!/usr/bin/env python
+"""
+exec_command
+
+Implements exec_command function that is (almost) equivalent to
+commands.getstatusoutput function but on NT, DOS systems the
+returned status is actually correct (though, the returned status
+values may be different by a factor). In addition, exec_command
+takes keyword arguments for (re-)defining environment variables.
+
+Provides functions:
+  exec_command  --- execute command in a specified directory and
+                    in the modified environment.
+  find_executable --- locate a command using info from environment
+                    variable PATH. Equivalent to posix `which`
+                    command.
+
+Author: Pearu Peterson <pearu@cens.ioc.ee>
+Created: 11 January 2003
+
+Requires: Python 2.x
+
+Succesfully tested on:
+  os.name | sys.platform | comments
+  --------+--------------+----------
+  posix   | linux2       | Debian (sid) Linux, Python 2.1.3+, 2.2.3+, 2.3.3
+                           PyCrust 0.9.3, Idle 1.0.2
+  posix   | linux2       | Red Hat 9 Linux, Python 2.1.3, 2.2.2, 2.3.2
+  posix   | sunos5       | SunOS 5.9, Python 2.2, 2.3.2
+  posix   | darwin       | Darwin 7.2.0, Python 2.3
+  nt      | win32        | Windows Me
+                           Python 2.3(EE), Idle 1.0, PyCrust 0.7.2
+                           Python 2.1.1 Idle 0.8
+  nt      | win32        | Windows 98, Python 2.1.1. Idle 0.8
+  nt      | win32        | Cygwin 98-4.10, Python 2.1.1(MSC) - echo tests
+                           fail i.e. redefining environment variables may
+                           not work. FIXED: don't use cygwin echo!
+                           Comment: also `cmd /c echo` will not work
+                           but redefining environment variables do work.
+  posix   | cygwin       | Cygwin 98-4.10, Python 2.3.3(cygming special)
+  nt      | win32        | Windows XP, Python 2.3.3
+
+Known bugs:
+- Tests, that send messages to stderr, fail when executed from MSYS prompt
+  because the messages are lost at some point.
+"""
+
+__all__ = ['exec_command','find_executable']
+
+import os
+import sys
+import shlex
+
+from numpy.distutils.misc_util import is_sequence, make_temp_file
+from numpy.distutils import log
+
+def temp_file_name():
+    fo, name = make_temp_file()
+    fo.close()
+    return name
+
+def get_pythonexe():
+    pythonexe = sys.executable
+    if os.name in ['nt','dos']:
+        fdir,fn = os.path.split(pythonexe)
+        fn = fn.upper().replace('PYTHONW','PYTHON')
+        pythonexe = os.path.join(fdir,fn)
+        assert os.path.isfile(pythonexe), '%r is not a file' % (pythonexe,)
+    return pythonexe
+
+def splitcmdline(line):
+    import warnings
+    warnings.warn('splitcmdline is deprecated; use shlex.split',
+                  DeprecationWarning)
+    return shlex.split(line)
+
+def find_executable(exe, path=None, _cache={}):
+    """Return full path of a executable or None.
+
+    Symbolic links are not followed.
+    """
+    key = exe, path
+    try:
+        return _cache[key]
+    except KeyError:
+        pass
+    log.debug('find_executable(%r)' % exe)
+    orig_exe = exe
+
+    if path is None:
+        path = os.environ.get('PATH',os.defpath)
+    if os.name=='posix':
+        realpath = os.path.realpath
+    else:
+        realpath = lambda a:a
+
+    if exe.startswith('"'):
+        exe = exe[1:-1]
+
+    suffixes = ['']
+    if os.name in ['nt','dos','os2']:
+        fn,ext = os.path.splitext(exe)
+        extra_suffixes = ['.exe','.com','.bat']
+        if ext.lower() not in extra_suffixes:
+            suffixes = extra_suffixes
+
+    if os.path.isabs(exe):
+        paths = ['']
+    else:
+        paths = [ os.path.abspath(p) for p in path.split(os.pathsep) ]
+
+    for path in paths:
+        fn = os.path.join(path, exe)
+        for s in suffixes:
+            f_ext = fn+s
+            if not os.path.islink(f_ext):
+                f_ext = realpath(f_ext)
+            if os.path.isfile(f_ext) and os.access(f_ext, os.X_OK):
+                log.good('Found executable %s' % f_ext)
+                _cache[key] = f_ext
+                return f_ext
+
+    log.warn('Could not locate executable %s' % orig_exe)
+    return None
+
+############################################################
+
+def _preserve_environment( names ):
+    log.debug('_preserve_environment(%r)' % (names))
+    env = {}
+    for name in names:
+        env[name] = os.environ.get(name)
+    return env
+
+def _update_environment( **env ):
+    log.debug('_update_environment(...)')
+    for name,value in env.items():
+        os.environ[name] = value or ''
+
+def exec_command( command,
+                  execute_in='', use_shell=None, use_tee = None,
+                  _with_python = 1,
+                  **env ):
+    """ Return (status,output) of executed command.
+
+    command is a concatenated string of executable and arguments.
+    The output contains both stdout and stderr messages.
+    The following special keyword arguments can be used:
+      use_shell - execute `sh -c command`
+      use_tee   - pipe the output of command through tee
+      execute_in - before run command `cd execute_in` and after `cd -`.
+
+    On NT, DOS systems the returned status is correct for external commands.
+    Wild cards will not work for non-posix systems or when use_shell=0.
+    """
+    log.debug('exec_command(%r,%s)' % (command,\
+         ','.join(['%s=%r'%kv for kv in env.items()])))
+
+    if use_tee is None:
+        use_tee = os.name=='posix'
+    if use_shell is None:
+        use_shell = os.name=='posix'
+    execute_in = os.path.abspath(execute_in)
+    oldcwd = os.path.abspath(os.getcwd())
+
+    if __name__[-12:] == 'exec_command':
+        exec_dir = os.path.dirname(os.path.abspath(__file__))
+    elif os.path.isfile('exec_command.py'):
+        exec_dir = os.path.abspath('.')
+    else:
+        exec_dir = os.path.abspath(sys.argv[0])
+        if os.path.isfile(exec_dir):
+            exec_dir = os.path.dirname(exec_dir)
+
+    if oldcwd!=execute_in:
+        os.chdir(execute_in)
+        log.debug('New cwd: %s' % execute_in)
+    else:
+        log.debug('Retaining cwd: %s' % oldcwd)
+
+    oldenv = _preserve_environment( env.keys() )
+    _update_environment( **env )
+
+    try:
+        # _exec_command is robust but slow, it relies on
+        # usable sys.std*.fileno() descriptors. If they
+        # are bad (like in win32 Idle, PyCrust environments)
+        # then _exec_command_python (even slower)
+        # will be used as a last resort.
+        #
+        # _exec_command_posix uses os.system and is faster
+        # but not on all platforms os.system will return
+        # a correct status.
+        if _with_python and (0 or sys.__stdout__.fileno()==-1):
+            st = _exec_command_python(command,
+                                      exec_command_dir = exec_dir,
+                                      **env)
+        elif os.name=='posix':
+            st = _exec_command_posix(command,
+                                     use_shell=use_shell,
+                                     use_tee=use_tee,
+                                     **env)
+        else:
+            st = _exec_command(command, use_shell=use_shell,
+                               use_tee=use_tee,**env)
+    finally:
+        if oldcwd!=execute_in:
+            os.chdir(oldcwd)
+            log.debug('Restored cwd to %s' % oldcwd)
+        _update_environment(**oldenv)
+
+    return st
+
+def _exec_command_posix( command,
+                         use_shell = None,
+                         use_tee = None,
+                         **env ):
+    log.debug('_exec_command_posix(...)')
+
+    if is_sequence(command):
+        command_str = ' '.join(list(command))
+    else:
+        command_str = command
+
+    tmpfile = temp_file_name()
+    stsfile = None
+    if use_tee:
+        stsfile = temp_file_name()
+        filter = ''
+        if use_tee == 2:
+            filter = r'| tr -cd "\n" | tr "\n" "."; echo'
+        command_posix = '( %s ; echo $? > %s ) 2>&1 | tee %s %s'\
+                      % (command_str,stsfile,tmpfile,filter)
+    else:
+        stsfile = temp_file_name()
+        command_posix = '( %s ; echo $? > %s ) > %s 2>&1'\
+                        % (command_str,stsfile,tmpfile)
+        #command_posix = '( %s ) > %s 2>&1' % (command_str,tmpfile)
+
+    log.debug('Running os.system(%r)' % (command_posix))
+    status = os.system(command_posix)
+
+    if use_tee:
+        if status:
+            # if command_tee fails then fall back to robust exec_command
+            log.warn('_exec_command_posix failed (status=%s)' % status)
+            return _exec_command(command, use_shell=use_shell, **env)
+
+    if stsfile is not None:
+        f = open(stsfile,'r')
+        status_text = f.read()
+        status = int(status_text)
+        f.close()
+        os.remove(stsfile)
+
+    f = open(tmpfile,'r')
+    text = f.read()
+    f.close()
+    os.remove(tmpfile)
+
+    if text[-1:]=='\n':
+        text = text[:-1]
+
+    return status, text
+
+
+def _exec_command_python(command,
+                         exec_command_dir='', **env):
+    log.debug('_exec_command_python(...)')
+
+    python_exe = get_pythonexe()
+    cmdfile = temp_file_name()
+    stsfile = temp_file_name()
+    outfile = temp_file_name()
+
+    f = open(cmdfile,'w')
+    f.write('import os\n')
+    f.write('import sys\n')
+    f.write('sys.path.insert(0,%r)\n' % (exec_command_dir))
+    f.write('from exec_command import exec_command\n')
+    f.write('del sys.path[0]\n')
+    f.write('cmd = %r\n' % command)
+    f.write('os.environ = %r\n' % (os.environ))
+    f.write('s,o = exec_command(cmd, _with_python=0, **%r)\n' % (env))
+    f.write('f=open(%r,"w")\nf.write(str(s))\nf.close()\n' % (stsfile))
+    f.write('f=open(%r,"w")\nf.write(o)\nf.close()\n' % (outfile))
+    f.close()
+
+    cmd = '%s %s' % (python_exe, cmdfile)
+    status = os.system(cmd)
+    if status:
+        raise RuntimeError("%r failed" % (cmd,))
+    os.remove(cmdfile)
+
+    f = open(stsfile,'r')
+    status = int(f.read())
+    f.close()
+    os.remove(stsfile)
+
+    f = open(outfile,'r')
+    text = f.read()
+    f.close()
+    os.remove(outfile)
+
+    return status, text
+
+def quote_arg(arg):
+    if arg[0]!='"' and ' ' in arg:
+        return '"%s"' % arg
+    return arg
+
+def _exec_command( command, use_shell=None, use_tee = None, **env ):
+    log.debug('_exec_command(...)')
+
+    if use_shell is None:
+        use_shell = os.name=='posix'
+    if use_tee is None:
+        use_tee = os.name=='posix'
+    using_command = 0
+    if use_shell:
+        # We use shell (unless use_shell==0) so that wildcards can be
+        # used.
+        sh = os.environ.get('SHELL','/bin/sh')
+        if is_sequence(command):
+            argv = [sh,'-c',' '.join(list(command))]
+        else:
+            argv = [sh,'-c',command]
+    else:
+        # On NT, DOS we avoid using command.com as it's exit status is
+        # not related to the exit status of a command.
+        if is_sequence(command):
+            argv = command[:]
+        else:
+            argv = shlex.split(command)
+
+    if hasattr(os,'spawnvpe'):
+        spawn_command = os.spawnvpe
+    else:
+        spawn_command = os.spawnve
+        argv[0] = find_executable(argv[0]) or argv[0]
+        if not os.path.isfile(argv[0]):
+            log.warn('Executable %s does not exist' % (argv[0]))
+            if os.name in ['nt','dos']:
+                # argv[0] might be internal command
+                argv = [os.environ['COMSPEC'],'/C'] + argv
+                using_command = 1
+
+    # sys.__std*__ is used instead of sys.std* because environments
+    # like IDLE, PyCrust, etc overwrite sys.std* commands.
+    so_fileno = sys.__stdout__.fileno()
+    se_fileno = sys.__stderr__.fileno()
+    so_flush = sys.__stdout__.flush
+    se_flush = sys.__stderr__.flush
+    so_dup = os.dup(so_fileno)
+    se_dup = os.dup(se_fileno)
+
+    outfile = temp_file_name()
+    fout = open(outfile,'w')
+    if using_command:
+        errfile = temp_file_name()
+        ferr = open(errfile,'w')
+
+    log.debug('Running %s(%s,%r,%r,os.environ)' \
+              % (spawn_command.__name__,os.P_WAIT,argv[0],argv))
+
+    argv0 = argv[0]
+    if not using_command:
+        argv[0] = quote_arg(argv0)
+
+    so_flush()
+    se_flush()
+    os.dup2(fout.fileno(),so_fileno)
+    if using_command:
+        #XXX: disabled for now as it does not work from cmd under win32.
+        #     Tests fail on msys
+        os.dup2(ferr.fileno(),se_fileno)
+    else:
+        os.dup2(fout.fileno(),se_fileno)
+    try:
+        status = spawn_command(os.P_WAIT,argv0,argv,os.environ)
+    except OSError,errmess:
+        status = 999
+        sys.stderr.write('%s: %s'%(errmess,argv[0]))
+
+    so_flush()
+    se_flush()
+    os.dup2(so_dup,so_fileno)
+    os.dup2(se_dup,se_fileno)
+
+    fout.close()
+    fout = open(outfile,'r')
+    text = fout.read()
+    fout.close()
+    os.remove(outfile)
+
+    if using_command:
+        ferr.close()
+        ferr = open(errfile,'r')
+        errmess = ferr.read()
+        ferr.close()
+        os.remove(errfile)
+        if errmess and not status:
+            # Not sure how to handle the case where errmess
+            # contains only warning messages and that should
+            # not be treated as errors.
+            #status = 998
+            if text:
+                text = text + '\n'
+            #text = '%sCOMMAND %r FAILED: %s' %(text,command,errmess)
+            text = text + errmess
+            print errmess
+    if text[-1:]=='\n':
+        text = text[:-1]
+    if status is None:
+        status = 0
+
+    if use_tee:
+        print text
+
+    return status, text
+
+
+def test_nt(**kws):
+    pythonexe = get_pythonexe()
+    echo = find_executable('echo')
+    using_cygwin_echo = echo != 'echo'
+    if using_cygwin_echo:
+        log.warn('Using cygwin echo in win32 environment is not supported')
+
+        s,o=exec_command(pythonexe\
+                         +' -c "import os;print os.environ.get(\'AAA\',\'\')"')
+        assert s==0 and o=='',(s,o)
+
+        s,o=exec_command(pythonexe\
+                         +' -c "import os;print os.environ.get(\'AAA\')"',
+                         AAA='Tere')
+        assert s==0 and o=='Tere',(s,o)
+
+        os.environ['BBB'] = 'Hi'
+        s,o=exec_command(pythonexe\
+                         +' -c "import os;print os.environ.get(\'BBB\',\'\')"')
+        assert s==0 and o=='Hi',(s,o)
+
+        s,o=exec_command(pythonexe\
+                         +' -c "import os;print os.environ.get(\'BBB\',\'\')"',
+                         BBB='Hey')
+        assert s==0 and o=='Hey',(s,o)
+
+        s,o=exec_command(pythonexe\
+                         +' -c "import os;print os.environ.get(\'BBB\',\'\')"')
+        assert s==0 and o=='Hi',(s,o)
+    elif 0:
+        s,o=exec_command('echo Hello')
+        assert s==0 and o=='Hello',(s,o)
+
+        s,o=exec_command('echo a%AAA%')
+        assert s==0 and o=='a',(s,o)
+
+        s,o=exec_command('echo a%AAA%',AAA='Tere')
+        assert s==0 and o=='aTere',(s,o)
+
+        os.environ['BBB'] = 'Hi'
+        s,o=exec_command('echo a%BBB%')
+        assert s==0 and o=='aHi',(s,o)
+
+        s,o=exec_command('echo a%BBB%',BBB='Hey')
+        assert s==0 and o=='aHey', (s,o)
+        s,o=exec_command('echo a%BBB%')
+        assert s==0 and o=='aHi',(s,o)
+
+        s,o=exec_command('this_is_not_a_command')
+        assert s and o!='',(s,o)
+
+        s,o=exec_command('type not_existing_file')
+        assert s and o!='',(s,o)
+
+    s,o=exec_command('echo path=%path%')
+    assert s==0 and o!='',(s,o)
+
+    s,o=exec_command('%s -c "import sys;sys.stderr.write(sys.platform)"' \
+                     % pythonexe)
+    assert s==0 and o=='win32',(s,o)
+
+    s,o=exec_command('%s -c "raise \'Ignore me.\'"' % pythonexe)
+    assert s==1 and o,(s,o)
+
+    s,o=exec_command('%s -c "import sys;sys.stderr.write(\'0\');sys.stderr.write(\'1\');sys.stderr.write(\'2\')"'\
+                     % pythonexe)
+    assert s==0 and o=='012',(s,o)
+
+    s,o=exec_command('%s -c "import sys;sys.exit(15)"' % pythonexe)
+    assert s==15 and o=='',(s,o)
+
+    s,o=exec_command('%s -c "print \'Heipa\'"' % pythonexe)
+    assert s==0 and o=='Heipa',(s,o)
+
+    print 'ok'
+
+def test_posix(**kws):
+    s,o=exec_command("echo Hello",**kws)
+    assert s==0 and o=='Hello',(s,o)
+
+    s,o=exec_command('echo $AAA',**kws)
+    assert s==0 and o=='',(s,o)
+
+    s,o=exec_command('echo "$AAA"',AAA='Tere',**kws)
+    assert s==0 and o=='Tere',(s,o)
+
+
+    s,o=exec_command('echo "$AAA"',**kws)
+    assert s==0 and o=='',(s,o)
+
+    os.environ['BBB'] = 'Hi'
+    s,o=exec_command('echo "$BBB"',**kws)
+    assert s==0 and o=='Hi',(s,o)
+
+    s,o=exec_command('echo "$BBB"',BBB='Hey',**kws)
+    assert s==0 and o=='Hey',(s,o)
+
+    s,o=exec_command('echo "$BBB"',**kws)
+    assert s==0 and o=='Hi',(s,o)
+
+
+    s,o=exec_command('this_is_not_a_command',**kws)
+    assert s!=0 and o!='',(s,o)
+
+    s,o=exec_command('echo path=$PATH',**kws)
+    assert s==0 and o!='',(s,o)
+
+    s,o=exec_command('python -c "import sys,os;sys.stderr.write(os.name)"',**kws)
+    assert s==0 and o=='posix',(s,o)
+
+    s,o=exec_command('python -c "raise \'Ignore me.\'"',**kws)
+    assert s==1 and o,(s,o)
+
+    s,o=exec_command('python -c "import sys;sys.stderr.write(\'0\');sys.stderr.write(\'1\');sys.stderr.write(\'2\')"',**kws)
+    assert s==0 and o=='012',(s,o)
+
+    s,o=exec_command('python -c "import sys;sys.exit(15)"',**kws)
+    assert s==15 and o=='',(s,o)
+
+    s,o=exec_command('python -c "print \'Heipa\'"',**kws)
+    assert s==0 and o=='Heipa',(s,o)
+
+    print 'ok'
+
+def test_execute_in(**kws):
+    pythonexe = get_pythonexe()
+    tmpfile = temp_file_name()
+    fn = os.path.basename(tmpfile)
+    tmpdir = os.path.dirname(tmpfile)
+    f = open(tmpfile,'w')
+    f.write('Hello')
+    f.close()
+
+    s,o = exec_command('%s -c "print \'Ignore the following IOError:\','\
+                       'open(%r,\'r\')"' % (pythonexe,fn),**kws)
+    assert s and o!='',(s,o)
+    s,o = exec_command('%s -c "print open(%r,\'r\').read()"' % (pythonexe,fn),
+                       execute_in = tmpdir,**kws)
+    assert s==0 and o=='Hello',(s,o)
+    os.remove(tmpfile)
+    print 'ok'
+
+def test_svn(**kws):
+    s,o = exec_command(['svn','status'],**kws)
+    assert s,(s,o)
+    print 'svn ok'
+
+def test_cl(**kws):
+    if os.name=='nt':
+        s,o = exec_command(['cl','/V'],**kws)
+        assert s,(s,o)
+        print 'cl ok'
+
+if os.name=='posix':
+    test = test_posix
+elif os.name in ['nt','dos']:
+    test = test_nt
+else:
+    raise NotImplementedError,'exec_command tests for '+os.name
+
+############################################################
+
+if __name__ == "__main__":
+
+    test(use_tee=0)
+    test(use_tee=1)
+    test_execute_in(use_tee=0)
+    test_execute_in(use_tee=1)
+    test_svn(use_tee=1)
+    test_cl(use_tee=1)
+
+#!/usr/bin/python
+"""
+
+process_file(filename)
+
+  takes templated file .xxx.src and produces .xxx file where .xxx
+  is .pyf .f90 or .f using the following template rules:
+
+  '<..>' denotes a template.
+
+  All function and subroutine blocks in a source file with names that
+  contain '<..>' will be replicated according to the rules in '<..>'.
+
+  The number of comma-separeted words in '<..>' will determine the number of
+  replicates.
+
+  '<..>' may have two different forms, named and short. For example,
+
+  named:
+   <p=d,s,z,c> where anywhere inside a block '<p>' will be replaced with
+   'd', 's', 'z', and 'c' for each replicate of the block.
+
+   <_c>  is already defined: <_c=s,d,c,z>
+   <_t>  is already defined: <_t=real,double precision,complex,double complex>
+
+  short:
+   <s,d,c,z>, a short form of the named, useful when no <p> appears inside
+   a block.
+
+  In general, '<..>' contains a comma separated list of arbitrary
+  expressions. If these expression must contain a comma|leftarrow|rightarrow,
+  then prepend the comma|leftarrow|rightarrow with a backslash.
+
+  If an expression matches '\\<index>' then it will be replaced
+  by <index>-th expression.
+
+  Note that all '<..>' forms in a block must have the same number of
+  comma-separated entries.
+
+ Predefined named template rules:
+  <prefix=s,d,c,z>
+  <ftype=real,double precision,complex,double complex>
+  <ftypereal=real,double precision,\\0,\\1>
+  <ctype=float,double,complex_float,complex_double>
+  <ctypereal=float,double,\\0,\\1>
+
+"""
+
+__all__ = ['process_str','process_file']
+
+import os
+import sys
+import re
+
+routine_start_re = re.compile(r'(\n|\A)((     (\$|\*))|)\s*(subroutine|function)\b',re.I)
+routine_end_re = re.compile(r'\n\s*end\s*(subroutine|function)\b.*(\n|\Z)',re.I)
+function_start_re = re.compile(r'\n     (\$|\*)\s*function\b',re.I)
+
+def parse_structure(astr):
+    """ Return a list of tuples for each function or subroutine each
+    tuple is the start and end of a subroutine or function to be
+    expanded.
+    """
+
+    spanlist = []
+    ind = 0
+    while 1:
+        m = routine_start_re.search(astr,ind)
+        if m is None:
+            break
+        start = m.start()
+        if function_start_re.match(astr,start,m.end()):
+            while 1:
+                i = astr.rfind('\n',ind,start)
+                if i==-1:
+                    break
+                start = i
+                if astr[i:i+7]!='\n     $':
+                    break
+        start += 1
+        m = routine_end_re.search(astr,m.end())
+        ind = end = m and m.end()-1 or len(astr)
+        spanlist.append((start,end))
+    return spanlist
+
+template_re = re.compile(r"<\s*(\w[\w\d]*)\s*>")
+named_re = re.compile(r"<\s*(\w[\w\d]*)\s*=\s*(.*?)\s*>")
+list_re = re.compile(r"<\s*((.*?))\s*>")
+
+def find_repl_patterns(astr):
+    reps = named_re.findall(astr)
+    names = {}
+    for rep in reps:
+        name = rep[0].strip() or unique_key(names)
+        repl = rep[1].replace('\,','@comma@')
+        thelist = conv(repl)
+        names[name] = thelist
+    return names
+
+item_re = re.compile(r"\A\\(?P<index>\d+)\Z")
+def conv(astr):
+    b = astr.split(',')
+    l = [x.strip() for x in b]
+    for i in range(len(l)):
+        m = item_re.match(l[i])
+        if m:
+            j = int(m.group('index'))
+            l[i] = l[j]
+    return ','.join(l)
+
+def unique_key(adict):
+    """ Obtain a unique key given a dictionary."""
+    allkeys = adict.keys()
+    done = False
+    n = 1
+    while not done:
+        newkey = '__l%s' % (n)
+        if newkey in allkeys:
+            n += 1
+        else:
+            done = True
+    return newkey
+
+
+template_name_re = re.compile(r'\A\s*(\w[\w\d]*)\s*\Z')
+def expand_sub(substr,names):
+    substr = substr.replace('\>','@rightarrow@')
+    substr = substr.replace('\<','@leftarrow@')
+    lnames = find_repl_patterns(substr)
+    substr = named_re.sub(r"<\1>",substr)  # get rid of definition templates
+
+    def listrepl(mobj):
+        thelist = conv(mobj.group(1).replace('\,','@comma@'))
+        if template_name_re.match(thelist):
+            return "<%s>" % (thelist)
+        name = None
+        for key in lnames.keys():    # see if list is already in dictionary
+            if lnames[key] == thelist:
+                name = key
+        if name is None:      # this list is not in the dictionary yet
+            name = unique_key(lnames)
+            lnames[name] = thelist
+        return "<%s>" % name
+
+    substr = list_re.sub(listrepl, substr) # convert all lists to named templates
+                                           # newnames are constructed as needed
+
+    numsubs = None
+    base_rule = None
+    rules = {}
+    for r in template_re.findall(substr):
+        if r not in rules:
+            thelist = lnames.get(r,names.get(r,None))
+            if thelist is None:
+                raise ValueError,'No replicates found for <%s>' % (r)
+            if r not in names and not thelist.startswith('_'):
+                names[r] = thelist
+            rule = [i.replace('@comma@',',') for i in thelist.split(',')]
+            num = len(rule)
+
+            if numsubs is None:
+                numsubs = num
+                rules[r] = rule
+                base_rule = r
+            elif num == numsubs:
+                rules[r] = rule
+            else:
+                print "Mismatch in number of replacements (base <%s=%s>)"\
+                      " for <%s=%s>. Ignoring." % (base_rule,
+                                                  ','.join(rules[base_rule]),
+                                                  r,thelist)
+    if not rules:
+        return substr
+
+    def namerepl(mobj):
+        name = mobj.group(1)
+        return rules.get(name,(k+1)*[name])[k]
+
+    newstr = ''
+    for k in range(numsubs):
+        newstr += template_re.sub(namerepl, substr) + '\n\n'
+
+    newstr = newstr.replace('@rightarrow@','>')
+    newstr = newstr.replace('@leftarrow@','<')
+    return newstr
+
+def process_str(allstr):
+    newstr = allstr
+    writestr = '' #_head # using _head will break free-format files
+
+    struct = parse_structure(newstr)
+
+    oldend = 0
+    names = {}
+    names.update(_special_names)
+    for sub in struct:
+        writestr += newstr[oldend:sub[0]]
+        names.update(find_repl_patterns(newstr[oldend:sub[0]]))
+        writestr += expand_sub(newstr[sub[0]:sub[1]],names)
+        oldend =  sub[1]
+    writestr += newstr[oldend:]
+
+    return writestr
+
+include_src_re = re.compile(r"(\n|\A)\s*include\s*['\"](?P<name>[\w\d./\\]+[.]src)['\"]",re.I)
+
+def resolve_includes(source):
+    d = os.path.dirname(source)
+    fid = open(source)
+    lines = []
+    for line in fid.readlines():
+        m = include_src_re.match(line)
+        if m:
+            fn = m.group('name')
+            if not os.path.isabs(fn):
+                fn = os.path.join(d,fn)
+            if os.path.isfile(fn):
+                print 'Including file',fn
+                lines.extend(resolve_includes(fn))
+            else:
+                lines.append(line)
+        else:
+            lines.append(line)
+    fid.close()
+    return lines
+
+def process_file(source):
+    lines = resolve_includes(source)
+    return process_str(''.join(lines))
+
+_special_names = find_repl_patterns('''
+<_c=s,d,c,z>
+<_t=real,double precision,complex,double complex>
+<prefix=s,d,c,z>
+<ftype=real,double precision,complex,double complex>
+<ctype=float,double,complex_float,complex_double>
+<ftypereal=real,double precision,\\0,\\1>
+<ctypereal=float,double,\\0,\\1>
+''')
+
+if __name__ == "__main__":
+
+    try:
+        file = sys.argv[1]
+    except IndexError:
+        fid = sys.stdin
+        outfile = sys.stdout
+    else:
+        fid = open(file,'r')
+        (base, ext) = os.path.splitext(file)
+        newname = base
+        outfile = open(newname,'w')
+
+    allstr = fid.read()
+    writestr = process_str(allstr)
+    outfile.write(writestr)
+
+"""
+Support code for building Python extensions on Windows.
+
+    # NT stuff
+    # 1. Make sure libpython<version>.a exists for gcc.  If not, build it.
+    # 2. Force windows to use gcc (we're struggling with MSVC and g77 support)
+    # 3. Force windows to use g77
+
+"""
+
+import os
+import subprocess
+import sys
+import log
+import subprocess
+import re
+
+# Overwrite certain distutils.ccompiler functions:
+import numpy.distutils.ccompiler
+
+# NT stuff
+# 1. Make sure libpython<version>.a exists for gcc.  If not, build it.
+# 2. Force windows to use gcc (we're struggling with MSVC and g77 support)
+#    --> this is done in numpy/distutils/ccompiler.py
+# 3. Force windows to use g77
+
+import distutils.cygwinccompiler
+from distutils.version import StrictVersion
+from numpy.distutils.ccompiler import gen_preprocess_options, gen_lib_options
+from distutils.errors import DistutilsExecError, CompileError, UnknownFileError
+
+from distutils.unixccompiler import UnixCCompiler
+from distutils.msvccompiler import get_build_version as get_build_msvc_version
+from numpy.distutils.misc_util import msvc_runtime_library, get_build_architecture
+
+# Useful to generate table of symbols from a dll
+_START = re.compile(r'\[Ordinal/Name Pointer\] Table')
+_TABLE = re.compile(r'^\s+\[([\s*[0-9]*)\] ([a-zA-Z0-9_]*)')
+
+# the same as cygwin plus some additional parameters
+class Mingw32CCompiler(distutils.cygwinccompiler.CygwinCCompiler):
+    """ A modified MingW32 compiler compatible with an MSVC built Python.
+
+    """
+
+    compiler_type = 'mingw32'
+
+    def __init__ (self,
+                  verbose=0,
+                  dry_run=0,
+                  force=0):
+
+        distutils.cygwinccompiler.CygwinCCompiler.__init__ (self,
+                                                       verbose,dry_run, force)
+
+        # we need to support 3.2 which doesn't match the standard
+        # get_versions methods regex
+        if self.gcc_version is None:
+            import re
+            p = subprocess.Popen(['gcc', '-dumpversion'], shell=True,
+                                 stdout=subprocess.PIPE)
+            out_string = p.stdout.read()
+            p.stdout.close()
+            result = re.search('(\d+\.\d+)',out_string)
+            if result:
+                self.gcc_version = StrictVersion(result.group(1))
+
+        # A real mingw32 doesn't need to specify a different entry point,
+        # but cygwin 2.91.57 in no-cygwin-mode needs it.
+        if self.gcc_version <= "2.91.57":
+            entry_point = '--entry _DllMain@12'
+        else:
+            entry_point = ''
+
+        if self.linker_dll == 'dllwrap':
+            # Commented out '--driver-name g++' part that fixes weird
+            #   g++.exe: g++: No such file or directory
+            # error (mingw 1.0 in Enthon24 tree, gcc-3.4.5).
+            # If the --driver-name part is required for some environment
+            # then make the inclusion of this part specific to that environment.
+            self.linker = 'dllwrap' #  --driver-name g++'
+        elif self.linker_dll == 'gcc':
+            self.linker = 'g++'
+
+        # **changes: eric jones 4/11/01
+        # 1. Check for import library on Windows.  Build if it doesn't exist.
+
+        build_import_library()
+
+        # **changes: eric jones 4/11/01
+        # 2. increased optimization and turned off all warnings
+        # 3. also added --driver-name g++
+        #self.set_executables(compiler='gcc -mno-cygwin -O2 -w',
+        #                     compiler_so='gcc -mno-cygwin -mdll -O2 -w',
+        #                     linker_exe='gcc -mno-cygwin',
+        #                     linker_so='%s --driver-name g++ -mno-cygwin -mdll -static %s'
+        #                                % (self.linker, entry_point))
+
+        # MS_WIN64 should be defined when building for amd64 on windows, but
+        # python headers define it only for MS compilers, which has all kind of
+        # bad consequences, like using Py_ModuleInit4 instead of
+        # Py_ModuleInit4_64, etc... So we add it here
+        if get_build_architecture() == 'AMD64':
+            self.set_executables(
+                    compiler='gcc -g -DDEBUG -DMS_WIN64 -mno-cygwin -O0 -Wall',
+                    compiler_so='gcc -g -DDEBUG -DMS_WIN64 -mno-cygwin -O0 -Wall -Wstrict-prototypes',
+                    linker_exe='gcc -g -mno-cygwin',
+                    linker_so='gcc -g -mno-cygwin -shared')
+        else:
+            if self.gcc_version <= "3.0.0":
+                self.set_executables(compiler='gcc -mno-cygwin -O2 -w',
+                                     compiler_so='gcc -mno-cygwin -mdll -O2 -w -Wstrict-prototypes',
+                                     linker_exe='g++ -mno-cygwin',
+                                     linker_so='%s -mno-cygwin -mdll -static %s'
+                                     % (self.linker, entry_point))
+            else:
+                self.set_executables(compiler='gcc -mno-cygwin -O2 -Wall',
+                                     compiler_so='gcc -mno-cygwin -O2 -Wall -Wstrict-prototypes',
+                                     linker_exe='g++ -mno-cygwin',
+                                     linker_so='g++ -mno-cygwin -shared')
+        # added for python2.3 support
+        # we can't pass it through set_executables because pre 2.2 would fail
+        self.compiler_cxx = ['g++']
+
+        # Maybe we should also append -mthreads, but then the finished
+        # dlls need another dll (mingwm10.dll see Mingw32 docs)
+        # (-mthreads: Support thread-safe exception handling on `Mingw32')
+
+        # no additional libraries needed
+        #self.dll_libraries=[]
+        return
+
+    # __init__ ()
+
+    def link(self,
+             target_desc,
+             objects,
+             output_filename,
+             output_dir,
+             libraries,
+             library_dirs,
+             runtime_library_dirs,
+             export_symbols = None,
+             debug=0,
+             extra_preargs=None,
+             extra_postargs=None,
+             build_temp=None,
+             target_lang=None):
+        # Include the appropiate MSVC runtime library if Python was built
+        # with MSVC >= 7.0 (MinGW standard is msvcrt)
+        runtime_library = msvc_runtime_library()
+        if runtime_library:
+            if not libraries:
+                libraries = []
+            libraries.append(runtime_library)
+        args = (self,
+                target_desc,
+                objects,
+                output_filename,
+                output_dir,
+                libraries,
+                library_dirs,
+                runtime_library_dirs,
+                None, #export_symbols, we do this in our def-file
+                debug,
+                extra_preargs,
+                extra_postargs,
+                build_temp,
+                target_lang)
+        if self.gcc_version < "3.0.0":
+            func = distutils.cygwinccompiler.CygwinCCompiler.link
+        else:
+            func = UnixCCompiler.link
+        func(*args[:func.im_func.func_code.co_argcount])
+        return
+
+    def object_filenames (self,
+                          source_filenames,
+                          strip_dir=0,
+                          output_dir=''):
+        if output_dir is None: output_dir = ''
+        obj_names = []
+        for src_name in source_filenames:
+            # use normcase to make sure '.rc' is really '.rc' and not '.RC'
+            (base, ext) = os.path.splitext (os.path.normcase(src_name))
+
+            # added these lines to strip off windows drive letters
+            # without it, .o files are placed next to .c files
+            # instead of the build directory
+            drv,base = os.path.splitdrive(base)
+            if drv:
+                base = base[1:]
+
+            if ext not in (self.src_extensions + ['.rc','.res']):
+                raise UnknownFileError, \
+                      "unknown file type '%s' (from '%s')" % \
+                      (ext, src_name)
+            if strip_dir:
+                base = os.path.basename (base)
+            if ext == '.res' or ext == '.rc':
+                # these need to be compiled to object files
+                obj_names.append (os.path.join (output_dir,
+                                                base + ext + self.obj_extension))
+            else:
+                obj_names.append (os.path.join (output_dir,
+                                                base + self.obj_extension))
+        return obj_names
+
+    # object_filenames ()
+
+
+def find_python_dll():
+    maj, min, micro = [int(i) for i in sys.version_info[:3]]
+    dllname = 'python%d%d.dll' % (maj, min)
+    print "Looking for %s" % dllname
+
+    # We can't do much here:
+    # - find it in python main dir
+    # - in system32,
+    # - ortherwise (Sxs), I don't know how to get it.
+    lib_dirs = []
+    lib_dirs.append(os.path.join(sys.prefix, 'lib'))
+    try:
+        lib_dirs.append(os.path.join(os.environ['SYSTEMROOT'], 'system32'))
+    except KeyError:
+        pass
+
+    for d in lib_dirs:
+        dll = os.path.join(d, dllname)
+        if os.path.exists(dll):
+            return dll
+
+    raise ValueError("%s not found in %s" % (dllname, lib_dirs))
+
+def dump_table(dll):
+    st = subprocess.Popen(["objdump.exe", "-p", dll], stdout=subprocess.PIPE)
+    return st.stdout.readlines()
+
+def generate_def(dll, dfile):
+    """Given a dll file location,  get all its exported symbols and dump them
+    into the given def file.
+
+    The .def file will be overwritten"""
+    dump = dump_table(dll)
+    for i in range(len(dump)):
+        if _START.match(dump[i]):
+            break
+
+    if i == len(dump):
+        raise ValueError("Symbol table not found")
+
+    syms = []
+    for j in range(i+1, len(dump)):
+        m = _TABLE.match(dump[j])
+        if m:
+            syms.append((int(m.group(1).strip()), m.group(2)))
+        else:
+            break
+
+    if len(syms) == 0:
+        log.warn('No symbols found in %s' % dll)
+
+    d = open(dfile, 'w')
+    d.write('LIBRARY        %s\n' % os.path.basename(dll))
+    d.write(';CODE          PRELOAD MOVEABLE DISCARDABLE\n')
+    d.write(';DATA          PRELOAD SINGLE\n')
+    d.write('\nEXPORTS\n')
+    for s in syms:
+        #d.write('@%d    %s\n' % (s[0], s[1]))
+        d.write('%s\n' % s[1])
+    d.close()
+
+def build_import_library():
+    if os.name != 'nt':
+        return
+
+    arch = get_build_architecture()
+    if arch == 'AMD64':
+        return _build_import_library_amd64()
+    elif arch == 'Intel':
+        return _build_import_library_x86()
+    else:
+        raise ValueError("Unhandled arch %s" % arch)
+
+def _build_import_library_amd64():
+    dll_file = find_python_dll()
+
+    out_name = "libpython%d%d.a" % tuple(sys.version_info[:2])
+    out_file = os.path.join(sys.prefix, 'libs', out_name)
+    if os.path.isfile(out_file):
+        log.debug('Skip building import library: "%s" exists' % (out_file))
+        return
+
+    def_name = "python%d%d.def" % tuple(sys.version_info[:2])
+    def_file = os.path.join(sys.prefix,'libs',def_name)
+
+    log.info('Building import library (arch=AMD64): "%s" (from %s)' \
+             % (out_file, dll_file))
+
+    generate_def(dll_file, def_file)
+
+    cmd = ['dlltool', '-d', def_file, '-l', out_file]
+    subprocess.Popen(cmd)
+
+def _build_import_library_x86():
+    """ Build the import libraries for Mingw32-gcc on Windows
+    """
+    lib_name = "python%d%d.lib" % tuple(sys.version_info[:2])
+    lib_file = os.path.join(sys.prefix,'libs',lib_name)
+    out_name = "libpython%d%d.a" % tuple(sys.version_info[:2])
+    out_file = os.path.join(sys.prefix,'libs',out_name)
+    if not os.path.isfile(lib_file):
+        log.warn('Cannot build import library: "%s" not found' % (lib_file))
+        return
+    if os.path.isfile(out_file):
+        log.debug('Skip building import library: "%s" exists' % (out_file))
+        return
+    log.info('Building import library (ARCH=x86): "%s"' % (out_file))
+
+    from numpy.distutils import lib2def
+
+    def_name = "python%d%d.def" % tuple(sys.version_info[:2])
+    def_file = os.path.join(sys.prefix,'libs',def_name)
+    nm_cmd = '%s %s' % (lib2def.DEFAULT_NM, lib_file)
+    nm_output = lib2def.getnm(nm_cmd)
+    dlist, flist = lib2def.parse_nm(nm_output)
+    lib2def.output_def(dlist, flist, lib2def.DEF_HEADER, open(def_file, 'w'))
+
+    dll_name = "python%d%d.dll" % tuple(sys.version_info[:2])
+    args = (dll_name,def_file,out_file)
+    cmd = 'dlltool --dllname %s --def %s --output-lib %s' % args
+    status = os.system(cmd)
+    # for now, fail silently
+    if status:
+        log.warn('Failed to build import library for gcc. Linking will fail.')
+    #if not success:
+    #    msg = "Couldn't find import library, and failed to build it."
+    #    raise DistutilsPlatformError, msg
+    return
+
+#=====================================
+# Dealing with Visual Studio MANIFESTS
+#=====================================
+
+# Functions to deal with visual studio manifests. Manifest are a mechanism to
+# enforce strong DLL versioning on windows, and has nothing to do with
+# distutils MANIFEST. manifests are XML files with version info, and used by
+# the OS loader; they are necessary when linking against a DLL not in the
+# system path; in particular, official python 2.6 binary is built against the
+# MS runtime 9 (the one from VS 2008), which is not available on most windows
+# systems; python 2.6 installer does install it in the Win SxS (Side by side)
+# directory, but this requires the manifest for this to work. This is a big
+# mess, thanks MS for a wonderful system.
+
+# XXX: ideally, we should use exactly the same version as used by python. I
+# submitted a patch to get this version, but it was only included for python
+# 2.6.1 and above. So for versions below, we use a "best guess".
+_MSVCRVER_TO_FULLVER = {}
+if sys.platform == 'win32':
+    try:
+        import msvcrt
+        if hasattr(msvcrt, "CRT_ASSEMBLY_VERSION"):
+            _MSVCRVER_TO_FULLVER['90'] = msvcrt.CRT_ASSEMBLY_VERSION
+        else:
+            _MSVCRVER_TO_FULLVER['90'] = "9.0.21022.8"
+        # I took one version in my SxS directory: no idea if it is the good
+        # one, and we can't retrieve it from python
+        _MSVCRVER_TO_FULLVER['80'] = "8.0.50727.42"
+    except ImportError:
+        # If we are here, means python was not built with MSVC. Not sure what to do
+        # in that case: manifest building will fail, but it should not be used in
+        # that case anyway
+        log.warn('Cannot import msvcrt: using manifest will not be possible')
+
+def msvc_manifest_xml(maj, min):
+    """Given a major and minor version of the MSVCR, returns the
+    corresponding XML file."""
+    try:
+        fullver = _MSVCRVER_TO_FULLVER[str(maj * 10 + min)]
+    except KeyError:
+        raise ValueError("Version %d,%d of MSVCRT not supported yet" \
+                         % (maj, min))
+    # Don't be fooled, it looks like an XML, but it is not. In particular, it
+    # should not have any space before starting, and its size should be
+    # divisible by 4, most likely for alignement constraints when the xml is
+    # embedded in the binary...
+    # This template was copied directly from the python 2.6 binary (using
+    # strings.exe from mingw on python.exe).
+    template = """\
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+    <security>
+      <requestedPrivileges>
+        <requestedExecutionLevel level="asInvoker" uiAccess="false"></requestedExecutionLevel>
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+  <dependency>
+    <dependentAssembly>
+      <assemblyIdentity type="win32" name="Microsoft.VC%(maj)d%(min)d.CRT" version="%(fullver)s" processorArchitecture="*" publicKeyToken="1fc8b3b9a1e18e3b"></assemblyIdentity>
+    </dependentAssembly>
+  </dependency>
+</assembly>"""
+
+    return template % {'fullver': fullver, 'maj': maj, 'min': min}
+
+def manifest_rc(name, type='dll'):
+    """Return the rc file used to generate the res file which will be embedded
+    as manifest for given manifest file name, of given type ('dll' or
+    'exe').
+
+    Parameters
+    ---------- name: str
+            name of the manifest file to embed
+        type: str ('dll', 'exe')
+            type of the binary which will embed the manifest"""
+    if type == 'dll':
+        rctype = 2
+    elif type == 'exe':
+        rctype = 1
+    else:
+        raise ValueError("Type %s not supported" % type)
+
+    return """\
+#include "winuser.h"
+%d RT_MANIFEST %s""" % (rctype, name)
+
+def check_embedded_msvcr_match_linked(msver):
+    """msver is the ms runtime version used for the MANIFEST."""
+    # check msvcr major version are the same for linking and
+    # embedding
+    msvcv = msvc_runtime_library()
+    if msvcv:
+        maj = int(msvcv[5:6])
+        if not maj == int(msver):
+            raise ValueError, \
+                  "Discrepancy between linked msvcr " \
+                  "(%d) and the one about to be embedded " \
+                  "(%d)" % (int(msver), maj)
+
+def configtest_name(config):
+    base = os.path.basename(config._gen_temp_sourcefile("yo", [], "c"))
+    return os.path.splitext(base)[0]
+
+def manifest_name(config):
+    # Get configest name (including suffix)
+    root = configtest_name(config)
+    exext = config.compiler.exe_extension
+    return root + exext + ".manifest"
+
+def rc_name(config):
+    # Get configest name (including suffix)
+    root = configtest_name(config)
+    return root + ".rc"
+
+def generate_manifest(config):
+    msver = get_build_msvc_version()
+    if msver is not None:
+        if msver >= 8:
+            check_embedded_msvcr_match_linked(msver)
+            ma = int(msver)
+            mi = int((msver - ma) * 10)
+            # Write the manifest file
+            manxml = msvc_manifest_xml(ma, mi)
+            man = open(manifest_name(config), "w")
+            config.temp_files.append(manifest_name(config))
+            man.write(manxml)
+            man.close()
+            # # Write the rc file
+            # manrc = manifest_rc(manifest_name(self), "exe")
+            # rc = open(rc_name(self), "w")
+            # self.temp_files.append(manrc)
+            # rc.write(manrc)
+            # rc.close()
+
+#!/usr/bin/env python
+
+def configuration(parent_package='',top_path=None):
+    from numpy.distutils.misc_util import Configuration
+    config = Configuration('distutils',parent_package,top_path)
+    config.add_subpackage('command')
+    config.add_subpackage('fcompiler')
+    config.add_data_dir('tests')
+    config.add_data_files('site.cfg')
+    config.add_data_files('mingw/gfortran_vs2003_hack.c')
+    config.make_config_py()
+    return config
+
+if __name__ == '__main__':
+    from numpy.distutils.core      import setup
+    setup(configuration=configuration)
+
+"""distutils.extension
+
+Provides the Extension class, used to describe C/C++ extension
+modules in setup scripts.
+
+Overridden to support f2py.
+"""
+
+__revision__ = "$Id: extension.py,v 1.1 2005/04/09 19:29:34 pearu Exp $"
+
+from distutils.extension import Extension as old_Extension
+
+import re
+cxx_ext_re = re.compile(r'.*[.](cpp|cxx|cc)\Z',re.I).match
+fortran_pyf_ext_re = re.compile(r'.*[.](f90|f95|f77|for|ftn|f|pyf)\Z',re.I).match
+
+class Extension(old_Extension):
+    def __init__ (self, name, sources,
+                  include_dirs=None,
+                  define_macros=None,
+                  undef_macros=None,
+                  library_dirs=None,
+                  libraries=None,
+                  runtime_library_dirs=None,
+                  extra_objects=None,
+                  extra_compile_args=None,
+                  extra_link_args=None,
+                  export_symbols=None,
+                  swig_opts=None,
+                  depends=None,
+                  language=None,
+                  f2py_options=None,
+                  module_dirs=None,
+                 ):
+        old_Extension.__init__(self,name, [],
+                               include_dirs,
+                               define_macros,
+                               undef_macros,
+                               library_dirs,
+                               libraries,
+                               runtime_library_dirs,
+                               extra_objects,
+                               extra_compile_args,
+                               extra_link_args,
+                               export_symbols)
+        # Avoid assert statements checking that sources contains strings:
+        self.sources = sources
+
+        # Python 2.4 distutils new features
+        self.swig_opts = swig_opts or []
+
+        # Python 2.3 distutils new features
+        self.depends = depends or []
+        self.language = language
+
+        # numpy_distutils features
+        self.f2py_options = f2py_options or []
+        self.module_dirs = module_dirs or []
+
+        return
+
+    def has_cxx_sources(self):
+        for source in self.sources:
+            if cxx_ext_re(str(source)):
+                return True
+        return False
+
+    def has_f2py_sources(self):
+        for source in self.sources:
+            if fortran_pyf_ext_re(source):
+                return True
+        return False
+
+# class Extension
+
+import os
+import sys
+from pprint import pformat
+
+__all__ = ['interactive_sys_argv']
+
+def show_information(*args):
+    print 'Python',sys.version
+    for a in ['platform','prefix','byteorder','path']:
+        print 'sys.%s = %s' % (a,pformat(getattr(sys,a)))
+    for a in ['name']:
+        print 'os.%s = %s' % (a,pformat(getattr(os,a)))
+    if hasattr(os,'uname'):
+        print 'system,node,release,version,machine = ',os.uname()
+
+def show_environ(*args):
+    for k,i in os.environ.items():
+        print '  %s = %s' % (k, i)
+
+def show_fortran_compilers(*args):
+    from fcompiler import show_fcompilers
+    show_fcompilers()
+
+def show_compilers(*args):
+    from distutils.ccompiler import show_compilers
+    show_compilers()
+
+def show_tasks(argv,ccompiler,fcompiler):
+    print """\
+
+Tasks:
+  i       - Show python/platform/machine information
+  ie      - Show environment information
+  c       - Show C compilers information
+  c<name> - Set C compiler (current:%s)
+  f       - Show Fortran compilers information
+  f<name> - Set Fortran compiler (current:%s)
+  e       - Edit proposed sys.argv[1:].
+
+Task aliases:
+  0         - Configure
+  1         - Build
+  2         - Install
+  2<prefix> - Install with prefix.
+  3         - Inplace build
+  4         - Source distribution
+  5         - Binary distribution
+
+Proposed sys.argv = %s
+    """ % (ccompiler, fcompiler, argv)
+
+
+import shlex
+
+def edit_argv(*args):
+    argv = args[0]
+    readline = args[1]
+    if readline is not None:
+        readline.add_history(' '.join(argv[1:]))
+    try:
+        s = raw_input('Edit argv [UpArrow to retrive %r]: ' % (' '.join(argv[1:])))
+    except EOFError:
+        return
+    if s:
+        argv[1:] = shlex.split(s)
+    return
+
+def interactive_sys_argv(argv):
+    print '='*72
+    print 'Starting interactive session'
+    print '-'*72
+
+    readline = None
+    try:
+        try:
+            import readline
+        except ImportError:
+            pass
+        else:
+            import tempfile
+            tdir = tempfile.gettempdir()
+            username = os.environ.get('USER',os.environ.get('USERNAME','UNKNOWN'))
+            histfile = os.path.join(tdir,".pyhist_interactive_setup-" + username)
+            try:
+                try: readline.read_history_file(histfile)
+                except IOError: pass
+                import atexit
+                atexit.register(readline.write_history_file, histfile)
+            except AttributeError: pass
+    except Exception, msg:
+        print msg
+
+    task_dict = {'i':show_information,
+                 'ie':show_environ,
+                 'f':show_fortran_compilers,
+                 'c':show_compilers,
+                 'e':edit_argv,
+                 }
+    c_compiler_name = None
+    f_compiler_name = None
+
+    while 1:
+        show_tasks(argv,c_compiler_name, f_compiler_name)
+        try:
+            task = raw_input('Choose a task (^D to quit, Enter to continue with setup): ')
+        except EOFError:
+            print
+            task = 'quit'
+        ltask = task.lower()
+        if task=='': break
+        if ltask=='quit': sys.exit()
+        task_func = task_dict.get(ltask,None)
+        if task_func is None:
+            if ltask[0]=='c':
+                c_compiler_name = task[1:]
+                if c_compiler_name=='none':
+                    c_compiler_name = None
+                continue
+            if ltask[0]=='f':
+                f_compiler_name = task[1:]
+                if f_compiler_name=='none':
+                    f_compiler_name = None
+                continue
+            if task[0]=='2' and len(task)>1:
+                prefix = task[1:]
+                task = task[0]
+            else:
+                prefix = None
+            if task == '4':
+                argv[1:] = ['sdist','-f']
+                continue
+            elif task in '01235':
+                cmd_opts = {'config':[],'config_fc':[],
+                            'build_ext':[],'build_src':[],
+                            'build_clib':[]}
+                if c_compiler_name is not None:
+                    c = '--compiler=%s' % (c_compiler_name)
+                    cmd_opts['config'].append(c)
+                    if task != '0':
+                        cmd_opts['build_ext'].append(c)
+                        cmd_opts['build_clib'].append(c)
+                if f_compiler_name is not None:
+                    c = '--fcompiler=%s' % (f_compiler_name)
+                    cmd_opts['config_fc'].append(c)
+                    if task != '0':
+                        cmd_opts['build_ext'].append(c)
+                        cmd_opts['build_clib'].append(c)
+                if task=='3':
+                    cmd_opts['build_ext'].append('--inplace')
+                    cmd_opts['build_src'].append('--inplace')
+                conf = []
+                sorted_keys = ['config','config_fc','build_src',
+                               'build_clib','build_ext']
+                for k in sorted_keys:
+                    opts = cmd_opts[k]
+                    if opts: conf.extend([k]+opts)
+                if task=='0':
+                    if 'config' not in conf:
+                        conf.append('config')
+                    argv[1:] = conf
+                elif task=='1':
+                    argv[1:] = conf+['build']
+                elif task=='2':
+                    if prefix is not None:
+                        argv[1:] = conf+['install','--prefix=%s' % (prefix)]
+                    else:
+                        argv[1:] = conf+['install']
+                elif task=='3':
+                    argv[1:] = conf+['build']
+                elif task=='5':
+                    if sys.platform=='win32':
+                        argv[1:] = conf+['bdist_wininst']
+                    else:
+                        argv[1:] = conf+['bdist']
+            else:
+                print 'Skipping unknown task:',`task`
+        else:
+            print '-'*68
+            try:
+                task_func(argv,readline)
+            except Exception,msg:
+                print 'Failed running task %s: %s' % (task,msg)
+                break
+            print '-'*68
+        print
+
+    print '-'*72
+    return argv
+
+import os
+from distutils.dist import Distribution
+
+__metaclass__ = type
+
+class EnvironmentConfig:
+    def __init__(self, distutils_section='ALL', **kw):
+        self._distutils_section = distutils_section
+        self._conf_keys = kw
+        self._conf = None
+        self._hook_handler = None
+
+    def dump_variable(self, name):
+        conf_desc = self._conf_keys[name]
+        hook, envvar, confvar, convert = conf_desc
+        if not convert:
+            convert = lambda x : x
+        print '%s.%s:' % (self._distutils_section, name)
+        v = self._hook_handler(name, hook)
+        print '  hook   : %s' % (convert(v),)
+        if envvar:
+            v = os.environ.get(envvar, None)
+            print '  environ: %s' % (convert(v),)
+        if confvar and self._conf:
+            v = self._conf.get(confvar, (None, None))[1]
+            print '  config : %s' % (convert(v),)
+
+    def dump_variables(self):
+        for name in self._conf_keys:
+            self.dump_variable(name)
+
+    def __getattr__(self, name):
+        try:
+            conf_desc = self._conf_keys[name]
+        except KeyError:
+            raise AttributeError(name)
+        return self._get_var(name, conf_desc)
+
+    def get(self, name, default=None):
+        try:
+            conf_desc = self._conf_keys[name]
+        except KeyError:
+            return default
+        var = self._get_var(name, conf_desc)
+        if var is None:
+            var = default
+        return var
+
+    def _get_var(self, name, conf_desc):
+        hook, envvar, confvar, convert = conf_desc
+        var = self._hook_handler(name, hook)
+        if envvar is not None:
+            var = os.environ.get(envvar, var)
+        if confvar is not None and self._conf:
+            var = self._conf.get(confvar, (None, var))[1]
+        if convert is not None:
+            var = convert(var)
+        return var
+
+    def clone(self, hook_handler):
+        ec = self.__class__(distutils_section=self._distutils_section,
+                            **self._conf_keys)
+        ec._hook_handler = hook_handler
+        return ec
+
+    def use_distribution(self, dist):
+        if isinstance(dist, Distribution):
+            self._conf = dist.get_option_dict(self._distutils_section)
+        else:
+            self._conf = dist
+
+
+from distutils.unixccompiler import UnixCCompiler
+from numpy.distutils.exec_command import find_executable
+
+class IntelCCompiler(UnixCCompiler):
+
+    """ A modified Intel compiler compatible with an gcc built Python.
+    """
+
+    compiler_type = 'intel'
+    cc_exe = 'icc'
+
+    def __init__ (self, verbose=0, dry_run=0, force=0):
+        UnixCCompiler.__init__ (self, verbose,dry_run, force)
+        compiler = self.cc_exe
+        self.set_executables(compiler=compiler,
+                             compiler_so=compiler,
+                             compiler_cxx=compiler,
+                             linker_exe=compiler,
+                             linker_so=compiler + ' -shared')
+
+class IntelItaniumCCompiler(IntelCCompiler):
+    compiler_type = 'intele'
+
+    # On Itanium, the Intel Compiler used to be called ecc, let's search for
+    # it (now it's also icc, so ecc is last in the search).
+    for cc_exe in map(find_executable,['icc','ecc']):
+        if cc_exe:
+            break
+
+"""
+Enhanced distutils with Fortran compilers support and more.
+"""
+
+postpone_import = True
+
+#!/usr/bin/env python
+def configuration(parent_package='',top_path=None):
+    from numpy.distutils.misc_util import Configuration
+    config = Configuration('testnumpydistutils',parent_package,top_path)
+    config.add_subpackage('pyrex_ext')
+    config.add_subpackage('f2py_ext')
+    #config.add_subpackage('f2py_f90_ext')
+    config.add_subpackage('swig_ext')
+    config.add_subpackage('gen_ext')
+    return config
+
+if __name__ == "__main__":
+    from numpy.distutils.core import setup
+    setup(configuration=configuration)
+
+
+#!/usr/bin/env python
+
+fib3_f = '''
+C FILE: FIB3.F
+      SUBROUTINE FIB(A,N)
+C
+C     CALCULATE FIRST N FIBONACCI NUMBERS
+C
+      INTEGER N
+      REAL*8 A(N)
+Cf2py intent(in) n
+Cf2py intent(out) a
+Cf2py depend(n) a
+      DO I=1,N
+         IF (I.EQ.1) THEN
+            A(I) = 0.0D0
+         ELSEIF (I.EQ.2) THEN
+            A(I) = 1.0D0
+         ELSE
+            A(I) = A(I-1) + A(I-2)
+         ENDIF
+      ENDDO
+      END
+C END FILE FIB3.F
+'''
+
+def source_func(ext, build_dir):
+    import os
+    from distutils.dep_util import newer
+    target = os.path.join(build_dir,'fib3.f')
+    if newer(__file__, target):
+        f = open(target,'w')
+        f.write(fib3_f)
+        f.close()
+    return [target]
+
+def configuration(parent_package='',top_path=None):
+    from numpy.distutils.misc_util import Configuration
+    config = Configuration('gen_ext',parent_package,top_path)
+    config.add_extension('fib3',
+                         [source_func]
+                         )
+    return config
+
+if __name__ == "__main__":
+    from numpy.distutils.core import setup
+    setup(configuration=configuration)
+
+
+#!/usr/bin/env python
+def configuration(parent_package='',top_path=None):
+    from numpy.distutils.misc_util import Configuration
+    config = Configuration('pyrex_ext',parent_package,top_path)
+    config.add_extension('primes',
+                         ['primes.pyx'])
+    config.add_data_dir('tests')
+    return config
+
+if __name__ == "__main__":
+    from numpy.distutils.core import setup
+    setup(configuration=configuration)
+
+
+#!/usr/bin/env python
+def configuration(parent_package='',top_path=None):
+    from numpy.distutils.misc_util import Configuration
+    config = Configuration('f2py_f90_ext',parent_package,top_path)
+    config.add_extension('foo',
+                         ['src/foo_free.f90'],
+                         include_dirs=['include'],
+                         f2py_options=['--include_paths',
+                                       config.paths('include')[0]]
+                         )
+    config.add_data_dir('tests')
+    return config
+
+if __name__ == "__main__":
+    from numpy.distutils.core import setup
+    setup(configuration=configuration)
+
+
+#!/usr/bin/env python
+def configuration(parent_package='',top_path=None):
+    from numpy.distutils.misc_util import Configuration
+    config = Configuration('f2py_ext',parent_package,top_path)
+    config.add_extension('fib2', ['src/fib2.pyf','src/fib1.f'])
+    config.add_data_dir('tests')
+    return config
+
+if __name__ == "__main__":
+    from numpy.distutils.core import setup
+    setup(configuration=configuration)
+
+
+#!/usr/bin/env python
+def configuration(parent_package='',top_path=None):
+    from numpy.distutils.misc_util import Configuration
+    config = Configuration('swig_ext',parent_package,top_path)
+    config.add_extension('_example',
+                         ['src/example.i','src/example.c']
+                         )
+    config.add_extension('_example2',
+                         ['src/zoo.i','src/zoo.cc'],
+                         depends=['src/zoo.h'],
+                         include_dirs=['src']
+                         )
+    config.add_data_dir('tests')
+    return config
+
+if __name__ == "__main__":
+    from numpy.distutils.core import setup
+    setup(configuration=configuration)
+
+import re
+import os
+import sys
+import warnings
+import platform
+from subprocess import Popen, PIPE, STDOUT
+
+from numpy.distutils.cpuinfo import cpu
+from numpy.distutils.fcompiler import FCompiler
+from numpy.distutils.exec_command import exec_command
+from numpy.distutils.misc_util import msvc_runtime_library
+
+compilers = ['GnuFCompiler', 'Gnu95FCompiler']
+
+TARGET_R = re.compile("Target: ([a-zA-Z0-9_\-]*)")
+
+# XXX: do we really need to check for target ? If the arch is not supported,
+# the return code should be != 0
+_R_ARCHS = {"ppc": r"^Target: (powerpc-.*)$",
+    "i686": r"^Target: (i686-.*)$",
+    "x86_64": r"^Target: (i686-.*)$",
+    "ppc64": r"^Target: (powerpc-.*)$",}
+
+# XXX: handle cross compilation
+def is_win64():
+    return sys.platform == "win32" and platform.architecture()[0] == "64bit"
+
+if is_win64():
+    #_EXTRAFLAGS = ["-fno-leading-underscore"]
+    _EXTRAFLAGS = []
+else:
+    _EXTRAFLAGS = []
+
+class GnuFCompiler(FCompiler):
+    compiler_type = 'gnu'
+    compiler_aliases = ('g77',)
+    description = 'GNU Fortran 77 compiler'
+
+    def gnu_version_match(self, version_string):
+        """Handle the different versions of GNU fortran compilers"""
+        m = re.match(r'GNU Fortran', version_string)
+        if not m:
+            return None
+        m = re.match(r'GNU Fortran\s+95.*?([0-9-.]+)', version_string)
+        if m:
+            return ('gfortran', m.group(1))
+        m = re.match(r'GNU Fortran.*?([0-9-.]+)', version_string)
+        if m:
+            v = m.group(1)
+            if v.startswith('0') or v.startswith('2') or v.startswith('3'):
+                # the '0' is for early g77's
+                return ('g77', v)
+            else:
+                # at some point in the 4.x series, the ' 95' was dropped
+                # from the version string
+                return ('gfortran', v)
+
+    def version_match(self, version_string):
+        v = self.gnu_version_match(version_string)
+        if not v or v[0] != 'g77':
+            return None
+        return v[1]
+
+    # 'g77 --version' results
+    # SunOS: GNU Fortran (GCC 3.2) 3.2 20020814 (release)
+    # Debian: GNU Fortran (GCC) 3.3.3 20040110 (prerelease) (Debian)
+    #         GNU Fortran (GCC) 3.3.3 (Debian 20040401)
+    #         GNU Fortran 0.5.25 20010319 (prerelease)
+    # Redhat: GNU Fortran (GCC 3.2.2 20030222 (Red Hat Linux 3.2.2-5)) 3.2.2 20030222 (Red Hat Linux 3.2.2-5)
+    # GNU Fortran (GCC) 3.4.2 (mingw-special)
+
+    possible_executables = ['g77', 'f77']
+    executables = {
+        'version_cmd'  : [None, "--version"],
+        'compiler_f77' : [None, "-g", "-Wall", "-fno-second-underscore"],
+        'compiler_f90' : None, # Use --fcompiler=gnu95 for f90 codes
+        'compiler_fix' : None,
+        'linker_so'    : [None, "-g", "-Wall"],
+        'archiver'     : ["ar", "-cr"],
+        'ranlib'       : ["ranlib"],
+        'linker_exe'   : [None, "-g", "-Wall"]
+        }
+    module_dir_switch = None
+    module_include_switch = None
+
+    # Cygwin: f771: warning: -fPIC ignored for target (all code is
+    # position independent)
+    if os.name != 'nt' and sys.platform != 'cygwin':
+        pic_flags = ['-fPIC']
+
+    # use -mno-cygwin for g77 when Python is not Cygwin-Python
+    if sys.platform == 'win32':
+        for key in ['version_cmd', 'compiler_f77', 'linker_so', 'linker_exe']:
+            executables[key].append('-mno-cygwin')
+
+    g2c = 'g2c'
+
+    suggested_f90_compiler = 'gnu95'
+
+    #def get_linker_so(self):
+    #    # win32 linking should be handled by standard linker
+    #    # Darwin g77 cannot be used as a linker.
+    #    #if re.match(r'(darwin)', sys.platform):
+    #    #    return
+    #    return FCompiler.get_linker_so(self)
+
+    def get_flags_linker_so(self):
+        opt = self.linker_so[1:]
+        if sys.platform=='darwin':
+            target = os.environ.get('MACOSX_DEPLOYMENT_TARGET', None)
+            # If MACOSX_DEPLOYMENT_TARGET is set, we simply trust the value
+            # and leave it alone.  But, distutils will complain if the 
+            # environment's value is different from the one in the Python 
+            # Makefile used to build Python.  We let disutils handle this 
+            # error checking.
+            if not target:
+                # If MACOSX_DEPLOYMENT_TARGET is not set in the environment, 
+                # we try to get it first from the Python Makefile and then we 
+                # fall back to setting it to 10.3 to maximize the set of 
+                # versions we can work with.  This is a reasonable default
+                # even when using the official Python dist and those derived
+                # from it.
+                import distutils.sysconfig as sc
+                g = {}
+                filename = sc.get_makefile_filename()
+                sc.parse_makefile(filename, g)
+                target = g.get('MACOSX_DEPLOYMENT_TARGET', '10.3')
+                os.environ['MACOSX_DEPLOYMENT_TARGET'] = target
+                if target == '10.3':
+                    s = 'Env. variable MACOSX_DEPLOYMENT_TARGET set to 10.3'
+                    warnings.warn(s)
+            
+            opt.extend(['-undefined', 'dynamic_lookup', '-bundle'])
+        else:
+            opt.append("-shared")
+        if sys.platform.startswith('sunos'):
+            # SunOS often has dynamically loaded symbols defined in the
+            # static library libg2c.a  The linker doesn't like this.  To
+            # ignore the problem, use the -mimpure-text flag.  It isn't
+            # the safest thing, but seems to work. 'man gcc' says:
+            # ".. Instead of using -mimpure-text, you should compile all
+            #  source code with -fpic or -fPIC."
+            opt.append('-mimpure-text')
+        return opt
+
+    def get_libgcc_dir(self):
+        status, output = exec_command(self.compiler_f77 +
+                                      ['-print-libgcc-file-name'],
+                                      use_tee=0)
+        if not status:
+            return os.path.dirname(output)
+        return None
+
+    def get_library_dirs(self):
+        opt = []
+        if sys.platform[:5] != 'linux':
+            d = self.get_libgcc_dir()
+            if d:
+                # if windows and not cygwin, libg2c lies in a different folder
+                if sys.platform == 'win32' and not d.startswith('/usr/lib'):
+                    d = os.path.normpath(d)
+                    if not os.path.exists(os.path.join(d, "lib%s.a" % self.g2c)):
+                        d2 = os.path.abspath(os.path.join(d,
+                                                          '../../../../lib'))
+                        if os.path.exists(os.path.join(d2, "lib%s.a" % self.g2c)):
+                            opt.append(d2)
+                opt.append(d)
+        return opt
+
+    def get_libraries(self):
+        opt = []
+        d = self.get_libgcc_dir()
+        if d is not None:
+            g2c = self.g2c + '-pic'
+            f = self.static_lib_format % (g2c, self.static_lib_extension)
+            if not os.path.isfile(os.path.join(d,f)):
+                g2c = self.g2c
+        else:
+            g2c = self.g2c
+
+        if g2c is not None:
+            opt.append(g2c)
+        c_compiler = self.c_compiler
+        if sys.platform == 'win32' and c_compiler and \
+               c_compiler.compiler_type=='msvc':
+            # the following code is not needed (read: breaks) when using MinGW
+            # in case want to link F77 compiled code with MSVC
+            opt.append('gcc')
+            runtime_lib = msvc_runtime_library()
+            if runtime_lib:
+                opt.append(runtime_lib)
+        if sys.platform == 'darwin':
+            opt.append('cc_dynamic')
+        return opt
+
+    def get_flags_debug(self):
+        return ['-g']
+
+    def get_flags_opt(self):
+        if self.get_version()<='3.3.3':
+            # With this compiler version building Fortran BLAS/LAPACK
+            # with -O3 caused failures in lib.lapack heevr,syevr tests.
+            opt = ['-O2']
+        else:
+            opt = ['-O3']
+        opt.append('-funroll-loops')
+        return opt
+
+    def get_flags_arch(self):
+        return []
+
+class Gnu95FCompiler(GnuFCompiler):
+    compiler_type = 'gnu95'
+    compiler_aliases = ('gfortran',)
+    description = 'GNU Fortran 95 compiler'
+
+    def version_match(self, version_string):
+        v = self.gnu_version_match(version_string)
+        if not v or v[0] != 'gfortran':
+            return None
+        return v[1]
+
+    # 'gfortran --version' results:
+    # XXX is the below right?
+    # Debian: GNU Fortran 95 (GCC 4.0.3 20051023 (prerelease) (Debian 4.0.2-3))
+    #         GNU Fortran 95 (GCC) 4.1.2 20061115 (prerelease) (Debian 4.1.1-21)
+    # OS X: GNU Fortran 95 (GCC) 4.1.0
+    #       GNU Fortran 95 (GCC) 4.2.0 20060218 (experimental)
+    #       GNU Fortran (GCC) 4.3.0 20070316 (experimental)
+
+    possible_executables = ['gfortran', 'f95']
+    executables = {
+        'version_cmd'  : ["<F90>", "--version"],
+        'compiler_f77' : [None, "-Wall", "-ffixed-form",
+		"-fno-second-underscore"] + _EXTRAFLAGS,
+        'compiler_f90' : [None, "-Wall", "-fno-second-underscore"] + _EXTRAFLAGS,
+        'compiler_fix' : [None, "-Wall", "-ffixed-form",
+                          "-fno-second-underscore"] + _EXTRAFLAGS,
+        'linker_so'    : ["<F90>", "-Wall"],
+        'archiver'     : ["ar", "-cr"],
+        'ranlib'       : ["ranlib"],
+        'linker_exe'   : [None, "-Wall"]
+        }
+
+    # use -mno-cygwin flag for g77 when Python is not Cygwin-Python
+    if sys.platform == 'win32':
+        for key in ['version_cmd', 'compiler_f77', 'compiler_f90',
+                    'compiler_fix', 'linker_so', 'linker_exe']:
+            executables[key].append('-mno-cygwin')
+
+    module_dir_switch = '-J'
+    module_include_switch = '-I'
+
+    g2c = 'gfortran'
+
+    def _universal_flags(self, cmd):
+        """Return a list of -arch flags for every supported architecture."""
+        if not sys.platform == 'darwin':
+            return []
+        arch_flags = []
+        for arch in ["ppc", "i686", "x86_64"]:
+            if _can_target(cmd, arch):
+                arch_flags.extend(["-arch", arch])
+        return arch_flags
+
+    def get_flags(self):
+        flags = GnuFCompiler.get_flags(self)
+        arch_flags = self._universal_flags(self.compiler_f90)
+        if arch_flags:
+            flags[:0] = arch_flags
+        return flags
+
+    def get_flags_linker_so(self):
+        flags = GnuFCompiler.get_flags_linker_so(self)
+        arch_flags = self._universal_flags(self.linker_so)
+        if arch_flags:
+            flags[:0] = arch_flags
+        return flags
+
+    def get_library_dirs(self):
+        opt = GnuFCompiler.get_library_dirs(self)
+        if sys.platform == 'win32':
+            c_compiler = self.c_compiler
+            if c_compiler and c_compiler.compiler_type == "msvc":
+                target = self.get_target()
+                if target:
+                    d = os.path.normpath(self.get_libgcc_dir())
+                    root = os.path.join(d, os.pardir, os.pardir, os.pardir, os.pardir)
+                    mingwdir = os.path.normpath(os.path.join(root, target, "lib"))
+                    full = os.path.join(mingwdir, "libmingwex.a")
+                    if os.path.exists(full):
+                        opt.append(mingwdir)
+        return opt
+
+    def get_libraries(self):
+        opt = GnuFCompiler.get_libraries(self)
+        if sys.platform == 'darwin':
+            opt.remove('cc_dynamic')
+        if sys.platform == 'win32':
+            c_compiler = self.c_compiler
+            if c_compiler and c_compiler.compiler_type == "msvc":
+                if "gcc" in opt:
+                    i = opt.index("gcc")
+                    opt.insert(i+1, "mingwex")
+                    opt.insert(i+1, "mingw32")
+	# XXX: fix this mess, does not work for mingw
+	if is_win64():
+            c_compiler = self.c_compiler
+            if c_compiler and c_compiler.compiler_type == "msvc":
+	        return []
+	    else:
+		raise NotImplementedError("Only MS compiler supported with gfortran on win64")
+        return opt
+
+    def get_target(self):
+        status, output = exec_command(self.compiler_f77 +
+                                      ['-v'],
+                                      use_tee=0)
+        if not status:
+            m = TARGET_R.search(output)
+            if m:
+                return m.group(1)
+        return ""
+
+    def get_flags_opt(self):
+	if is_win64():
+	    return ['-O0']
+        else:
+	    return GnuFCompiler.get_flags_opt(self)
+def _can_target(cmd, arch):
+    """Return true is the command supports the -arch flag for the given
+    architecture."""
+    newcmd = cmd[:]
+    newcmd.extend(["-arch", arch, "-v"])
+    p = Popen(newcmd, stderr=STDOUT, stdout=PIPE)
+    stdout, stderr = p.communicate()
+    if p.returncode == 0:
+        for line in stdout.splitlines():
+            m = re.search(_R_ARCHS[arch], line)
+            if m:
+                return True
+    return False
+        
+if __name__ == '__main__':
+    from distutils import log
+    log.set_verbosity(2)
+    compiler = GnuFCompiler()
+    compiler.customize()
+    print compiler.get_version()
+    raw_input('Press ENTER to continue...')
+    try:
+        compiler = Gnu95FCompiler()
+        compiler.customize()
+        print compiler.get_version()
+    except Exception, msg:
+        print msg
+    raw_input('Press ENTER to continue...')
+
+
+#http://www.compaq.com/fortran/docs/
+
+import os
+import sys
+
+from numpy.distutils.fcompiler import FCompiler
+from distutils.errors import DistutilsPlatformError
+
+compilers = ['CompaqFCompiler']
+if os.name != 'posix' or sys.platform[:6] == 'cygwin' :
+    # Otherwise we'd get a false positive on posix systems with
+    # case-insensitive filesystems (like darwin), because we'll pick
+    # up /bin/df
+    compilers.append('CompaqVisualFCompiler')
+
+class CompaqFCompiler(FCompiler):
+
+    compiler_type = 'compaq'
+    description = 'Compaq Fortran Compiler'
+    version_pattern = r'Compaq Fortran (?P<version>[^\s]*).*'
+
+    if sys.platform[:5]=='linux':
+        fc_exe = 'fort'
+    else:
+        fc_exe = 'f90'
+
+    executables = {
+        'version_cmd'  : ['<F90>', "-version"],
+        'compiler_f77' : [fc_exe, "-f77rtl","-fixed"],
+        'compiler_fix' : [fc_exe, "-fixed"],
+        'compiler_f90' : [fc_exe],
+        'linker_so'    : ['<F90>'],
+        'archiver'     : ["ar", "-cr"],
+        'ranlib'       : ["ranlib"]
+        }
+
+    module_dir_switch = '-module ' # not tested
+    module_include_switch = '-I'
+
+    def get_flags(self):
+        return ['-assume no2underscore','-nomixed_str_len_arg']
+    def get_flags_debug(self):
+        return ['-g','-check bounds']
+    def get_flags_opt(self):
+        return ['-O4','-align dcommons','-assume bigarrays',
+                '-assume nozsize','-math_library fast']
+    def get_flags_arch(self):
+        return ['-arch host', '-tune host']
+    def get_flags_linker_so(self):
+        if sys.platform[:5]=='linux':
+            return ['-shared']
+        return ['-shared','-Wl,-expect_unresolved,*']
+
+class CompaqVisualFCompiler(FCompiler):
+
+    compiler_type = 'compaqv'
+    description = 'DIGITAL or Compaq Visual Fortran Compiler'
+    version_pattern = r'(DIGITAL|Compaq) Visual Fortran Optimizing Compiler'\
+                      ' Version (?P<version>[^\s]*).*'
+
+    compile_switch = '/compile_only'
+    object_switch = '/object:'
+    library_switch = '/OUT:'      #No space after /OUT:!
+
+    static_lib_extension = ".lib"
+    static_lib_format = "%s%s"
+    module_dir_switch = '/module:'
+    module_include_switch = '/I'
+
+    ar_exe = 'lib.exe'
+    fc_exe = 'DF'
+
+    if sys.platform=='win32':
+        from distutils.msvccompiler import MSVCCompiler
+
+        try:
+            m = MSVCCompiler()
+            m.initialize()
+            ar_exe = m.lib
+        except DistutilsPlatformError, msg:
+                        pass
+        except AttributeError, msg:
+            if '_MSVCCompiler__root' in str(msg):
+                print 'Ignoring "%s" (I think it is msvccompiler.py bug)' % (msg)
+            else:
+                raise
+        except IOError, e:
+            if not "vcvarsall.bat" in str(e):
+                print "Unexpected IOError in", __file__
+                raise e
+        except ValueError, e:
+            if not "path']" in str(e):
+                print "Unexpected ValueError in", __file__
+                raise e
+
+    executables = {
+        'version_cmd'  : ['<F90>', "/what"],
+        'compiler_f77' : [fc_exe, "/f77rtl","/fixed"],
+        'compiler_fix' : [fc_exe, "/fixed"],
+        'compiler_f90' : [fc_exe],
+        'linker_so'    : ['<F90>'],
+        'archiver'     : [ar_exe, "/OUT:"],
+        'ranlib'       : None
+        }
+
+    def get_flags(self):
+        return ['/nologo','/MD','/WX','/iface=(cref,nomixed_str_len_arg)',
+                '/names:lowercase','/assume:underscore']
+    def get_flags_opt(self):
+        return ['/Ox','/fast','/optimize:5','/unroll:0','/math_library:fast']
+    def get_flags_arch(self):
+        return ['/threads']
+    def get_flags_debug(self):
+        return ['/debug']
+
+if __name__ == '__main__':
+    from distutils import log
+    log.set_verbosity(2)
+    from numpy.distutils.fcompiler import new_fcompiler
+    compiler = new_fcompiler(compiler='compaq')
+    compiler.customize()
+    print compiler.get_version()
+
