@@ -5,7 +5,7 @@ Created on Jul 25, 2020
 '''
 import os
 import csv
-import src.runOperations as op
+import runOperations as op
 from os import walk
 from os.path import join 
 

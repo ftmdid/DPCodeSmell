@@ -143,38 +143,39 @@ def getParentsOfAClassesInACommit(classList):
     try:
         parentOfClassDict={}
         for each in classList:
-            if "(" and ")" in each:
-                child=each.split('class ')[1].split("(")[0].lstrip().rstrip()
-                parentOfClassDict[child]=[]
-                if ("." not in each) and ("," not in each): 
-                    parent= each.split("(")[1].split(")")[0]
-                    if parent!=child:
-                        parentOfClassDict[child].append(parent)
-                elif ("." in each) and ("," not in each):
-                    parent=each.split("(")[1].split(")")[0].split(".")[1]
-                    if parent!=child:
-                        parentOfClassDict[child].append(parent)
-                    parentOfClassDict[parent]=[]
-                    if parent!=each.split("(")[1].split(")")[0].split(".")[0]:
-                        parentOfClassDict[parent].append(each.split("(")[1].split(")")[0].split(".")[0])
-                elif ("." not in each) and ("," in each):
-                    parents=each.split("(")[1].split(")")[0].split(",")
-                    for parent in parents:
-                        if child!=parent:
+            if each:
+                if "(" and ")" in each:
+                    child=each.split('class ')[1].split("(")[0].lstrip().rstrip()
+                    parentOfClassDict[child]=[]
+                    if ("." not in each) and ("," not in each): 
+                        parent= each.split("(")[1].split(")")[0]
+                        if parent!=child:
                             parentOfClassDict[child].append(parent)
-                elif ("." in each) and ("," in each):
-                    parents=each.split("(")[1].split(")")[0].split(",")
-                    for parent in parents:
-                        if "." in parent:
-                            if child!=parent.split(".")[1]:
-                                parentOfClassDict[child].append(parent.split(".")[1])
-                            parentOfClassDict[parent.split(".")[1]]=[]
-                            if parent.split(".")[1]!=parent.split(".")[0]:
-                                parentOfClassDict[parent.split(".")[1]].append(parent.split(".")[0])
-            else:
-                child=each.split('class ')[1].split(":")[0].lstrip().rstrip()
-                parentOfClassDict[child]=['object']
-        return parentOfClassDict
+                    elif ("." in each) and ("," not in each):
+                        parent=each.split("(")[1].split(")")[0].split(".")[1]
+                        if parent!=child:
+                            parentOfClassDict[child].append(parent)
+                        parentOfClassDict[parent]=[]
+                        if parent!=each.split("(")[1].split(")")[0].split(".")[0]:
+                            parentOfClassDict[parent].append(each.split("(")[1].split(")")[0].split(".")[0])
+                    elif ("." not in each) and ("," in each):
+                        parents=each.split("(")[1].split(")")[0].split(",")
+                        for parent in parents:
+                            if child!=parent:
+                                parentOfClassDict[child].append(parent)
+                    elif ("." in each) and ("," in each):
+                        parents=each.split("(")[1].split(")")[0].split(",")
+                        for parent in parents:
+                            if "." in parent:
+                                if child!=parent.split(".")[1]:
+                                    parentOfClassDict[child].append(parent.split(".")[1])
+                                parentOfClassDict[parent.split(".")[1]]=[]
+                                if parent.split(".")[1]!=parent.split(".")[0]:
+                                    parentOfClassDict[parent.split(".")[1]].append(parent.split(".")[0])
+                else:
+                    child=each.split('class ')[1].split(":")[0].lstrip().rstrip()
+                    parentOfClassDict[child]=['object']
+            return parentOfClassDict
     except Exception as ex:
         print(ex)
         print("Exception occurrred in parallelInheritance.getParentsOfAClassesInACommit()")
