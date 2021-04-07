@@ -5,9 +5,9 @@ Created on Mar 27, 2019
 '''
 
 import re
-import src.runOperations as op
-import src.pythonMethods as pyMethods
-import src.parallelInheritance as pih
+import runOperations as op
+import pythonMethods as pyMethods
+import parallelInheritance as pih
 
 
 class BadSmell(object):
@@ -219,7 +219,7 @@ class BadSmell(object):
         parallelInheritanceHiearchyList={}
         try:
             classList=[]
-            with open(fileInTheFolder) as fileToRead:
+            with open(fileInTheFolder,encoding='windows-1252') as fileToRead:
                 fileLines=fileToRead.readlines()
                 for line in fileLines:
                     if line.lstrip().startswith('class ') and (":" in line):

@@ -7,9 +7,9 @@ Created on Jun 9, 2020
 import wget
 import os
 import zipfile
-from src.FileOperations import FileOperations
+from FileOperations import FileOperations
 import shutil
-import src.runOperations as op
+import runOperations as op
 
     
 def downloadProjectInASpecificCommit(projectName, commitID):
@@ -66,74 +66,55 @@ def getClassLinesOfAPythonFile(pythonFile):
                 if line.lstrip().startswith('class ') and (":" in line):
                     if "(" and ")" in line:
                         if ":" in line:
-                            classList.append(line)
+                            classList.append(line.lstrip().rstrip())
                     elif not ("(" and ")" in line):
                         if ":" in line:
-                            classList.append(line)
+                            classList.append(line.lstrip().rstrip())
         fileToRead.close()
         return classList
     except Exception as ex:
         print(ex)   
         print("Exception occurrred in parallelInheritanceHierarchy.getClassLinesOfAPythonFile()")
         
-
-# def getClassLinesOfAPythonFile(pythonFile):
-    # '''
-        # python file is a file that includes all files of a specific commit
-    # '''
-    # try:
-        # classList=[]
-        # with open(pythonFile) as fileToRead:
-            # fileLines=fileToRead.read()
-            # lines=fileLines.splitlines()
-            # import ast
-            # tree= ast.parse(fileLines)
-            # for item in ast.walk(tree):
-                # if isinstance(item, ast.ClassDef):
-                    # className=lines[item.lineno-1].lstrip()
-                    #
-                    # classList.append(className)
-        # fileToRead.close()
-        # return classList
-    # except Exception as ex:
-        # print(ex)  
-        
 def getAllClassesInACommit(classLine):
     try:
         classesInACommit=[]
         for each in classLine:
-            if "(" and ")" in each:
-                child=each.split('class ')[1].split("(")[0].lstrip().rstrip()
-                if child not in classesInACommit:
-                    classesInACommit.append(child)
-                if ("." not in each) and ("," not in each): 
-                    parent= each.split("(")[1].split(")")[0]
-                    if parent and (parent not in classesInACommit):
-                        classesInACommit.append(parent)
-                elif ("." in each) and ("," not in each):
-                    parent=each.split("(")[1].split(")")[0].split(".")[1]
-                    if parent and (parent not in classesInACommit):
-                        classesInACommit.append(parent)
-                    parentsOfParent=each.split("(")[1].split(")")[0].split(".")[0]
-                    if parentsOfParent and (parentsOfParent not in classesInACommit):
-                        classesInACommit.append(parentsOfParent)
-                elif ("." not in each) and ("," in each):
-                    parents=each.split("(")[1].split(")")[0].split(",")
-                    for parent in parents:
+            if each:
+                if len(each.split(":")[1])>0:
+                    each = each.split(":")[0]+":"
+                if "(" and ")" in each:
+                    child=each.split('class ')[1].split("(")[0].lstrip().rstrip()
+                    if child not in classesInACommit:
+                        classesInACommit.append(child)
+                    if ("." not in each) and ("," not in each): 
+                        parent= each.split("(")[1].split(")")[0]
                         if parent and (parent not in classesInACommit):
                             classesInACommit.append(parent)
-                elif ("." in each) and ("," in each):
-                    parents=each.split("(")[1].split(")")[0].split(",")
-                    for parent in parents:
-                        if "." in parent:
-                            if parent.split(".")[1] and (parent.split(".")[1] not in classesInACommit):
-                                classesInACommit.append(parent.split(".")[1])
-                            if parent.split(".")[0]  and (parent.split(".")[0] not in classesInACommit):
-                                classesInACommit.append(parent.split(".")[0])
-            else:
-                if not each.split('class ')[1].split(":")[0].lstrip().rstrip() in classesInACommit:
-                    classesInACommit.append(each.split('class ')[1].split(":")[0].lstrip().rstrip())
-    
+                    elif ("." in each) and ("," not in each):
+                        parent=each.split("(")[1].split(")")[0].split(".")[1]
+                        if parent and (parent not in classesInACommit):
+                            classesInACommit.append(parent)
+                        parentsOfParent=each.split("(")[1].split(")")[0].split(".")[0]
+                        if parentsOfParent and (parentsOfParent not in classesInACommit):
+                            classesInACommit.append(parentsOfParent)
+                    elif ("." not in each) and ("," in each):
+                        parents=each.split("(")[1].split(")")[0].split(",")
+                        for parent in parents:
+                            if parent and (parent not in classesInACommit):
+                                classesInACommit.append(parent)
+                    elif ("." in each) and ("," in each):
+                        parents=each.split("(")[1].split(")")[0].split(",")
+                        for parent in parents:
+                            if "." in parent:
+                                if parent.split(".")[1] and (parent.split(".")[1] not in classesInACommit):
+                                    classesInACommit.append(parent.split(".")[1])
+                                if parent.split(".")[0]  and (parent.split(".")[0] not in classesInACommit):
+                                    classesInACommit.append(parent.split(".")[0])
+                else:
+                    if not each.split('class ')[1].split(":")[0].lstrip().rstrip() in classesInACommit:
+                        classesInACommit.append(each.split('class ')[1].split(":")[0].lstrip().rstrip())
+        
         return classesInACommit
     except Exception as ex:
         print(ex)
@@ -144,6 +125,8 @@ def getParentsOfAClassesInACommit(classList):
         parentOfClassDict={}
         for each in classList:
             if each:
+                if len(each.split(":")[1])>0:
+                    each = each.split(":")[0]+":"
                 if "(" and ")" in each:
                     child=each.split('class ')[1].split("(")[0].lstrip().rstrip()
                     parentOfClassDict[child]=[]

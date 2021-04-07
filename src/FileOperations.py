@@ -16,7 +16,7 @@ import sys
 import csv
 import shutil
 # import re
-import helper as help
+#import helper as help
 
 
 
@@ -286,8 +286,8 @@ class FileOperations(object):
     
     def createOnePythonFile(self, projectPath, projectName, commitID):
         pythonFiles =[]
-        for path, dir,_ in os.walk(projectPath):
-            for name in dir:
+        for path, drec,_ in os.walk(projectPath):
+            for name in drec:
                 if commitID in name:
                     print(name)
                     direct= os.path.join(path, name)

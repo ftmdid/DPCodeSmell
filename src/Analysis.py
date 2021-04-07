@@ -5,9 +5,9 @@ Created on Aug 5, 2019
 '''
 import re
 import os
-import src.FileOperations as FO
+import FileOperations as FO
 import csv
-import src.SemanticAnalysis as SC
+import SemanticAnalysis as SC
 
 class Analysis(object):
     '''

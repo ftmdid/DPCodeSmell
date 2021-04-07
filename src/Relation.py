@@ -4,12 +4,12 @@ Created on Jun 26, 2020
 @author: neda
 '''
 
-import src.FileOperations as FO
+import FileOperations as FO
 import os
 from datetime import datetime
 import csv
 import itertools
-import src.BadSmell as BS
+import BadSmell as BS
 import numpy as np
 
 class Relation(object):

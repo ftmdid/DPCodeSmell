@@ -7,10 +7,10 @@ Created on Sep 15, 2020
 
 
 import os
-import src.BadSmell as BS
+import BadSmell as BS
 import csv
 #import src.helper as help
-import src.parallelInheritance as inheritance
+import parallelInheritance as inheritance
 
 #import src.defectAnalysis as defectAnalysis
 
