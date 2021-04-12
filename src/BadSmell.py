@@ -218,24 +218,46 @@ class BadSmell(object):
         pihSmellListDict=pih.calculateParallelInheritanceHiearchySmell(pythonFile)
         parallelInheritanceHiearchyList={}
         try:
-            classList=[]
-            with open(fileInTheFolder,encoding='windows-1252') as fileToRead:
-                fileLines=fileToRead.readlines()
-                for line in fileLines:
-                    if line.lstrip().startswith('class ') and (":" in line):
-                        if "(" and ")" in line:
-                            if ":" in line:
-                                classList.append(line.split('(')[0].split('class ')[1].rstrip().lstrip())
-                        elif not ("(" and ")" in line):
-                            if ":" in line:
-                                classList.append(line.split(':')[0].split('class ')[1].rstrip().lstrip())
-            fileToRead.close()
-            if classList and len(classList)>=1:
-                for className in classList:
-                    for key, value in pihSmellListDict.items():
-                            if key==className:
-                                parallelInheritanceHiearchyList[className]= value
+#             classList=[]
+#             with open(fileInTheFolder,encoding='windows-1252') as fileToRead:
+#                 fileLines=fileToRead.readlines()
+#                 for line in fileLines:
+#                     if line.lstrip().startswith('class ') and (":" in line):
+#                         if "(" and ")" in line:
+#                             if ":" in line:
+#                                 classList.append(line.split('(')[0].split('class ')[1].rstrip().lstrip())
+#                         elif not ("(" and ")" in line):
+#                             if ":" in line:
+#                                 classList.append(line.split(':')[0].split('class ')[1].rstrip().lstrip())
+#             fileToRead.close()
+#             if classList and len(classList)>=1:
+#                 for className in classList:
+#                     for key, value in pihSmellListDict.items():
+#                             if key==className:
+#                                 parallelInheritanceHiearchyList[className]= value
+#             return parallelInheritanceHiearchyList
+            with open(fileInTheFolder, "r") as fileToRead:
+                
+                lines=fileToRead.readlines()
+                classes=self.getClassLinesOfFile(lines)
+                
+                if classes!=None and len(classes.items())>=1:
+                    
+                    for key, _ in classes.items(): 
+                        if key=="LSTMCell":
+                            print("I am here")
+                        if key== "Embedding":
+                            print("hereeee")
+                        if key=="DataFrameIterator":
+                            print("Hadi bakalim")
+                        if key in  pihSmellListDict.keys():
+                            parallelInheritanceHiearchyList[key]=pihSmellListDict[key]
+                        else:
+                            parallelInheritanceHiearchyList[key]={'dit':'none','noc':'none','isPIHSmell':False}  
+                fileToRead.close()
             return parallelInheritanceHiearchyList
+        
+    
         except Exception as ex:
             print(ex)
             print("Exception occurrred in BadSmell.checkForParallelInheritanceHiearchy List in :"+fileInTheFolder)

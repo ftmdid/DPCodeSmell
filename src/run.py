@@ -5,10 +5,10 @@ Created on Oct 10, 2020
 
 @author: neda
 '''
-import Downloads as download
+#import Downloads as download
 #import src.Analysis as analysis
 
-#import Relation as relation
+import Relation as relation
 
 
   
@@ -16,11 +16,11 @@ if __name__ == '__main__':
     
     #projectName='zulip'
     #projectName='keras'
-    projectName='numpy'
+    #projectName='numpy'
     #projectName='models'
     #projectName="django"
     #projectName="scikit-learn"
-    downloads = download.Downloads(projectName)
+    #downloads = download.Downloads(projectName)
     #projectUrl="https://api.github.com/repos/keras-team/keras/issues?state=closed&page=&per_page=100"
     #projectUrl="https://api.github.com/repos/zulip/zulip/issues?state=closed&page=&per_page=100"
     #projectUrl="https://api.github.com/repos/django/django/issues?state=closed&page=&per_page=100"
@@ -29,7 +29,7 @@ if __name__ == '__main__':
     #projectUrl= "https://api.github.com/repos/scikit-learn/scikit-learn/issues?state=closed&page=&per_page=100"
     
     #numberOfPages=164
-    downloads.downloadGitHubPythonProject()
+    #downloads.downloadGitHubPythonProject()
     #downloads.downloadCommits()
     #downloads.downloadModifiedPythonFiles()
     #downloads.downloadIssuesFromIssueTrackingSys(projectUrl, numberOfPages)
@@ -89,13 +89,13 @@ if __name__ == '__main__':
     print("Finished bad smell analysis on "+projectName) 
 '''
 
-    '''
+    #'''
     projectName="zulip"   
     print("Started bad smell analysis on "+projectName)
     relation3=relation.Relation(projectName)   
     relation3.checkForRelation()  
     print("Finished bad smell analysis on "+projectName) 
-    '''
+    #'''
     '''
     projectName="scikit-learn"   
     print("Started bad smell analysis on "+projectName)

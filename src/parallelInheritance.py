@@ -20,7 +20,7 @@ def downloadProjectInASpecificCommit(projectName, commitID):
         isFileExists=op.checkIfFileExistsInFolder(projectFolder, commitID)
         if isFileExists!=False:
             pythonFile=isFileExists 
-            print("project file exists")
+            print("project file exists, there is no need to download the "+projectName+" project with version id: "+ commitID)
             return os.path.join(projectFolder,pythonFile)
         
         if not os.path.isdir(projectFolder):
@@ -37,22 +37,22 @@ def downloadProjectInASpecificCommit(projectName, commitID):
                 zipObj.close()
                 os.remove(fileName)
             
-        print("project is downloaded and saved to the local folder")
+        print(projectName +" project with version id: "+commitID+" is downloaded and saved to the local folder")
        
         projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)) + '/util/Zip', projectName)
                 
         pythonFile = fileOp.createOnePythonFile(projectPath, projectName, commitID)
-        print("project is saved to one file")
+        print(projectName +" project with "+commitID+" is saved to one file")
         for name in os.listdir(projectPath):
             dirToDel = os.path.join(projectPath, name)
             if os.path.isdir(dirToDel):
                 shutil.rmtree(dirToDel)
-        print("downloaded project is deleted")
+        print(projectName +" project with "+commitID+" is deleted")
     
         return pythonFile  
     except Exception as ex:
         print(ex)
-        print("Exception occurrred in parallelInheritance.downloadProjectInASpecificCommit()") 
+        print("Exception occurrred in parallelInheritance.downloadProjectInASpecificCommit() in project: "+projectName +" with commitID: "+commitID) 
    
 def getClassLinesOfAPythonFile(pythonFile):
     '''
@@ -131,34 +131,34 @@ def getParentsOfAClassesInACommit(classList):
                     child=each.split('class ')[1].split("(")[0].lstrip().rstrip()
                     parentOfClassDict[child]=[]
                     if ("." not in each) and ("," not in each): 
-                        parent= each.split("(")[1].split(")")[0]
+                        parent= each.split("(")[1].split(")")[0].lstrip().rstrip()
                         if parent!=child:
                             parentOfClassDict[child].append(parent)
                     elif ("." in each) and ("," not in each):
-                        parent=each.split("(")[1].split(")")[0].split(".")[1]
+                        parent=each.split("(")[1].split(")")[0].split(".")[1].lstrip().rstrip()
                         if parent!=child:
                             parentOfClassDict[child].append(parent)
                         parentOfClassDict[parent]=[]
                         if parent!=each.split("(")[1].split(")")[0].split(".")[0]:
-                            parentOfClassDict[parent].append(each.split("(")[1].split(")")[0].split(".")[0])
+                            parentOfClassDict[parent].append(each.split("(")[1].split(")")[0].split(".")[0].lstrip().rstrip())
                     elif ("." not in each) and ("," in each):
                         parents=each.split("(")[1].split(")")[0].split(",")
                         for parent in parents:
-                            if child!=parent:
-                                parentOfClassDict[child].append(parent)
+                            if child!=parent.lstrip().rstrip():
+                                parentOfClassDict[child].append(parent.lstrip().rstrip())
                     elif ("." in each) and ("," in each):
                         parents=each.split("(")[1].split(")")[0].split(",")
                         for parent in parents:
-                            if "." in parent:
-                                if child!=parent.split(".")[1]:
-                                    parentOfClassDict[child].append(parent.split(".")[1])
-                                parentOfClassDict[parent.split(".")[1]]=[]
-                                if parent.split(".")[1]!=parent.split(".")[0]:
-                                    parentOfClassDict[parent.split(".")[1]].append(parent.split(".")[0])
+                            if "." in parent.lstrip().rstrip():
+                                if child!=parent.split(".")[1].lstrip().rstrip():
+                                    parentOfClassDict[child].append(parent.split(".")[1].lstrip().rstrip())
+                                parentOfClassDict[parent.split(".")[1].lstrip().rstrip()]=[]
+                                if parent.split(".")[1].lstrip().rstrip()!=parent.split(".")[0].lstrip().rstrip():
+                                    parentOfClassDict[parent.split(".")[1].lstrip().rstrip()].append(parent.split(".")[0].lstrip().rstrip())
                 else:
                     child=each.split('class ')[1].split(":")[0].lstrip().rstrip()
                     parentOfClassDict[child]=['object']
-            return parentOfClassDict
+        return parentOfClassDict
     except Exception as ex:
         print(ex)
         print("Exception occurrred in parallelInheritance.getParentsOfAClassesInACommit()")
@@ -278,36 +278,9 @@ def calculateParallelInheritanceHiearchySmell(pythonFile):
         print("Exception occurrred in parallelInheritance.calculateParallelInheritanceHiearchySmell()")
      
 
-            
-            
-
+'''
 if __name__ == '__main__':
     pythonFile="/Users/neda/Desktop/workspace/BadSmells/util/Zip/numpy/allPythonFilesIn_numpy_withCommitID_8eb6424.py" 
     pihSmellListDict = calculateParallelInheritanceHiearchySmell(pythonFile)
  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+'''

@@ -289,7 +289,7 @@ class FileOperations(object):
         for path, drec,_ in os.walk(projectPath):
             for name in drec:
                 if commitID in name:
-                    print(name)
+                    #print(name)
                     direct= os.path.join(path, name)
                     for pathForDirect,_,files in os.walk(direct):
                         for fileName in files:
