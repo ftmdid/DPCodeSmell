@@ -35,12 +35,12 @@ class BadSmell(object):
                             current_class = None
                     if line.lstrip().startswith('class ') and (":" in line):
                         if "(" and ")" in line:
-                            current_class=line.split('class ')[1].lstrip().split('(')[0]
+                            current_class=line.split('class ')[1].lstrip().split('(')[0].lstrip().rstrip()
                             classes[current_class] = {'start': lineno}
                         else:
-                            className=line.split('class ')[1].lstrip().split(':')[0]
+                            className=line.split('class ')[1].lstrip().split(':')[0].lstrip().rstrip()
                             if not ' ' in className:
-                                current_class=className
+                                current_class=className.lstrip().rstrip()
                                 classes[current_class] = {'start': lineno}
                         
                     
@@ -244,16 +244,10 @@ class BadSmell(object):
                 if classes!=None and len(classes.items())>=1:
                     
                     for key, _ in classes.items(): 
-                        if key=="LSTMCell":
-                            print("I am here")
-                        if key== "Embedding":
-                            print("hereeee")
-                        if key=="DataFrameIterator":
-                            print("Hadi bakalim")
-                        if key in  pihSmellListDict.keys():
-                            parallelInheritanceHiearchyList[key]=pihSmellListDict[key]
+                        if key.lstrip().rstrip() in  pihSmellListDict.keys():
+                            parallelInheritanceHiearchyList[key.lstrip().rstrip()]=pihSmellListDict[key.lstrip().rstrip()]
                         else:
-                            parallelInheritanceHiearchyList[key]={'dit':'none','noc':'none','isPIHSmell':False}  
+                            parallelInheritanceHiearchyList[key.lstrip().rstrip()]={'dit':'none','noc':'none','isPIHSmell':False}  
                 fileToRead.close()
             return parallelInheritanceHiearchyList
         

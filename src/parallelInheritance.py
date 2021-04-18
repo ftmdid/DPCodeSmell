@@ -42,12 +42,12 @@ def downloadProjectInASpecificCommit(projectName, commitID):
         projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)) + '/util/Zip', projectName)
                 
         pythonFile = fileOp.createOnePythonFile(projectPath, projectName, commitID)
-        print(projectName +" project with "+commitID+" is saved to one file")
+        print(projectName +" project with version id: "+commitID+" is saved to one file")
         for name in os.listdir(projectPath):
             dirToDel = os.path.join(projectPath, name)
             if os.path.isdir(dirToDel):
                 shutil.rmtree(dirToDel)
-        print(projectName +" project with "+commitID+" is deleted")
+        print(projectName +" project with version id: "+commitID+" is deleted")
     
         return pythonFile  
     except Exception as ex:
