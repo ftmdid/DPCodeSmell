@@ -47,3 +47,10 @@ makeSemanticAndSyntacticAnalysis: this runs :
 
 ThirdStep:
 At this step, you need to run checkForRelation method. This is to check the smells relation with issues!
+
+
+
+
+
+
+!There was a problem with models project of two commit numbers: 451906e4 and a5304312. They were not being downloaded.
