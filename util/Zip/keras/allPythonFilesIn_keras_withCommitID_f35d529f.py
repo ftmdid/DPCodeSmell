@@ -1,0 +1,2190 @@
+#!/usr/bin/env python
+
+from distutils.core import setup
+
+setup(name='Keras',
+      version='0.0.1',
+      description='Theano-based Deep Learning',
+      author='Francois Chollet',
+      author_email='francois.chollet@gmail.com',
+      url='https://github.com/fchollet/keras',
+      license='MIT',
+      packages=[
+        'keras', 
+        'keras.layers', 
+        'keras.preprocessing', 
+        'keras.datasets', 
+        'keras.utils',
+      ],
+      # TODO: dependencies
+)
+import theano
+import theano.tensor as T
+import numpy as np
+
+import optimizers
+import objectives
+import time, copy
+from utils.generic_utils import Progbar
+
+def standardize_y(y):
+    y = np.asarray(y)
+    if len(y.shape) == 1:
+        y = np.reshape(y, (len(y), 1))
+    return y
+
+class Sequential(object):
+    def __init__(self):
+        self.layers = []
+        self.params = []
+
+    def add(self, layer):
+        self.layers.append(layer)
+        if len(self.layers) > 1:
+            self.layers[-1].connect(self.layers[-2])
+        self.params += [p for p in layer.params]
+
+    def compile(self, optimizer, loss):
+        self.optimizer = optimizers.get(optimizer)
+        self.loss = objectives.get(loss)
+
+        self.X = self.layers[0].input # input of model 
+        # (first layer must have an "input" attribute!)
+        self.y_train = self.layers[-1].output(train=True)
+        self.y_test = self.layers[-1].output(train=False)
+
+        # output of model
+        self.Y = T.matrix() # TODO: support for custom output shapes
+
+        train_loss = self.loss(self.Y, self.y_train)
+        test_score = self.loss(self.Y, self.y_test)
+        updates = self.optimizer.get_updates(self.params, train_loss)
+
+        self._train = theano.function([self.X, self.Y], train_loss, 
+            updates=updates, allow_input_downcast=True)
+        self._predict = theano.function([self.X], self.y_test, 
+            allow_input_downcast=True)
+        self._test = theano.function([self.X, self.Y], test_score, 
+            allow_input_downcast=True)
+
+    def train(self, X, y):
+        y = standardize_y(y)
+        loss = self._train(X, y)
+        return loss
+
+    def test(self, X, y):
+        y = standardize_y(y)
+        score = self._test(X, y)
+        return score
+
+    def fit(self, X, y, batch_size=128, nb_epoch=100, verbose=1,
+            validation_split=0., shuffle=True):
+        # If a validation split size is given (e.g. validation_split=0.2)
+        # then split X into smaller X and X_val,
+        # and split y into smaller y and y_val.
+        y = standardize_y(y)
+
+        do_validation = False
+        if validation_split > 0 and validation_split < 1:
+            do_validation = True
+            split_at = int(len(X) * (1 - validation_split))
+            (X, X_val) = (X[0:split_at], X[split_at:])
+            (y, y_val) = (y[0:split_at], y[split_at:])
+            if verbose:
+                print "Train on %d samples, validate on %d samples" % (len(y), len(y_val))
+        
+        index_array = np.arange(len(X))
+        for epoch in range(nb_epoch):
+            if verbose:
+                print 'Epoch', epoch
+            if shuffle:
+                np.random.shuffle(index_array)
+
+            nb_batch = int(np.ceil(len(X)/float(batch_size)))
+            progbar = Progbar(target=len(X))
+            for batch_index in range(0, nb_batch):
+                batch_start = batch_index*batch_size
+                batch_end = min(len(X), (batch_index+1)*batch_size)
+                batch_ids = index_array[batch_start:batch_end]
+
+                X_batch = X[batch_ids]
+                y_batch = y[batch_ids]
+                loss = self._train(X_batch, y_batch)
+                
+                if verbose:
+                    is_last_batch = (batch_index == nb_batch - 1)
+                    if not is_last_batch or not do_validation:
+                        progbar.update(batch_end, [('loss', loss)])
+                    else:
+                        progbar.update(batch_end, [('loss', loss), ('val. loss', self.test(X_val, y_val))])
+            
+    def predict_proba(self, X, batch_size=128):
+        for batch_index in range(0, len(X)/batch_size+1):
+            batch = range(batch_index*batch_size, min(len(X), (batch_index+1)*batch_size))
+            if not batch:
+                break
+            batch_preds = self._predict(X[batch])
+
+            if batch_index == 0:
+                shape = (len(X),) + batch_preds.shape[1:]
+                preds = np.zeros(shape)
+            preds[batch] = batch_preds
+        return preds
+
+    def predict_classes(self, X, batch_size=128):
+        proba = self.predict_proba(X, batch_size=batch_size)
+        # The last dimension is the one containing the class probas
+        classes_dim = proba.ndim - 1
+        if proba.shape[classes_dim] > 1:
+            return proba.argmax(axis=classes_dim)
+        else:
+            return (proba>0.5).astype('int32')
+
+    def evaluate(self, X, y, batch_size=128):
+        y = standardize_y(y)
+        av_score = 0.
+        samples = 0
+        for batch_index in range(0, len(X)/batch_size+1):
+            batch = range(batch_index*batch_size, min(len(X), (batch_index+1)*batch_size))
+            if not batch:
+                break
+            score = self._test(X[batch], y[batch])
+            av_score += len(batch)*score
+            samples += len(batch)
+        return av_score/samples
+
+
+
+import theano
+import theano.tensor as T
+import types
+
+def softmax(x):
+    return T.nnet.softmax(x)
+
+def time_distributed_softmax(x):
+    xshape = x.shape
+    X = x.reshape((xshape[0] * xshape[1], xshape[2]))
+    return T.nnet.softmax(X).reshape(xshape)
+
+def softplus(x):
+    return T.nnet.softplus(x)
+
+def relu(x):
+    return (x + abs(x)) / 2.0
+
+def tanh(x):
+    return T.tanh(x)
+
+def sigmoid(x):
+    return T.nnet.sigmoid(x)
+
+def hard_sigmoid(x):
+    return T.nnet.hard_sigmoid(x)
+
+def linear(x):
+    return x
+
+from utils.generic_utils import get_from_module
+def get(identifier):
+    return get_from_module(identifier, globals(), 'activation function')
+
+import theano
+import theano.tensor as T
+import numpy as np
+
+from utils.theano_utils import shared_zeros, shared_scalar
+
+def clip_norm(g, c, n):
+    if c > 0:
+        g = T.switch(T.ge(n, c), g*c/n, g)
+    return g
+
+class Optimizer(object):
+    def get_updates(self, params, grads):
+        raise NotImplementedError
+
+    def get_gradients(self, cost, params):
+        grads = T.grad(cost, params)
+
+        if hasattr(self, 'clipnorm') and self.clipnorm > 0:
+            norm = T.sqrt(sum([T.sum(g**2) for g in grads]))
+            grads = [clip_norm(g, c, norm) for g in grads]
+
+        new_grads = []
+        for p, g in zip(params, grads):
+            if hasattr(self, 'l1') and self.l1 > 0:
+                g += T.sgn(p) * self.l1
+
+            if hasattr(self, 'l2') and self.l2 > 0:
+                g += p * self.l2
+
+            if hasattr(self, 'maxnorm') and self.maxnorm > 0:
+                norms = T.sqrt(T.sum(T.sqr(p), axis=0))
+                desired = T.clip(norms, 0, self.maxnorm)
+                p = p * (desired / (1e-7 + norms))
+
+            new_grads.append(g)
+        return new_grads
+
+
+class SGD(Optimizer):
+
+    def __init__(self, lr=0.01, momentum=0., decay=0., nesterov=False, *args, **kwargs):
+        self.__dict__.update(locals())
+        self.iterations = shared_scalar(0)
+
+    def get_updates(self, params, cost):
+        grads = self.get_gradients(cost, params)
+        lr = self.lr * (1.0 / (1.0 + self.decay * self.iterations))
+        updates = [(self.iterations, self.iterations+1.)]
+
+        for p, g in zip(params, grads):
+            m = shared_zeros(p.get_value().shape) # momentum
+            v = self.momentum * m - lr * g # velocity
+            updates.append((m, v)) 
+
+            if self.nesterov:
+                new_p = p + self.momentum * v - lr * g
+            else:
+                new_p = p + v
+            updates.append((p, new_p))
+        return updates
+
+
+class RMSprop(Optimizer):
+
+    def __init__(self, lr=0.001, rho=0.9, epsilon=1e-6, *args, **kwargs):
+        self.__dict__.update(locals())
+
+    def get_updates(self, params, cost):
+        grads = self.get_gradients(cost, params)
+        accumulators = [shared_zeros(p.get_value().shape) for p in params]
+        updates = []
+
+        for p, g, a in zip(params, grads, accumulators):
+            new_a = self.rho * a + (1 - self.rho) * g ** 2 # update accumulator
+            updates.append((a, new_a))
+
+            new_p = p - self.lr * g / T.sqrt(new_a + self.epsilon)
+            updates.append((p, new_p))
+        return updates
+
+
+class Adagrad(Optimizer):
+
+    def __init__(self, lr=0.01, epsilon=1e-6, *args, **kwargs):
+        self.__dict__.update(locals())
+
+    def get_updates(self, params, cost):
+        grads = self.get_gradients(cost, params)
+        accumulators = [shared_zeros(p.get_value().shape) for p in params]
+        updates = []
+
+        for p, g, a in zip(params, grads, accumulators):
+            new_a = a + g ** 2 # update accumulator
+            updates.append((a, new_a))
+
+            new_p = p - self.lr * g / T.sqrt(new_a + self.epsilon)
+            updates.append((p, new_p))
+        return updates
+
+
+class Adadelta(Optimizer):
+    
+    def __init__(self, lr=1.0, rho=0.95, epsilon=1e-6, *args, **kwargs):
+        self.__dict__.update(locals())
+
+    def get_updates(self, params, cost):
+        grads = self.get_gradients(cost, params)
+        accumulators = [shared_zeros(p.get_value().shape) for p in params]
+        delta_accumulators = [shared_zeros(p.get_value().shape) for p in params]
+        updates = []
+
+        for p, g, a, d_a in zip(params, grads, accumulators, delta_accumulators):
+            new_a = self.rho * a + (1 - self.rho) * g ** 2 # update accumulator
+            updates.append((a, new_a))
+
+            # use the new accumulator and the *old* delta_accumulator
+            update = g * T.sqrt(d_a + self.epsilon) / T.sqrt(new_a + self.epsilon)
+
+            new_p = p - self.lr * update
+            updates.append((p, new_p))
+
+            # update delta_accumulator
+            new_d_a = self.rho * d_a + (1 - self.rho) * update ** 2
+            updates.append((d_a, new_d_a))
+        return updates
+
+# aliases
+sgd = SGD
+rmsprop = RMSprop
+adagrad = Adagrad
+adadelta = Adadelta
+
+from utils.generic_utils import get_from_module
+def get(identifier):
+    return get_from_module(identifier, globals(), 'optimizer', instantiate=True)
+
+import theano
+import theano.tensor as T
+import numpy as np
+
+epsilon = 1.0e-15
+
+def mean_squared_error(y_true, y_pred):
+    return T.sqr(y_pred - y_true).mean()
+
+def mean_absolute_error(y_true, y_pred):
+    return T.abs_(y_pred - y_true).mean()
+
+def squared_hinge(y_true, y_pred):
+    return T.sqr(T.maximum(1. - y_true * y_pred, 0.)).mean()
+
+def hinge(y_true, y_pred):
+    return T.maximum(1. - y_true * y_pred, 0.).mean()
+
+def categorical_crossentropy(y_true, y_pred):
+    '''Expects a binary class matrix instead of a vector of scalar classes
+    '''
+    y_pred = T.clip(y_pred, epsilon, 1.0 - epsilon)
+    # scale preds so that the class probas of each sample sum to 1
+    y_pred /= y_pred.sum(axis=1, keepdims=True) 
+    return T.nnet.categorical_crossentropy(y_pred, y_true).mean()
+
+def binary_crossentropy(y_true, y_pred):
+    y_pred = T.clip(y_pred, epsilon, 1.0 - epsilon)
+    return T.nnet.binary_crossentropy(y_pred, y_true).mean()
+
+# aliases
+mse = MSE = mean_squared_error
+mae = MAE = mean_absolute_error
+
+from utils.generic_utils import get_from_module
+def get(identifier):
+    return get_from_module(identifier, globals(), 'objective')
+
+def to_categorical(y):
+    '''Convert class vector (integers from 0 to nb_classes)
+    to binary class matrix, for use with categorical_crossentropy
+    '''
+    nb_classes = np.max(y)+1
+    Y = np.zeros((len(y), nb_classes))
+    for i in range(len(y)):
+        Y[i, y[i]] = 1.
+    return Y
+
+import theano
+import theano.tensor as T
+import numpy as np
+
+from utils.theano_utils import sharedX, shared_zeros
+
+def uniform(shape, scale=0.05):
+    return sharedX(np.random.uniform(low=-scale, high=scale, size=shape))
+
+def normal(shape, scale=0.05):
+    return sharedX(np.random.randn(*shape) * scale)
+
+def lecun_uniform(shape):
+    ''' Reference: LeCun 98, Efficient Backprop
+        http://yann.lecun.com/exdb/publis/pdf/lecun-98b.pdf
+    '''
+    m = 1
+    for s in shape:
+        m *= s
+    scale = 1./np.sqrt(m)
+    return uniform(shape, scale)
+
+def orthogonal(shape, scale=1.1):
+    ''' From Lasagne
+    '''
+    flat_shape = (shape[0], np.prod(shape[1:]))
+    a = np.random.normal(0.0, 1.0, flat_shape)
+    u, _, v = np.linalg.svd(a, full_matrices=False)
+    q = u if u.shape == flat_shape else v # pick the one with the correct shape
+    q = q.reshape(shape)
+    return sharedX(scale * q[:shape[0], :shape[1]])
+
+def zero(shape):
+    return shared_zeros(shape)
+
+
+from utils.generic_utils import get_from_module
+def get(identifier):
+    return get_from_module(identifier, globals(), 'initialization')
+# -*- coding: utf-8 -*-
+import theano
+import theano.tensor as T
+from theano.tensor.signal import downsample
+
+from .. import activations, initializations
+from ..utils.theano_utils import shared_zeros
+from ..layers.core import Layer
+
+
+# class Convolution1D(Layer): TODO
+
+# class MaxPooling1D(Layer): TODO
+
+
+class Convolution2D(Layer):
+    def __init__(self, nb_filter, stack_size, nb_row, nb_col, 
+        init='uniform', activation='linear', weights=None, 
+        image_shape=None, border_mode='valid', subsample=(1,1)):
+
+        self.init = initializations.get(init)
+        self.activation = activations.get(activation)
+        self.subsample = subsample
+        self.border_mode = border_mode
+        self.image_shape = image_shape
+        
+        self.input = T.tensor4()
+        self.W_shape = (nb_filter, stack_size, nb_row, nb_col)
+        self.W = self.init(self.W_shape)
+        self.b = shared_zeros((nb_filter,))
+
+        self.params = [self.W, self.b]
+
+        if weights is not None:
+            self.set_weights(weights)
+
+    def output(self, train):
+        X = self.get_input(train)
+
+        conv_out = theano.tensor.nnet.conv.conv2d(X, self.W, 
+            border_mode=self.border_mode, subsample=self.subsample, image_shape=self.image_shape)
+        output = self.activation(conv_out + self.b.dimshuffle('x', 0, 'x', 'x'))
+        return output
+
+
+class MaxPooling2D(Layer):
+    def __init__(self, poolsize=(2, 2), ignore_border=True):
+        self.input = T.tensor4()
+        self.poolsize = poolsize
+        self.ignore_border = ignore_border
+        self.params = []
+
+    def output(self, train):
+        X = self.get_input(train)
+        output = downsample.max_pool_2d(X, self.poolsize, ignore_border=self.ignore_border)
+        return output
+
+
+# class ZeroPadding2D(Layer): TODO
+        
+
+# -*- coding: utf-8 -*-
+import theano
+import theano.tensor as T
+import numpy as np
+
+from .. import activations, initializations
+from ..utils.theano_utils import shared_zeros, alloc_zeros_matrix
+from ..layers.core import Layer
+
+class SimpleRNN(Layer):
+    '''
+        Fully connected RNN where output is to fed back to input.
+
+        Not a particularly useful model, 
+        included for demonstration purposes 
+        (demonstrates how to use theano.scan to build a basic RNN).
+    '''
+    def __init__(self, input_dim, output_dim, 
+        init='uniform', inner_init='orthogonal', activation='sigmoid', weights=None,
+        truncate_gradient=-1, return_sequences=False):
+        self.init = initializations.get(init)
+        self.inner_init = initializations.get(inner_init)
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.truncate_gradient = truncate_gradient
+        self.activation = activations.get(activation)
+        self.return_sequences = return_sequences
+        self.input = T.tensor3()
+
+        self.W = self.init((self.input_dim, self.output_dim))
+        self.U = self.init((self.output_dim, self.output_dim))
+        self.b = shared_zeros((self.output_dim))
+        self.params = [self.W, self.U, self.b]
+
+        if weights is not None:
+            self.set_weights(weights)
+
+    def _step(self, x_t, h_tm1, u):
+        '''
+            Variable names follow the conventions from: 
+            http://deeplearning.net/software/theano/library/scan.html
+
+        '''
+        return self.activation(x_t + T.dot(h_tm1, u))
+
+    def output(self, train):
+        X = self.get_input(train) # shape: (nb_samples, time (padded with zeros at the end), input_dim)
+        # new shape: (time, nb_samples, input_dim) -> because theano.scan iterates over main dimension
+        X = X.dimshuffle((1,0,2)) 
+
+        x = T.dot(X, self.W) + self.b
+        
+        # scan = theano symbolic loop.
+        # See: http://deeplearning.net/software/theano/library/scan.html
+        # Iterate over the first dimension of the x array (=time).
+        outputs, updates = theano.scan(
+            self._step, # this will be called with arguments (sequences[i], outputs[i-1], non_sequences[i])
+            sequences=x, # tensors to iterate over, inputs to _step
+            # initialization of the output. Input to _step with default tap=-1.
+            outputs_info=alloc_zeros_matrix(X.shape[1], self.output_dim), 
+            non_sequences=self.U, # static inputs to _step
+            truncate_gradient=self.truncate_gradient
+        )
+        if self.return_sequences:
+            return outputs.dimshuffle((1,0,2))
+        return outputs[-1]
+
+
+class SimpleDeepRNN(Layer):
+    '''
+        Fully connected RNN where the output of multiple timesteps 
+        (up to "depth" steps in the past) is fed back to the input:
+
+        output = activation( W.x_t + b + inner_activation(U_1.h_tm1) + inner_activation(U_2.h_tm2) + ... )
+
+        This demonstrates how to build RNNs with arbitrary lookback. 
+        Also (probably) not a super useful model.
+    '''
+    def __init__(self, input_dim, output_dim, depth=3,
+        init='uniform', inner_init='orthogonal', 
+        activation='sigmoid', inner_activation='hard_sigmoid',
+        weights=None, truncate_gradient=-1, return_sequences=False):
+        self.init = initializations.get(init)
+        self.inner_init = initializations.get(inner_init)
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.truncate_gradient = truncate_gradient
+        self.activation = activations.get(activation)
+        self.inner_activation = activations.get(inner_activation)
+        self.depth = depth
+        self.return_sequences = return_sequences
+        self.input = T.tensor3()
+
+        self.W = self.init((self.input_dim, self.output_dim))
+        self.Us = [self.init((self.output_dim, self.output_dim)) for _ in range(self.depth)]
+        self.b = shared_zeros((self.output_dim))
+        self.params = [self.W] + self.Us + [self.b]
+
+        if weights is not None:
+            self.set_weights(weights)
+
+    def _step(self, *args):
+        o = args[0]
+        for i in range(1, self.depth+1):
+            o += self.inner_activation(T.dot(args[i], args[i+self.depth]))
+        return o        
+
+    def output(self, train):
+        X = self.get_input(train)
+        X = X.dimshuffle((1,0,2)) 
+
+        x = T.dot(X, self.W) + self.b
+        
+        outputs, updates = theano.scan(
+            self._step,
+            sequences=x,
+            outputs_info=[dict(
+                initial=T.alloc(np.cast[theano.config.floatX](0.), self.depth, X.shape[1], self.output_dim), 
+                taps = [(-i-1) for i in range(self.depth)]
+            )],
+            non_sequences=self.Us,
+            truncate_gradient=self.truncate_gradient
+        )
+        if self.return_sequences:
+            return outputs.dimshuffle((1,0,2))
+        return outputs[-1]
+
+
+
+class GRU(Layer):
+    '''
+        Gated Recurrent Unit - Cho et al. 2014
+
+        Acts as a spatiotemporal projection,
+        turning a sequence of vectors into a single vector.
+
+        Eats inputs with shape:
+        (nb_samples, max_sample_length (samples shorter than this are padded with zeros at the end), input_dim)
+
+        and returns outputs with shape:
+        if not return_sequences:
+            (nb_samples, output_dim)
+        if return_sequences:
+            (nb_samples, max_sample_length, output_dim)
+
+        References:
+            On the Properties of Neural Machine Translation: Encoderâ€“Decoder Approaches
+                http://www.aclweb.org/anthology/W14-4012
+            Empirical Evaluation of Gated Recurrent Neural Networks on Sequence Modeling
+                http://arxiv.org/pdf/1412.3555v1.pdf
+    '''
+    def __init__(self, input_dim, output_dim=128, 
+        init='uniform', inner_init='orthogonal',
+        activation='sigmoid', inner_activation='hard_sigmoid',
+        truncate_gradient=-1, weights=None, return_sequences=False):
+
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.truncate_gradient = truncate_gradient
+        self.return_sequences = return_sequences
+
+        self.init = initializations.get(init)
+        self.inner_init = initializations.get(inner_init)
+        self.activation = activations.get(activation)
+        self.inner_activation = activations.get(inner_activation)
+        self.input = T.tensor3()
+
+        self.W_z = self.init((self.input_dim, self.output_dim))
+        self.U_z = self.inner_init((self.output_dim, self.output_dim))
+        self.b_z = shared_zeros((self.output_dim))
+
+        self.W_r = self.init((self.input_dim, self.output_dim))
+        self.U_r = self.inner_init((self.output_dim, self.output_dim))
+        self.b_r = shared_zeros((self.output_dim))
+
+        self.W_h = self.init((self.input_dim, self.output_dim)) 
+        self.U_h = self.inner_init((self.output_dim, self.output_dim))
+        self.b_h = shared_zeros((self.output_dim))
+
+        self.params = [
+            self.W_z, self.U_z, self.b_z,
+            self.W_r, self.U_r, self.b_r,
+            self.W_h, self.U_h, self.b_h,
+        ]
+
+        if weights is not None:
+            self.set_weights(weights)
+
+    def _step(self, 
+        xz_t, xr_t, xh_t, 
+        h_tm1, 
+        u_z, u_r, u_h):
+        z = self.inner_activation(xz_t + T.dot(h_tm1, u_z))
+        r = self.inner_activation(xr_t + T.dot(h_tm1, u_r))
+        hh_t = self.activation(xh_t + T.dot(r * h_tm1, u_h))
+        h_t = z * h_tm1 + (1 - z) * hh_t
+        return h_t
+
+    def output(self, train):
+        X = self.get_input(train) 
+        X = X.dimshuffle((1,0,2)) 
+
+        x_z = T.dot(X, self.W_z) + self.b_z
+        x_r = T.dot(X, self.W_r) + self.b_r
+        x_h = T.dot(X, self.W_h) + self.b_h
+        outputs, updates = theano.scan(
+            self._step, 
+            sequences=[x_z, x_r, x_h], 
+            outputs_info=alloc_zeros_matrix(X.shape[1], self.output_dim),
+            non_sequences=[self.U_z, self.U_r, self.U_h],
+            truncate_gradient=self.truncate_gradient
+        )
+        if self.return_sequences:
+            return outputs.dimshuffle((1,0,2))
+        return outputs[-1]
+
+
+
+class LSTM(Layer):
+    '''
+        Acts as a spatiotemporal projection,
+        turning a sequence of vectors into a single vector.
+
+        Eats inputs with shape:
+        (nb_samples, max_sample_length (samples shorter than this are padded with zeros at the end), input_dim)
+
+        and returns outputs with shape:
+        if not return_sequences:
+            (nb_samples, output_dim)
+        if return_sequences:
+            (nb_samples, max_sample_length, output_dim)
+
+        For a step-by-step description of the algorithm, see:
+        http://deeplearning.net/tutorial/lstm.html
+
+        References:
+            Long short-term memory (original 97 paper)
+                http://deeplearning.cs.cmu.edu/pdfs/Hochreiter97_lstm.pdf
+            Learning to forget: Continual prediction with LSTM
+                http://www.mitpressjournals.org/doi/pdf/10.1162/089976600300015015
+            Supervised sequence labelling with recurrent neural networks
+                http://www.cs.toronto.edu/~graves/preprint.pdf
+    '''
+    def __init__(self, input_dim, output_dim=128, 
+        init='uniform', inner_init='orthogonal', 
+        activation='tanh', inner_activation='hard_sigmoid',
+        truncate_gradient=-1, weights=None, return_sequences=False):
+
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.truncate_gradient = truncate_gradient
+        self.return_sequences = return_sequences
+
+        self.init = initializations.get(init)
+        self.inner_init = initializations.get(inner_init)
+        self.activation = activations.get(activation)
+        self.inner_activation = activations.get(inner_activation)
+        self.input = T.tensor3()
+
+        self.W_i = self.init((self.input_dim, self.output_dim))
+        self.U_i = self.inner_init((self.output_dim, self.output_dim))
+        self.b_i = shared_zeros((self.output_dim))
+
+        self.W_f = self.init((self.input_dim, self.output_dim))
+        self.U_f = self.inner_init((self.output_dim, self.output_dim))
+        self.b_f = shared_zeros((self.output_dim))
+
+        self.W_c = self.init((self.input_dim, self.output_dim))
+        self.U_c = self.inner_init((self.output_dim, self.output_dim))
+        self.b_c = shared_zeros((self.output_dim))
+
+        self.W_o = self.init((self.input_dim, self.output_dim))
+        self.U_o = self.inner_init((self.output_dim, self.output_dim))
+        self.b_o = shared_zeros((self.output_dim))
+
+        self.params = [
+            self.W_i, self.U_i, self.b_i,
+            self.W_c, self.U_c, self.b_c,
+            self.W_f, self.U_f, self.b_f,
+            self.W_o, self.U_o, self.b_o,
+        ]
+
+        if weights is not None:
+            self.set_weights(weights)
+
+    def _step(self, 
+        xi_t, xf_t, xo_t, xc_t, 
+        h_tm1, c_tm1, 
+        u_i, u_f, u_o, u_c): 
+        i_t = self.inner_activation(xi_t + T.dot(h_tm1, u_i))
+        f_t = self.inner_activation(xf_t + T.dot(h_tm1, u_f))
+        c_t = f_t * c_tm1 + i_t * self.activation(xc_t + T.dot(h_tm1, u_c))
+        o_t = self.inner_activation(xo_t + T.dot(h_tm1, u_o))
+        h_t = o_t * self.activation(c_t)
+        return h_t, c_t
+
+    def output(self, train):
+        X = self.get_input(train) 
+        X = X.dimshuffle((1,0,2))
+
+        xi = T.dot(X, self.W_i) + self.b_i
+        xf = T.dot(X, self.W_f) + self.b_f
+        xc = T.dot(X, self.W_c) + self.b_c
+        xo = T.dot(X, self.W_o) + self.b_o
+        
+        [outputs, memories], updates = theano.scan(
+            self._step, 
+            sequences=[xi, xf, xo, xc],
+            outputs_info=[
+                alloc_zeros_matrix(X.shape[1], self.output_dim), 
+                alloc_zeros_matrix(X.shape[1], self.output_dim)
+            ], 
+            non_sequences=[self.U_i, self.U_f, self.U_o, self.U_c], 
+            truncate_gradient=self.truncate_gradient 
+        )
+        if self.return_sequences:
+            return outputs.dimshuffle((1,0,2))
+        return outputs[-1]
+        
+
+
+
+# -*- coding: utf-8 -*-
+import theano
+import theano.tensor as T
+
+from .. import activations, initializations
+from ..utils.theano_utils import shared_zeros, floatX
+from ..utils.generic_utils import make_tuple
+
+from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
+srng = RandomStreams()
+
+class Layer(object):
+    def connect(self, previous_layer):
+        self.previous_layer = previous_layer
+
+    def output(self, train):
+        raise NotImplementedError
+
+    def get_input(self, train):
+        if hasattr(self, 'previous_layer'):
+            return self.previous_layer.output(train=train)
+        else:
+            return self.input
+
+    def set_weights(self, weights):
+        for p, w in zip(self.params, weights):
+            p.set_value(floatX(w))
+
+    def get_weights(self):
+        weights = []
+        for p in self.params:
+            weights.append(p.get_value())
+        return weights
+
+
+class Dropout(Layer):
+    '''
+        Hinton's dropout. 
+    '''
+    def __init__(self, p):
+        self.p = p
+        self.params = []
+
+    def output(self, train):
+        X = self.get_input(train)
+        if self.p > 0.:
+            retain_prob = 1. - self.p
+            if train:
+                X *= srng.binomial(X.shape, p=retain_prob, dtype=theano.config.floatX)
+            else:
+                X *= retain_prob
+        return X
+
+
+class Activation(Layer):
+    '''
+        Apply an activation function to an output.
+    '''
+    def __init__(self, activation):
+        self.activation = activations.get(activation)
+        self.params = []
+
+    def output(self, train):
+        X = self.get_input(train)
+        return self.activation(X)
+
+
+class Reshape(Layer):
+    '''
+        Reshape an output to a certain shape.
+        Can't be used as first layer in a model (no fixed input!)
+        First dimension is assumed to be nb_samples.
+    '''
+    def __init__(self, *dims):
+        self.dims = dims
+        self.params = []
+
+    def output(self, train):
+        X = self.get_input(train)
+        nshape = make_tuple(X.shape[0], *self.dims)
+        return theano.tensor.reshape(X, nshape)
+
+
+class Flatten(Layer):
+    '''
+        Reshape input to flat shape.
+        First dimension is assumed to be nb_samples.
+    '''
+    def __init__(self):
+        self.params = []
+
+    def output(self, train):
+        X = self.get_input(train)
+        size = theano.tensor.prod(X.shape) / X.shape[0]
+        nshape = (X.shape[0], size)
+        return theano.tensor.reshape(X, nshape)
+
+
+class RepeatVector(Layer):
+    '''
+        Repeat input n times.
+
+        Dimensions of input are assumed to be (nb_samples, dim).
+        Return tensor of shape (nb_samples, n, dim).
+    '''
+    def __init__(self, n):
+        self.n = n
+        self.params = []
+
+    def output(self, train):
+        X = self.get_input(train)
+        tensors = [X]*self.n
+        stacked = theano.tensor.stack(*tensors)
+        return stacked.dimshuffle((1,0,2))
+
+
+class Dense(Layer):
+    '''
+        Just your regular fully connected NN layer.
+    '''
+    def __init__(self, input_dim, output_dim, init='uniform', activation='linear', weights=None):
+        self.init = initializations.get(init)
+        self.activation = activations.get(activation)
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+
+        self.input = T.matrix()
+        self.W = self.init((self.input_dim, self.output_dim))
+        self.b = shared_zeros((self.output_dim))
+
+        self.params = [self.W, self.b]
+
+        if weights is not None:
+            self.set_weights(weights)
+
+    def output(self, train):
+        X = self.get_input(train)
+        output = self.activation(T.dot(X, self.W) + self.b)
+        return output
+
+
+class Embedding(Layer):
+    '''
+        Turn a list of integers >=0 into a dense vector of fixed size. 
+        eg. [4, 50, 123, 26] -> [0.25, 0.1]
+
+        @input_dim: size of vocabulary (highest input integer + 1)
+        @out_dim: size of dense representation
+    '''
+    def __init__(self, input_dim, output_dim, init='uniform', weights=None):
+        self.init = initializations.get(init)
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+
+        self.input = T.imatrix()
+        self.W = self.init((self.input_dim, self.output_dim))
+        self.params = [self.W]
+
+        if weights is not None:
+            self.set_weights(weights)
+
+    def output(self, train):
+        X = self.get_input(train)
+        return self.W[X]
+
+
+from ..layers.core import Layer
+from ..utils.theano_utils import shared_zeros
+
+class LeakyReLU(Layer):
+    def __init__(self, alpha=0.3):
+        self.alpha = alpha
+        self.params = []
+
+    def output(self, train):
+        X = self.get_input(train)
+        return ((X + abs(X)) / 2.0) + self.alpha * ((X - abs(X)) / 2.0)
+
+
+class PReLU(Layer):
+    '''
+        Reference: 
+            Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification
+                http://arxiv.org/pdf/1502.01852v1.pdf
+    '''
+    def __init__(self, input_shape):
+        self.alphas = shared_zeros(input_shape)
+        self.params = [self.alphas]
+
+    def output(self, train):
+        X = self.get_input(train)
+        pos = ((X + abs(X)) / 2.0)
+        neg = self.alphas * ((X - abs(X)) / 2.0)
+        return pos + neg
+
+from ..layers.core import Layer
+from ..utils.theano_utils import shared_zeros
+from .. import initializations
+
+class BatchNormalization(Layer):
+    '''
+        Reference: 
+            Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift
+                http://arxiv.org/pdf/1502.03167v3.pdf
+    '''
+    def __init__(self, input_shape, epsilon=1e-6, weights=None):
+        self.init = initializations.get("uniform")
+        self.input_shape = input_shape
+        self.epsilon = epsilon
+
+        self.gamma = self.init((self.input_shape))
+        self.beta = shared_zeros(self.input_shape)
+
+        self.params = [self.gamma, self.beta]
+        if weights is not None:
+            self.set_weights(weights)
+
+    def output(self, train):
+        X = self.get_input(train)
+        X_normed = (X - X.mean(keepdims=True)) / (X.std(keepdims=True) + self.epsilon)
+        out = self.gamma * X_normed + self.beta
+        return out
+
+import cPickle
+import gzip
+from data_utils import get_file
+import random
+
+def load_data(path="imdb.pkl", nb_words=None, skip_top=0, maxlen=None, test_split=0.2, seed=113):
+    path = get_file(path, origin="https://s3.amazonaws.com/text-datasets/imdb.pkl")
+
+    if path.endswith(".gz"):
+        f = gzip.open(path, 'rb')
+    else:
+        f = open(path, 'rb')
+
+    X, labels = cPickle.load(f)
+    f.close()
+
+    random.seed(seed)
+    random.shuffle(X)
+    random.seed(seed)
+    random.shuffle(labels)
+
+    if maxlen:
+        new_X = []
+        new_labels = []
+        for x, y in zip(X, labels):
+            if len(x) < maxlen:
+                new_X.append(x)
+                new_labels.append(y)
+        X = new_X
+        labels = new_labels
+
+    if not nb_words:
+        nb_words = max([max(x) for x in X])
+
+    X = [[0 if (w >= nb_words or w < skip_top) else w for w in x] for x in X]
+    X_train = X[:int(len(X)*(1-test_split))]
+    y_train = labels[:int(len(X)*(1-test_split))]
+
+    X_test = X[int(len(X)*(1-test_split)):]
+    y_test = labels[int(len(X)*(1-test_split)):]
+
+    return (X_train, y_train), (X_test, y_test)
+
+
+import urllib, tarfile
+import inspect, os
+from ..utils.generic_utils import Progbar
+
+def get_file(fname, origin, untar=False):
+    datadir = os.path.expanduser("~/.keras/datasets")
+    if not os.path.exists(datadir):
+        os.makedirs(datadir)
+
+    if untar:
+        untar_fpath = os.path.join(datadir, fname)
+        fpath = untar_fpath + '.tar.gz'
+    else:
+        fpath = os.path.join(datadir, fname)
+
+    try:
+        f = open(fpath)
+    except:
+        print 'Downloading data from',  origin
+
+        global progbar
+        progbar = None
+        def dl_progress(count, block_size, total_size):
+            global progbar
+            if progbar is None:
+                progbar = Progbar(total_size)
+            else:
+                progbar.update(count*block_size)
+
+        urllib.urlretrieve(origin, fpath, dl_progress)
+        progbar = None
+
+    if untar:
+        if not os.path.exists(untar_fpath):
+            print 'Untaring file...'
+            tfile = tarfile.open(fpath, 'r:gz')
+            tfile.extractall(path=datadir)
+            tfile.close()
+        return untar_fpath
+
+    return fpath
+
+
+
+
+# -*- coding: utf-8 -*-
+from data_utils import get_file
+import string
+import random
+import cPickle
+
+def make_reuters_dataset(path='datasets/temp/reuters21578/', min_samples_per_topic=15):
+    import os
+    import re
+    from ..preprocessing.text import Tokenizer
+
+    wire_topics = []
+    topic_counts = {}
+    wire_bodies = []
+
+    for fname in os.listdir(path):
+        if 'sgm' in fname:
+            s = open(path + fname).read()
+            tag = '<TOPICS>'
+            while tag in s:
+                s = s[s.find(tag)+len(tag):]
+                topics = s[:s.find('</')]
+                
+                if topics and not '</D><D>' in topics:
+                    topic = topics.replace('<D>', '').replace('</D>', '')
+                    wire_topics.append(topic)
+                    topic_counts[topic] = topic_counts.get(topic, 0) + 1
+                else:
+                    continue
+
+                bodytag = '<BODY>'
+                body = s[s.find(bodytag)+len(bodytag):]
+                body = body[:body.find('</')]
+                wire_bodies.append(body)
+
+    # only keep most common topics
+    items = topic_counts.items()
+    items.sort(key = lambda x: x[1])
+    kept_topics = set()
+    for x in items:
+        print x[0] + ': ' + str(x[1])
+        if x[1] >= min_samples_per_topic:
+            kept_topics.add(x[0])
+    print '-'
+    print 'Kept topics:', len(kept_topics)
+
+    # filter wires with rare topics
+    kept_wires = []
+    labels = []
+    topic_indexes = {}
+    for t, b in zip(wire_topics, wire_bodies):
+        if t in kept_topics:
+            if t not in topic_indexes:
+                topic_index = len(topic_indexes)
+                topic_indexes[t] = topic_index
+            else:
+                topic_index = topic_indexes[t]
+
+            labels.append(topic_index)
+            kept_wires.append(b)
+
+    # vectorize wires
+    tokenizer = Tokenizer()
+    tokenizer.fit_on_texts(kept_wires)
+    X = tokenizer.texts_to_sequences(kept_wires)
+
+    print 'Sanity check:'
+    for w in ["banana", "oil", "chocolate", "the", "dsft"]:
+        print '...index of', w, ':', tokenizer.word_index.get(w)
+
+    dataset = (X, labels) 
+    print '-'
+    print 'Saving...'
+    cPickle.dump(dataset, open('datasets/data/reuters.pkl', 'w'))
+    cPickle.dump(tokenizer.word_index, open('datasets/data/reuters_word_index.pkl', 'w'))
+
+
+
+def load_data(path="reuters.pkl", nb_words=None, skip_top=0, maxlen=None, test_split=0.2, seed=113):
+    path = get_file(path, origin="https://s3.amazonaws.com/text-datasets/reuters.pkl")
+    f = open(path, 'rb')
+
+    X, labels = cPickle.load(f)
+    f.close()
+    random.seed(seed)
+    random.shuffle(X)
+    random.seed(seed)
+    random.shuffle(labels)
+
+    if maxlen:
+        new_X = []
+        new_labels = []
+        for x, y in zip(X, labels):
+            if len(x) < maxlen:
+                new_X.append(x)
+                new_labels.append(y)
+        X = new_X
+        labels = new_labels
+
+    if not nb_words:
+        nb_words = max([max(x) for x in X])
+
+    X = [[0 if (w >= nb_words or w < skip_top) else w for w in x] for x in X]
+    X_train = X[:int(len(X)*(1-test_split))]
+    y_train = labels[:int(len(X)*(1-test_split))]
+
+    X_test = X[int(len(X)*(1-test_split)):]
+    y_test = labels[int(len(X)*(1-test_split)):]
+
+    return (X_train, y_train), (X_test, y_test)
+
+
+def get_word_index(path="reuters_word_index.pkl"):
+    path = get_file(path, origin="https://s3.amazonaws.com/text-datasets/reuters_word_index.pkl")
+    f = open(path, 'rb')
+    return cPickle.load(f)
+
+
+if __name__ == "__main__":
+    make_reuters_dataset()
+    (X_train, y_train), (X_test, y_test) = load_data()
+
+from data_utils import get_file
+import random
+import cPickle
+import numpy as np
+from PIL import Image
+
+def load_data(test_split=0.1, seed=113):
+    dirname = "cifar-10-batches-py"
+    origin = "http://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz"
+    path = get_file(dirname, origin=origin, untar=True)
+
+    nb_samples = 50000
+    X = np.zeros((nb_samples, 3, 32, 32), dtype="uint8")
+    y = np.zeros((nb_samples,), dtype="uint8")
+    for i in range(1, 6):
+        fpath = path + '/data_batch_' + str(i)
+        f = open(fpath, 'rb')
+        d = cPickle.load(f)
+        f.close()
+        data = d["data"]
+        labels = d["labels"]
+        
+        data = data.reshape(data.shape[0], 3, 32, 32)
+        X[(i-1)*10000:i*10000, :, :, :] = data
+        y[(i-1)*10000:i*10000] = labels
+
+    np.random.seed(seed)
+    np.random.shuffle(X)
+    np.random.seed(seed)
+    np.random.shuffle(y)
+
+    y = np.reshape(y, (len(y), 1))
+
+    X_train = X[:int(len(X)*(1-test_split))]
+    y_train = y[:int(len(X)*(1-test_split))]
+
+    X_test = X[int(len(X)*(1-test_split)):]
+    y_test = y[int(len(X)*(1-test_split)):]
+
+    return (X_train, y_train), (X_test, y_test)
+
+
+import numpy as np
+import time
+import sys
+
+def get_from_module(identifier, module_params, module_name, instantiate=False):
+    if type(identifier) is str:
+        res = module_params.get(identifier)
+        if not res:
+            raise Exception('Invalid ' + str(module_name) + ': ' + str(identifier))
+        if instantiate:
+            return res()
+        else:
+            return res
+    return identifier
+
+def make_tuple(*args):
+    return args
+
+class Progbar(object):
+    def __init__(self, target, width=30):
+        '''
+            @param target: total number of steps expected
+        '''
+        self.width = width
+        self.target = target
+        self.sum_values = {}
+        self.unique_values = []
+        self.start = time.time()
+        self.total_width = 0
+        self.seen_so_far = 0
+
+    def update(self, current, values=[]):
+        '''
+            @param current: index of current step
+            @param values: list of tuples (name, value_for_last_step).
+            The progress bar will display averages for these values.
+        '''
+        for k, v in values:
+            if k not in self.sum_values:
+                self.sum_values[k] = [v, 1]
+                self.unique_values.append(k)
+            else:
+                self.sum_values[k][0] += v * (current-self.seen_so_far)
+                self.sum_values[k][1] += (current-self.seen_so_far)
+
+        prev_total_width = self.total_width
+        sys.stdout.write("\b" * (self.total_width+1))
+
+        bar = '%d/%d [' % (current, self.target)
+        prog = float(current)/self.target
+        prog_width = int(self.width*prog)
+        if prog_width > 0:
+            bar += ('='*(prog_width-1))
+            if current < self.target:
+                bar += '>'
+            else:
+                bar += '='
+        bar += ('.'*(self.width-prog_width))
+        bar += ']'
+        sys.stdout.write(bar)
+        self.total_width = len(bar)
+
+        now = time.time()
+        if current:
+            time_per_unit = (now - self.start) / current
+        else:
+            time_per_unit = 0
+        eta = time_per_unit*(self.target - current)
+        info = ''
+        if current < self.target:
+            info += ' - ETA: %ds' % eta
+        else:
+            info += ' - %ds' % (now - self.start)
+        for k in self.unique_values:
+            info += ' - %s: %.4f' % (k, self.sum_values[k][0]/self.sum_values[k][1])
+
+        self.total_width += len(info)
+        if prev_total_width > self.total_width:
+            info += ((prev_total_width-self.total_width) * " ")
+
+        sys.stdout.write(info)
+        sys.stdout.flush()
+        self.seen_so_far = current
+
+        if current >= self.target:
+            sys.stdout.write("\n")
+
+    def add(self, n, values=[]):
+        self.update(self.seen_so_far+n, values)
+
+import numpy as np
+import theano
+import theano.tensor as T
+
+def floatX(X):
+    return np.asarray(X, dtype=theano.config.floatX)
+
+def sharedX(X, dtype=theano.config.floatX, name=None):
+    return theano.shared(np.asarray(X, dtype=dtype), name=name)
+
+def shared_zeros(shape, dtype=theano.config.floatX, name=None):
+    return sharedX(np.zeros(shape), dtype=dtype, name=name)
+
+def shared_scalar(val=0., dtype=theano.config.floatX, name=None):
+    return theano.shared(np.cast[dtype](val))
+
+def shared_ones(shape, dtype=theano.config.floatX, name=None):
+    return sharedX(np.ones(shape), dtype=dtype, name=name)
+
+def alloc_zeros_matrix(*dims):
+    return T.alloc(np.cast[theano.config.floatX](0.), *dims)
+
+
+import numpy as np
+import scipy as sp
+
+def to_categorical(y, nb_classes=None):
+    '''Convert class vector (integers from 0 to nb_classes)
+    to binary class matrix, for use with categorical_crossentropy
+    '''
+    y = np.asarray(y, dtype='int32')
+    if not nb_classes:
+        nb_classes = np.max(y)+1
+    Y = np.zeros((len(y), nb_classes))
+    for i in range(len(y)):
+        Y[i, y[i]] = 1.
+    return Y
+
+def normalize(a, axis=-1, order=2):
+    l2 = np.atleast_1d(np.linalg.norm(a, order, axis))
+    l2[l2==0] = 1
+    return a / np.expand_dims(l2, axis)
+
+
+def binary_logloss(p, y):
+    epsilon = 1e-15
+    p = sp.maximum(epsilon, p)
+    p = sp.minimum(1-epsilon, p)
+    res = sum(y*sp.log(p) + sp.subtract(1,y)*sp.log(sp.subtract(1,p)))
+    res *= -1.0/len(y)
+    return res
+
+def multiclass_logloss(P, Y):
+    score = 0.
+    npreds = [P[i][Y[i]-1] for i in range(len(Y))]
+    score = -(1./len(Y)) * np.sum(np.log(npreds))
+    return score
+
+def accuracy(p, y):
+    return np.mean([a==b for a, b in zip(p, y)])
+
+def probas_to_classes(y_pred):
+    if len(y_pred.shape) > 1 and y_pred.shape[1] > 1:
+        return categorical_probas_to_classes(y_pred)
+    return np.array([1 if p > 0.5 else 0 for p in y_pred])
+
+def categorical_probas_to_classes(p):
+    return np.argmax(p, axis=1)
+
+
+def save_array(array, name):
+    import tables
+    f = tables.open_file(name, 'w')
+    atom = tables.Atom.from_dtype(array.dtype)
+    ds = f.createCArray(f.root, 'data', atom, array.shape)
+    ds[:] = array
+    f.close()
+
+def load_array(name):
+    import tables
+    f = tables.open_file(name)
+    array = f.root.data
+    a=np.empty(shape=array.shape, dtype=array.dtype)
+    a[:]=array[:]
+    f.close()
+    return a
+import numpy as np
+import random
+
+def pad_sequences(seqs, maxlen=None, dtype='int32'):
+    """
+        Pad each sequence to the same lenght: 
+        the lenght of the longuest sequence.
+
+        If maxlen is provided, any sequence longer
+        than maxlen is truncated to maxlen.
+    """
+    lengths = [len(s) for s in seqs]
+
+    nb_samples = len(seqs)
+    if maxlen is None:
+        maxlen = np.max(lengths)
+
+    x = np.zeros((nb_samples, maxlen)).astype(dtype)
+    for idx, s in enumerate(seqs):
+        x[idx, :lengths[idx]] = s[:maxlen]
+
+    return x
+
+
+def skipgrams(sequence, vocabulary_size, 
+    window_size=4, negative_samples=1., shuffle=True, categorical=False, seed=None):
+    ''' 
+        Take a sequence (list of indexes of words), 
+        returns couples of [word_index, other_word index] and labels (1s or 0s),
+        where label = 1 if 'other_word' belongs to the context of 'word',
+        and label=0 if 'other_word' is ramdomly sampled
+
+        @param vocabulary_size: int. maximum possible word index + 1
+        @param window_size: int. actually half-window. The window of a word wi will be [i-window_size, i+window_size+1]
+        @param negative_samples: float >= 0. 0 for no negative (=random) samples. 1 for same number as positive samples. etc.
+        @param categorical: bool. if False, labels will be integers (eg. [0, 1, 1 .. ]), 
+            if True labels will be categorical eg. [[1,0],[0,1],[0,1] .. ]
+
+        Note: by convention, index 0 in the vocabulary is a non-word and will be skipped.
+    '''
+    couples = []
+    labels = []
+    for i, wi in enumerate(sequence):
+        if not wi:
+            pass
+        window_start = max(0, i-window_size)
+        window_end = min(len(sequence), i+window_size+1)
+        for j in range(window_start, window_end):
+            if j != i:
+                wj = sequence[j]
+                if not wj:
+                    pass
+                couples.append([wi, wj])
+                if categorical:
+                    labels.append([0,1])
+                else:
+                    labels.append(1)
+
+    if negative_samples > 0:
+        nb_negative_samples = int(len(labels) * negative_samples)
+        words = [c[0] for c in couples]
+        random.shuffle(words)
+        
+        couples += [[words[i%len(words)], random.randint(1, vocabulary_size-1)] for i in range(nb_negative_samples)]
+        if categorical:
+            labels += [[1,0]]*nb_negative_samples
+        else:
+            labels += [0]*nb_negative_samples
+
+    if shuffle:
+        if not seed:
+            seed = random.randint(0,10e6)
+        random.seed(seed)
+        random.shuffle(couples)
+        random.seed(seed)
+        random.shuffle(labels)
+
+    return couples, labels
+
+
+# -*- coding: utf-8 -*-
+'''
+    These preprocessing utils would greatly benefit
+    from a fast Cython rewrite.
+'''
+
+import string
+import numpy as np
+
+def base_filter():
+    f = string.punctuation
+    f = f.replace("'", '')
+    f += '\t\n'
+    return f
+
+def text_to_word_sequence(text, filters=base_filter(), lower=True, split=" "):
+    '''prune: sequence of characters to filter out
+    '''
+    if lower:
+        text = text.lower()
+    text = text.translate(string.maketrans(filters, split*len(filters)))
+    seq = text.split(split)
+    return filter(None, seq)
+
+
+def one_hot(text, n):
+    seq = text_to_word_sequence(text)
+    return [abs(hash(w))%n for w in seq]
+
+
+class Tokenizer(object):
+    def __init__(self, filters=base_filter(), lower=True, nb_words=None):
+        self.word_counts = {}
+        self.word_docs = {}
+        self.filters = filters
+        self.lower = lower
+        self.nb_words = nb_words
+        self.document_count = 0
+
+    def fit_on_texts(self, texts):
+        '''
+            required before using texts_to_sequences or texts_to_matrix
+            @param texts: can be a list or a generator (for memory-efficiency)
+        '''
+        self.document_count = 0
+        for text in texts:
+            self.document_count += 1
+            seq = text_to_word_sequence(text, self.filters, self.lower)
+            for w in seq:
+                if w in self.word_counts:
+                    self.word_counts[w] += 1
+                else:
+                    self.word_counts[w] = 1
+            for w in set(seq):
+                if w in self.word_docs:
+                    self.word_docs[w] += 1
+                else:
+                    self.word_docs[w] = 1
+
+        wcounts = self.word_counts.items()
+        wcounts.sort(key = lambda x: x[1], reverse=True)
+        sorted_voc = [wc[0] for wc in wcounts]
+        self.word_index = dict(zip(sorted_voc, range(1, len(sorted_voc)+1)))
+
+        self.index_docs = {}
+        for w, c in self.word_docs.items():
+            self.index_docs[self.word_index[w]] = c
+
+
+    def fit_on_sequences(self, sequences):
+        '''
+            required before using sequences_to_matrix 
+            (if fit_on_texts was never called)
+        '''
+        self.document_count = len(sequences)
+        self.index_docs = {}
+        for seq in sequences:
+            seq = set(seq)
+            for i in seq:
+                if i not in self.index_docs:
+                    self.index_docs[i] = 1
+                else:
+                    self.index_docs[i] += 1
+
+
+    def texts_to_sequences(self, texts):
+        '''
+            Transform each text in texts in a sequence of integers.
+            Only top "nb_words" most frequent words will be taken into account.
+            Only words known by the tokenizer will be taken into account.
+
+            Returns a list of sequences.
+        '''
+        res = []
+        for vect in self.texts_to_sequences_generator(texts):
+            res.append(vect)
+        return res
+
+    def texts_to_sequences_generator(self, texts):
+        '''
+            Transform each text in texts in a sequence of integers.
+            Only top "nb_words" most frequent words will be taken into account.
+            Only words known by the tokenizer will be taken into account.
+
+            Yields individual sequences.
+        '''
+        nb_words = self.nb_words
+        for text in texts:
+            seq = text_to_word_sequence(text, self.filters, self.lower)
+            vect = []
+            for w in seq:
+                i = self.word_index.get(w)
+                if i is not None:
+                    if nb_words and i >= nb_words:
+                        pass
+                    else:
+                        vect.append(i)
+            yield vect
+
+
+    def texts_to_matrix(self, texts, mode="binary"):
+        '''
+            modes: binary, count, tfidf, freq
+        '''
+        sequences = self.texts_to_sequences(texts)
+        return self.sequences_to_matrix(sequences, mode=mode)
+
+    def sequences_to_matrix(self, sequences, mode="binary"):
+        '''
+            modes: binary, count, tfidf, freq
+        '''
+        if not self.nb_words:
+            if self.word_index:
+                nb_words = len(self.word_index)
+            else:
+                raise Exception("Specify a dimension (nb_words argument), or fit on some text data first")
+        else:
+            nb_words = self.nb_words
+
+        if mode == "tfidf" and not self.document_count:
+            raise Exception("Fit the Tokenizer on some data before using tfidf mode")
+
+        X = np.zeros((len(sequences), nb_words))
+        for i, seq in enumerate(sequences):
+            if not seq:
+                pass
+            counts = {}
+            for j in seq:
+                if j >= nb_words:
+                    pass
+                if j not in counts:
+                    counts[j] = 1.
+                else:
+                    counts[j] += 1
+            for j, c in counts.items():
+                if mode == "count":
+                    X[i][j] = c
+                elif mode == "freq":
+                    X[i][j] = c/len(seq)
+                elif mode == "binary":
+                    X[i][j] = 1
+                elif mode == "tfidf":
+                    tf = np.log(c/len(seq))
+                    df = (1 + np.log(1 + self.index_docs.get(j, 0)/(1 + self.document_count)))
+                    X[i][j] = tf / df
+                else:
+                    raise Exception("Unknown vectorization mode: " + str(mode))
+        return X
+
+
+
+                
+
+
+
+    
+
+from PIL import Image
+import numpy as np
+from scipy import ndimage
+from scipy import linalg
+
+from os import listdir
+from os.path import isfile, join
+import random, math
+
+'''
+    Fairly basic set of tools for realtime data augmentation on image data.
+    Can easily be extended to include new transforms, new preprocessing methods, etc...
+'''
+
+def random_rotation(x, rg, fill_mode="nearest", cval=0.):
+    angle = random.uniform(-rg, rg)
+    x = ndimage.interpolation.rotate(x, angle, axes=(1,2), reshape=False, mode=fill_mode, cval=cval)
+    return x
+
+def random_shift(x, wrg, hrg, fill_mode="nearest", cval=0.):
+    crop_left_pixels = 0
+    crop_right_pixels = 0
+    crop_top_pixels = 0
+    crop_bottom_pixels = 0
+
+    original_w = x.shape[1]
+    original_h = x.shape[2]
+
+    if wrg:
+        crop = random.uniform(0., wrg)
+        split = random.uniform(0, 1)
+        crop_left_pixels = int(split*crop*x.shape[1])
+        crop_right_pixels = int((1-split)*crop*x.shape[1])
+
+    if hrg:
+        crop = random.uniform(0., hrg)
+        split = random.uniform(0, 1)
+        crop_top_pixels = int(split*crop*x.shape[2])
+        crop_bottom_pixels = int((1-split)*crop*x.shape[2])
+
+    x = ndimage.interpolation.shift(x, (0, crop_left_pixels, crop_top_pixels), mode=fill_mode, cval=cval)
+    return x
+
+def horizontal_flip(x):
+    for i in range(x.shape[0]):
+        x[i] = np.fliplr(x[i])
+    return x
+
+def vertical_flip(x):
+    for i in range(x.shape[0]):
+        x[i] = np.flipud(x[i])
+    return x
+
+
+def random_barrel_transform(x, intensity):
+    # TODO
+    pass
+
+def random_shear(x, intensity):
+    # TODO
+    pass
+
+def random_channel_shift(x, rg):
+    # TODO
+    pass
+
+def random_zoom(x, rg, fill_mode="nearest", cval=0.):
+    zoom_w = random.uniform(1.-rg, 1.)
+    zoom_h = random.uniform(1.-rg, 1.)
+    x = ndimage.interpolation.zoom(x, zoom=(1., zoom_w, zoom_h), mode=fill_mode, cval=cval)
+    return x # shape of result will be different from shape of input!
+
+
+
+
+def array_to_img(x, scale=True):
+    x = x.transpose(1, 2, 0) 
+    if scale:
+        x += max(-np.min(x), 0)
+        x /= np.max(x)
+        x *= 255
+    if x.shape[2] == 3:
+        # RGB
+        return Image.fromarray(x.astype("uint8"), "RGB")
+    else:
+        # grayscale
+        return Image.fromarray(x.astype("uint8"), "L")
+
+
+def img_to_array(img):
+    x = np.asarray(img, dtype='float32')
+    return x.transpose(2, 0, 1)
+
+
+def load_img(path, grayscale=False):
+    img = Image.open(open(path))
+    if grayscale:
+        img = img.convert('L')
+    return img
+
+
+def list_pictures(directory, ext='jpg|jpeg|bmp|png'):
+    return [join(directory,f) for f in listdir(directory) \
+        if isfile(join(directory,f)) and re.match('([\w]+\.(?:' + ext + '))', f)]
+
+
+
+class ImageDataGenerator(object):
+    '''
+        Generate minibatches with 
+        realtime data augmentation.
+    '''
+    def __init__(self, 
+            featurewise_center=True, # set input mean to 0 over the dataset
+            samplewise_center=False, # set each sample mean to 0
+            featurewise_std_normalization=True, # divide inputs by std of the dataset
+            samplewise_std_normalization=False, # divide each input by its std
+
+            zca_whitening=False, # apply ZCA whitening
+            rotation_range=0., # degrees (0 to 180)
+            width_shift_range=0., # fraction of total width
+            height_shift_range=0., # fraction of total height
+            horizontal_flip=False,
+            vertical_flip=False,
+        ):
+        self.__dict__.update(locals())
+        self.mean = None
+        self.std = None
+        self.principal_components = None
+
+
+    def flow(self, X, y, batch_size=32, shuffle=False, seed=None, save_to_dir=None, save_prefix="", save_format="jpeg"):
+        if seed:
+            random.seed(seed)
+
+        if shuffle:
+            seed = random.randint(1, 10e6)
+            np.random.seed(seed)
+            np.random.shuffle(X)
+            np.random.seed(seed)
+            np.random.shuffle(y)
+
+        nb_batch = int(math.ceil(float(X.shape[0])/batch_size))
+        for b in range(nb_batch):
+            batch_end = (b+1)*batch_size
+            if batch_end > X.shape[0]:
+                nb_samples = X.shape[0] - b*batch_size
+            else:
+                nb_samples = batch_size
+
+            bX = np.zeros(tuple([nb_samples]+list(X.shape)[1:]))
+            for i in range(nb_samples):
+                x = X[b*batch_size+i]
+                x = self.random_transform(x.astype("float32"))
+                x = self.standardize(x)
+                bX[i] = x
+
+            if save_to_dir:
+                for i in range(nb_samples):
+                    img = array_to_img(bX[i], scale=True)
+                    img.save(save_to_dir + "/" + save_prefix + "_" + str(i) + "." + save_format)
+
+            yield bX, y[b*batch_size:b*batch_size+nb_samples]
+
+
+    def standardize(self, x):
+        if self.featurewise_center:
+            x -= self.mean
+        if self.featurewise_std_normalization:
+            x /= self.std
+
+        if self.zca_whitening:
+            flatx = np.reshape(x, (x.shape[0]*x.shape[1]*x.shape[2]))
+            whitex = np.dot(flatx, self.principal_components)
+            x = np.reshape(whitex, (x.shape[0], x.shape[1], x.shape[2]))
+
+        if self.samplewise_center:
+            x -= np.mean(x)
+        if self.samplewise_std_normalization:
+            x /= np.std(x)
+
+        return x
+
+
+    def random_transform(self, x):
+        if self.rotation_range:
+            x = random_rotation(x, self.rotation_range)
+        if self.width_shift_range or self.height_shift_range:
+            x = random_shift(x, self.width_shift_range, self.height_shift_range)
+        if self.horizontal_flip:
+            if random.random() < 0.5:
+                x = horizontal_flip(x)
+        if self.vertical_flip:
+            if random.random() < 0.5:
+                x = vertical_flip(x)
+
+        # TODO:
+        # zoom
+        # barrel/fisheye
+        # shearing
+        # channel shifting
+        return x
+
+
+    def fit(self, X, 
+            augment=False, # fit on randomly augmented samples
+            rounds=1, # if augment, how many augmentation passes over the data do we use
+            seed=None
+        ):
+        '''
+            Required for featurewise_center, featurewise_std_normalization and zca_whitening.
+        '''
+        X = np.copy(X)
+        
+        if augment:
+            aX = np.zeros(tuple([rounds*X.shape[0]]+list(X.shape)[1:]))
+            for r in range(rounds):
+                for i in range(X.shape[0]):
+                    img = array_to_img(X[i])
+                    img = self.random_transform(img)
+                    aX[i+r*X.shape[0]] = img_to_array(img)
+            X = aX
+
+        if self.featurewise_center:
+            self.mean = np.mean(X, axis=0)
+            X -= self.mean
+        if self.featurewise_std_normalization:
+            self.std = np.std(X)
+            X /= self.std
+
+        if self.zca_whitening:
+            flatX = np.reshape(X, (X.shape[0], X.shape[1]*X.shape[2]*X.shape[3]))
+            fudge = 10e-6
+            sigma = np.dot(flatX.T, flatX) / flatX.shape[1]
+            U, S, V = linalg.svd(sigma)
+            self.principal_components = np.dot(np.dot(U, np.diag(1. / np.sqrt(S + fudge))), U.T)
+
+
+
+import numpy as np
+
+from keras.preprocessing import sequence
+from keras.optimizers import SGD, RMSprop, Adagrad
+from keras.utils import np_utils
+from keras.models import Sequential
+from keras.layers.core import Dense, Dropout, Activation, Embedding
+from keras.layers.recurrent import LSTM, GRU
+from keras.datasets import imdb
+
+'''
+    Train a LSTM on the IMDB sentiment classification task.
+
+    The dataset is actually too small for LSTM to be of any advantage 
+    compared to simpler, much faster methods such as TF-IDF+LogReg.
+
+    Notes: 
+
+    - RNNs are tricky. Choice of batch size is important, 
+    choice of loss and optimizer is critical, etc. 
+    Most configurations won't converge.
+
+    - LSTM loss decrease during training can be quite different 
+    from what you see with CNNs/MLPs/etc. It's more or less a sigmoid
+    instead of an inverse exponential.
+'''
+
+max_features=20000
+maxlen = 100 # cut texts after this number of words (among top max_features most common words)
+batch_size = 16
+
+print "Loading data..."
+(X_train, y_train), (X_test, y_test) = imdb.load_data(nb_words=max_features, test_split=0.2)
+print len(X_train), 'train sequences'
+print len(X_test), 'test sequences'
+
+print "Pad sequences (samples x time)"
+X_train = sequence.pad_sequences(X_train, maxlen=maxlen)
+X_test = sequence.pad_sequences(X_test, maxlen=maxlen)
+print 'X_train shape:', X_train.shape
+print 'X_test shape:', X_test.shape
+
+print 'Build model...'
+model = Sequential()
+model.add(Embedding(max_features, 256))
+model.add(LSTM(256, 128)) # try using a GRU instead, for fun
+model.add(Dropout(0.5))
+model.add(Dense(128, 1))
+model.add(Activation('sigmoid'))
+
+# try using different optimizers and different optimizer configs
+model.compile(loss='binary_crossentropy', optimizer='rmsprop')
+
+print "Train..."
+model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=10, verbose=1)
+score = model.evaluate(X_test, y_test, batch_size=batch_size)
+print 'Test score:', score
+
+classes = model.predict_classes(X_test, batch_size=batch_size)
+acc = np_utils.accuracy(classes, y_test)
+print 'Test accuracy:', acc
+
+
+import numpy as np
+
+from keras.datasets import reuters
+from keras.models import Sequential
+from keras.layers.core import Dense, Dropout, Activation
+from keras.layers.normalization import BatchNormalization
+from keras.utils import np_utils
+from keras.preprocessing.text import Tokenizer
+
+'''
+    Train and evaluate a simple MLP on the Reuters newswire topic classification task.
+
+    GPU run command:
+        THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32 python examples/reuters_mlp.py
+
+    CPU run command:
+        python examples/reuters_mlp.py
+'''
+
+max_words = 10000
+batch_size = 16
+
+print "Loading data..."
+(X_train, y_train), (X_test, y_test) = reuters.load_data(nb_words=max_words, test_split=0.2)
+print len(X_train), 'train sequences'
+print len(X_test), 'test sequences'
+
+nb_classes = np.max(y_train)+1
+print nb_classes, 'classes'
+
+print "Vectorizing sequence data..."
+tokenizer = Tokenizer(nb_words=max_words)
+X_train = tokenizer.sequences_to_matrix(X_train, mode="binary")
+X_test = tokenizer.sequences_to_matrix(X_test, mode="binary")
+print 'X_train shape:', X_train.shape
+print 'X_test shape:', X_test.shape
+
+print "Convert class vector to binary class matrix (for use with categorical_crossentropy)"
+Y_train = np_utils.to_categorical(y_train, nb_classes)
+Y_test = np_utils.to_categorical(y_test, nb_classes)
+print 'Y_train shape:', Y_train.shape
+print 'Y_test shape:', Y_test.shape
+
+print "Building model..."
+model = Sequential()
+model.add(Dense(max_words, 256, init='normal'))
+model.add(Activation('relu'))
+#model.add(BatchNormalization(input_shape=(256,))) # try without batch normalization (doesn't work as well!)
+model.add(Dropout(0.5))
+model.add(Dense(256, nb_classes, init='normal'))
+model.add(Activation('softmax'))
+
+model.compile(loss='categorical_crossentropy', optimizer='adadelta')
+
+print "Training..."
+model.fit(X_train, Y_train, nb_epoch=5, batch_size=batch_size)
+score = model.evaluate(X_test, Y_test, batch_size=batch_size)
+print 'Test score:', score
+
+classes = model.predict_classes(X_test, batch_size=batch_size)
+acc = np_utils.accuracy(classes, y_test)
+print 'Test accuracy:', acc
+
+
+from keras.datasets import cifar10
+from keras.preprocessing.image import ImageDataGenerator
+from keras.models import Sequential
+from keras.layers.core import Dense, Dropout, Activation, Flatten
+from keras.layers.convolutional import Convolution2D, MaxPooling2D
+from keras.optimizers import SGD, Adadelta, Adagrad
+from keras.utils import np_utils, generic_utils
+
+'''
+    Train a (fairly simple) deep CNN on the CIFAR10 small images dataset.
+
+    GPU run command:
+        THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32 python cifar10_cnn.py
+
+    It gets down to 0.65 test logloss in 25 epochs, and down to 0.55 after 50 epochs.
+    (it's still underfitting at that point, though).
+'''
+
+batch_size = 32
+nb_classes = 10
+nb_epoch = 200
+data_augmentation = True
+
+# the data, shuffled and split between tran and test sets
+(X_train, y_train), (X_test, y_test) = cifar10.load_data(test_split=0.1)
+print X_train.shape[0], 'train samples'
+print X_test.shape[0], 'test samples'
+
+# convert class vectors to binary class matrices
+Y_train = np_utils.to_categorical(y_train, nb_classes)
+Y_test = np_utils.to_categorical(y_test, nb_classes)
+
+model = Sequential()
+
+model.add(Convolution2D(32, 3, 3, 3, border_mode='full')) 
+model.add(Activation('relu'))
+model.add(Convolution2D(32, 32, 3, 3))
+model.add(Activation('relu'))
+model.add(MaxPooling2D(poolsize=(2, 2)))
+model.add(Dropout(0.25))
+
+model.add(Convolution2D(64, 32, 3, 3, border_mode='full')) 
+model.add(Activation('relu'))
+model.add(Convolution2D(64, 64, 3, 3)) 
+model.add(Activation('relu'))
+model.add(MaxPooling2D(poolsize=(2, 2)))
+model.add(Dropout(0.25))
+
+model.add(Flatten(64*8*8))
+model.add(Dense(64*8*8, 512, init='normal'))
+model.add(Activation('relu'))
+model.add(Dropout(0.5))
+
+model.add(Dense(512, nb_classes, init='normal'))
+model.add(Activation('softmax'))
+
+# let's train the model using SGD + momentum (how original).
+sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+model.compile(loss='categorical_crossentropy', optimizer=sgd)
+
+if not data_augmentation:
+    print "Not using data augmentation or normalization"
+
+    X_train = X_train.astype("float32")
+    X_test = X_test.astype("float32")
+    X_train /= 255
+    X_test /= 255
+    model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=10)
+    score = model.evaluate(X_test, Y_test, batch_size=batch_size)
+    print 'Test score:', score
+
+else:
+    print "Using real time data augmentation"
+
+    # this will do preprocessing and realtime data augmentation
+    datagen = ImageDataGenerator(
+        featurewise_center=True, # set input mean to 0 over the dataset
+        samplewise_center=False, # set each sample mean to 0
+        featurewise_std_normalization=True, # divide inputs by std of the dataset
+        samplewise_std_normalization=False, # divide each input by its std
+        zca_whitening=False, # apply ZCA whitening
+        rotation_range=20, # randomly rotate images in the range (degrees, 0 to 180)
+        width_shift_range=0.2, # randomly shift images horizontally (fraction of total width)
+        height_shift_range=0.2, # randomly shift images vertically (fraction of total height)
+        horizontal_flip=True, # randomly flip images
+        vertical_flip=False) # randomly flip images
+
+    # compute quantities required for featurewise normalization 
+    # (std, mean, and principal components if ZCA whitening is applied)
+    datagen.fit(X_train)
+
+    for e in range(nb_epoch):
+        print '-'*40
+        print 'Epoch', e
+        print '-'*40
+        print "Training..."
+        # batch train with realtime data augmentation
+        progbar = generic_utils.Progbar(X_train.shape[0])
+        for X_batch, Y_batch in datagen.flow(X_train, Y_train):
+            loss = model.train(X_batch, Y_batch)
+            progbar.add(X_batch.shape[0], values=[("train loss", loss)])
+
+        print "Testing..."
+        # test time!
+        progbar = generic_utils.Progbar(X_test.shape[0])
+        for X_batch, Y_batch in datagen.flow(X_test, Y_test):
+            score = model.test(X_batch, Y_batch)
+            progbar.add(X_batch.shape[0], values=[("test loss", score)])
+
+            
+
+
+
+
+
+
+
