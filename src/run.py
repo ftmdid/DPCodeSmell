@@ -117,39 +117,13 @@ if __name__ == '__main__':
     relation5.checkForRelation()
     print("Finished bad smell analysis on "+projectName) 
     '''
-    #'''
+    '''
     projectName="numpy"   
     print("Started bad smell analysis on "+projectName)
     relat=relation.Relation(projectName)  
     relat.checkForRelation()
     print("Finished bad smell analysis on "+projectName)
-    #'''
-    
-
-    
-    
     '''
-    projectName="numpy"
-    commitID="8eb6424"
-    #downloadProjectInASpecificCommit(projectName, commitID)
-    from src.FileOperations import FileOperations
-    import shutil
-    projectName = "numpy"
-    fileOp=FileOperations(projectName)
-    projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)) + '/util/Zip', projectName)
-        
-    # pythonFile = fileOp.createOnePythonFile(projectPath, projectName, commitID)
-    # for name in os.listdir(projectPath):
-        # dirToDel = os.path.join(projectPath, name)
-        # if os.path.isdir(dirToDel):
-            # shutil.rmtree(dirToDel)   
-    
-    '''
-   
-  
-
-          
-       
-        
+            
     print("Done with Downloading!")
     

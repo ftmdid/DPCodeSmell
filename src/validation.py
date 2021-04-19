@@ -1,4 +1,10 @@
 
+
+
+
+
+
+
 '''
 Created on Sep 15, 2020
 
@@ -9,7 +15,7 @@ Created on Sep 15, 2020
 import os
 import BadSmell as BS
 import csv
-#import src.helper as help
+import helper as help
 import parallelInheritance as inheritance
 
 #import src.defectAnalysis as defectAnalysis
@@ -60,6 +66,16 @@ def getLongParameterListSmellsInProject(pythonFiles, badSmellDetection, validati
                     #print(result)
                     longParamaterForToolCSVfileOut.writerow([key, result[key]['methodLoc'], result[key]['methodParameterCount'], str(result[key]['isLongParameterList']),each])
 
+def getMessageChainInProject(pythonFiles, badSmellDetection, validationFolder):
+    messageChainValidationForTool = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation/ToolValidation/messageChainValidationForTool.csv'
+    messageChainValidationForToolCSVfileOut = csv.writer(open(os.path.join(validationFolder, messageChainValidationForTool), 'w+'))
+    messageChainValidationForToolCSVfileOut.writerow(['Line', 'Message Chain Count', 'Is Message Chain', 'File Name'])
+    for each in pythonFiles:
+        result = badSmellDetection.checkForMessageChain(each)
+        if result:
+            for key, _ in result.items():
+                if str(result[key]['isMessageChain']) == str(True): #print(result)
+                    messageChainValidationForToolCSVfileOut.writerow([key, result[key]['messageChainCount'], result[key]['isMessageChain'], each])
 
 def getRequestedItemFiles(fileName, requestedItem):
         '''
@@ -92,7 +108,49 @@ def getRequestedItemFiles(fileName, requestedItem):
             print("Exception occurred in getRequestedItemFiles method")
                 
 
-# def getParallelInheritanceHiearchOfAFile():
+def getParallelInheritanceHierarchySmellInProject(validationFolder, os):
+    parallelInheritanceHiearchyValidationForTool = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation/ToolValidation/parallelInheritanceHiearchyValidationForTool.csv'
+    parallelInheritanceHiearchyForToolCSVfileOut = csv.writer(open(os.path.join(validationFolder, parallelInheritanceHiearchyValidationForTool), 'w+'))
+    parallelInheritanceHiearchyForToolCSVfileOut.writerow(['Class Name', 'Depth of Inheritance', 'Number of Children', 'Is Parallel Inheritance Hiearchy Smell'])
+    pythonFile = "/Users/neda/Desktop/workspace/BadSmells/util/Validation/ToolValidation/allPythonFiles.py"
+    parallelInheritanceHiearchySmellListDict = inheritance.calculateParallelInheritanceHiearchySmell(pythonFile)
+    for k, _ in parallelInheritanceHiearchySmellListDict.items():
+        parallelInheritanceHiearchyForToolCSVfileOut.writerow([k, parallelInheritanceHiearchySmellListDict[k]['dit'], parallelInheritanceHiearchySmellListDict[k]['noc'], parallelInheritanceHiearchySmellListDict[k]['isPIHSmell']])
+
+def getLazyClassInProject(badSmellDetection, validationFolder):
+    lazyClassValidationForTool = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation/ToolValidation/lazyClassValidationForTool.csv'
+    lazyClassForToolCSVfileOut = csv.writer(open(os.path.join(validationFolder, lazyClassValidationForTool), 'w+'))
+    lazyClassForToolCSVfileOut.writerow(['Class Name', 'Number of Methods', 'Number of Attributes', 'Depth of Inheritance', 'Is Lazy Class Smell'])
+    pythonFile = "/Users/neda/Desktop/workspace/BadSmells/util/Validation/ToolValidation/allPythonFiles.py"
+    pihSmellListDict = inheritance.calculateParallelInheritanceHiearchySmell(pythonFile)
+    lazyClassList = {}
+    with open(pythonFile, "r") as f:
+        lines = f.readlines()
+        classes = badSmellDetection.getClassLinesOfFile(lines)
+        classMethodCount = 0
+        classAttr = 0
+        dit = 0
+        if classes != None and len(classes.items()) >= 1:
+            for key, value in classes.items():
+                classLines = lines[int(value['start']):int(value['end'])]
+                if len(classLines) > 0:
+                    classLinesStr = "\n".join(classLines)
+                    classMethodCount = badSmellDetection.checkClassMethods(classLines)
+                    classAttr = badSmellDetection.getClassAttribututes(classLinesStr)
+                    if key.lstrip().rstrip() in pihSmellListDict.keys():
+                        dit = pihSmellListDict[key]['dit']
+                    else:
+                        dit = "none"
+                    isLazyClass = False
+                    print("classMethodCount=" + str(classMethodCount) + " classAttributesCount=" + str(classAttr) + " dit=" + str(dit) + " isLazyClass=" + str(isLazyClass))
+                    if dit != "none":
+                        if (classMethodCount < 5 and classAttr < 5) or dit < 2:
+                            isLazyClass = True
+                        lazyClassList[key] = {'classMethodCount':classMethodCount, 'classAttributesCount':classAttr, 'dit':dit, 'isLazyClass':isLazyClass}
+    
+    f.close()
+    for k, _ in lazyClassList.items():
+        lazyClassForToolCSVfileOut.writerow([k, lazyClassList[k]['classMethodCount'], lazyClassList[k]['classAttributesCount'], lazyClassList[k]['dit'], lazyClassList[k]['isLazyClass']])
 
 if __name__ == '__main__':
     
@@ -106,16 +164,7 @@ if __name__ == '__main__':
     
     validationFolder = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation/ToolValidation'
     
-    parallelInheritanceHiearchyValidationForTool = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation/ToolValidation/parallelInheritanceHiearchyValidationForTool.csv'
-    parallelInheritanceHiearchyForToolCSVfileOut = csv.writer(open(os.path.join(validationFolder, parallelInheritanceHiearchyValidationForTool), 'w+'))
-    parallelInheritanceHiearchyForToolCSVfileOut.writerow(['Class Name', 'Depth of Inheritance', 'Number of Children' ,'Is Parallel Inheritance Hiearchy Smell'])
-
-    parallelInheritanceHiearchySmellListDict={}
-    pythonFile="/Users/neda/Desktop/workspace/BadSmells/util/Zip/numpy/allPythonFiles.py" 
-    parallelInheritanceHiearchySmellListDict= inheritance.calculateParallelInheritanceHiearchySmell(pythonFile)
-     
-    for k, _ in parallelInheritanceHiearchySmellListDict.items():
-        parallelInheritanceHiearchyForToolCSVfileOut.writerow([k, parallelInheritanceHiearchySmellListDict[k]['dit'],parallelInheritanceHiearchySmellListDict[k]['noc'],parallelInheritanceHiearchySmellListDict[k]['isPIHSmell']])
+   
     
     #getLargeClassInfoInProject(pythonFiles, badSmellDetection, validationFolder)
          
@@ -126,17 +175,13 @@ if __name__ == '__main__':
     
     #getLongParameterListSmellsInProject(pythonFiles, badSmellDetection, validationFolder)
  
-#     messageChainValidationForTool = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation/ToolValidation/messageChainValidationForTool.csv'
-#     messageChainValidationForToolCSVfileOut = csv.writer(open(os.path.join(validationFolder, messageChainValidationForTool), 'w+'))
-#     messageChainValidationForToolCSVfileOut.writerow(['Line', 'Message Chain Count', 'Is Message Chain', 'File Name'])
-#     for each in pythonFiles:
-#         result = badSmellDetection.checkForMessageChain(each)
-#         if result:
-#             for key, value in result.items():
-#                 if str(result[key]['isMessageChain']) == str(True):
-#                     #print(result)
-#                     messageChainValidationForToolCSVfileOut.writerow([key, result[key]['messageChainCount'], result[key]['isMessageChain'], each])
-#
+    #getMessageChainInProject(pythonFiles, badSmellDetection, validationFolder)
+    
+    #getParallelInheritanceHierarchySmellInProject(validationFolder)
+     
+    #getLazyClassInProject(badSmellDetection, validationFolder)
+             
+
     print("Done with validation!")
 
 

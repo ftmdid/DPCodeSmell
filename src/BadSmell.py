@@ -33,7 +33,11 @@ class BadSmell(object):
                         if line != '\n':
                             classes[current_class]['end'] = lineno - 1
                             current_class = None
+                            
                     if line.lstrip().startswith('class ') and (":" in line):
+                        if (current_class in classes.keys())  and ('end' not in  classes[current_class].keys()):
+                            classes[current_class]['end'] = lineno - 1
+                            current_class = None
                         if "(" and ")" in line:
                             current_class=line.split('class ')[1].lstrip().split('(')[0].lstrip().rstrip()
                             classes[current_class] = {'start': lineno}
@@ -45,10 +49,9 @@ class BadSmell(object):
                         
                     
                 if current_class:
-                    classes[current_class]['end'] = totalLine
-                    #classes[current_class]['end'] = -1
+                    #classes[current_class]['end'] = totalLine
+                    classes[current_class]['end'] = -1
                 return classes
-    #             fle.close()
         except Exception as ex:
             print(ex)
             print("Exception occurred in BadSmell.getClassLinesOfFile method")
@@ -218,24 +221,6 @@ class BadSmell(object):
         pihSmellListDict=pih.calculateParallelInheritanceHiearchySmell(pythonFile)
         parallelInheritanceHiearchyList={}
         try:
-#             classList=[]
-#             with open(fileInTheFolder,encoding='windows-1252') as fileToRead:
-#                 fileLines=fileToRead.readlines()
-#                 for line in fileLines:
-#                     if line.lstrip().startswith('class ') and (":" in line):
-#                         if "(" and ")" in line:
-#                             if ":" in line:
-#                                 classList.append(line.split('(')[0].split('class ')[1].rstrip().lstrip())
-#                         elif not ("(" and ")" in line):
-#                             if ":" in line:
-#                                 classList.append(line.split(':')[0].split('class ')[1].rstrip().lstrip())
-#             fileToRead.close()
-#             if classList and len(classList)>=1:
-#                 for className in classList:
-#                     for key, value in pihSmellListDict.items():
-#                             if key==className:
-#                                 parallelInheritanceHiearchyList[className]= value
-#             return parallelInheritanceHiearchyList
             with open(fileInTheFolder, "r") as fileToRead:
                 
                 lines=fileToRead.readlines()
@@ -255,6 +240,44 @@ class BadSmell(object):
         except Exception as ex:
             print(ex)
             print("Exception occurrred in BadSmell.checkForParallelInheritanceHiearchy List in :"+fileInTheFolder)
+            
+    def checkForLazyClass(self,fileInTheFolder, projectName):
+        commitID=op.find_between(fileInTheFolder, "@", "@")
+        pythonFile=pih.downloadProjectInASpecificCommit(projectName, commitID)
+        pihSmellListDict=pih.calculateParallelInheritanceHiearchySmell(pythonFile)
+        lazyClassList={}
+        try:
+            with open(fileInTheFolder, "r") as f:
+                    lines=f.readlines()
+                    classes=self.getClassLinesOfFile(lines)
+                    classMethodCount= 0
+                    classAttr = 0
+                    dit=0
+                    if classes!=None and len(classes.items())>=1:
+                        for key, value in classes.items():  
+                            if 'start' and 'end' in value:  
+                                classLines=lines[int(value['start']):int(value['end'])]
+                                if len(classLines)>0:
+                                    classLinesStr="\n".join(classLines)
+                                    classMethodCount=self.checkClassMethods(classLines)
+                                    classAttr=self.getClassAttribututes(classLinesStr)
+                                    if key.lstrip().rstrip() in pihSmellListDict.keys():
+                                        dit = pihSmellListDict[key]['dit']
+                                    else:
+                                        dit = "none"
+                                    isLazyClass = False
+                                    print("classMethodCount=" + str(classMethodCount) + " classAttributesCount=" + str(classAttr) + " dit=" + str(dit) + " isLazyClass=" + str(isLazyClass))
+                                    if dit != "none":
+                                        if (classMethodCount < 5 and classAttr < 5) or dit < 2:
+                                            isLazyClass = True
+                                        lazyClassList[key] = {'classMethodCount':classMethodCount, 'classAttributesCount':classAttr, 'dit':dit, 'isLazyClass':isLazyClass}
+    
+            f.close()
+            return lazyClassList
+        except Exception as ex:
+            print(ex)
+            print("Exception occurrred in BadSmell.checkForParallelInheritanceHiearchy List in :"+fileInTheFolder)
+
                 
     def checkForMessageChain(self,fileName):
         try:
