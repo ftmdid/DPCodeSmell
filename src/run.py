@@ -89,13 +89,13 @@ if __name__ == '__main__':
     print("Finished bad smell analysis on "+projectName) 
 '''
 
-    '''
+    #'''
     projectName="zulip"   
     print("Started bad smell analysis on "+projectName)
     relation3=relation.Relation(projectName)   
     relation3.checkForRelation()  
     print("Finished bad smell analysis on "+projectName) 
-    '''
+    #'''
     '''
     projectName="scikit-learn"   
     print("Started bad smell analysis on "+projectName)

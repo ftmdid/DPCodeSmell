@@ -266,7 +266,7 @@ class BadSmell(object):
                                     else:
                                         dit = "none"
                                     isLazyClass = False
-                                    print("classMethodCount=" + str(classMethodCount) + " classAttributesCount=" + str(classAttr) + " dit=" + str(dit) + " isLazyClass=" + str(isLazyClass))
+                                    #print("classMethodCount=" + str(classMethodCount) + " classAttributesCount=" + str(classAttr) + " dit=" + str(dit) + " isLazyClass=" + str(isLazyClass))
                                     if dit != "none":
                                         if (classMethodCount < 5 and classAttr < 5) or dit < 2:
                                             isLazyClass = True

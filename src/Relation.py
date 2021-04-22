@@ -228,6 +228,46 @@ class Relation(object):
         except Exception as ex:
             print(ex)
             print("Exception occurred in Relation.analyzeParallelInheritanceHiearchySmell() method")                             
+    
+    def analyzeLazyClassSmell(self,filesListWithBugFixedCommitsDict, projectName,projectPath,smell):  
+        try:
+            print("Started on lazy class bad smell analysis for "+projectName)       
+            relationAnalysisLazyClassSmellCSVfile = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/BadSmells/LazyClass/LazyClassSmellRelationAnalysisOf'+self.projectName+'.csv'
+            relationAnalysisLazyClassSmellCSVout = csv.writer(open(os.path.join(projectPath, relationAnalysisLazyClassSmellCSVfile), 'w+'))
+            relationAnalysisLazyClassSmellCSVout.writerow(('CommitID', 'File Name','Class Name' ,'Number of Methods','Number of Attributes','DIT','isLazyClass', 'Index of File In Folder','Index of Bug Fixed Commit In File', "Number of Files In Folder", "Folder"))
+           
+                       
+            lazyClassSmellDict={}
+            fileIndex = 0
+            lazyClassSmellRelationAnalysisCSVoutList=[]
+    
+                #for fileName, filesInRootOfFileName in filesListWithBugFixedCommitsDict.items():  # key=fileName, value=filesInRootOfFileName
+            if filesListWithBugFixedCommitsDict:
+
+                for fileName in filesListWithBugFixedCommitsDict.keys():  # key=fileName, value=filesInRootOfFileName
+                    filesInFolder=filesListWithBugFixedCommitsDict[fileName]
+                    bugFixedCommitFileDir=  os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+self.projectName.lower()+"/"+ fileName.split("@")[0] +"/"+fileName
+                    bugFixedCommitIndexInItsFolder=filesInFolder.index(bugFixedCommitFileDir)
+                      
+                    for fileInTheFolder in filesInFolder:
+                            fileIndex = filesInFolder.index(fileInTheFolder)
+                        #if (bugFixedCommitIndexInItsFolder-fileIndex<=3) and (bugFixedCommitIndexInItsFolder-fileIndex>=0):
+                            lazyClassSmellDict=smell.checkForLazyClass(fileInTheFolder, self.projectName)
+                            if lazyClassSmellDict:
+                                for k, v in lazyClassSmellDict.items():
+                                        #if str(v['isPIHSmell'])=="True":
+                                    #fileIndex = filesInFolder.index(fileInTheFolder)
+                                    rootName = fileInTheFolder.split("@")[0] 
+                                    lazyClassSmellRelationAnalysisCSVoutList.append([fileName.split('@')[1], fileInTheFolder,k,str(v['classMethodCount']),str(v['classAttributesCount']),str(v['dit']),str(v['isLazyClass']), str(fileIndex),str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
+                                    
+                                
+                lazyClassSmellRelationAnalysisCSVoutList=self.checkForDuplicatesInListsofList(lazyClassSmellRelationAnalysisCSVoutList)
+                for analysis in lazyClassSmellRelationAnalysisCSVoutList:
+                    relationAnalysisLazyClassSmellCSVout.writerow(analysis)
+                print("Lazy class bad smell analysis for "+projectName +" is done!")
+        except Exception as ex:
+            print(ex)
+            print("Exception occurred in Relation.analyzeLazyClassSmell() method")                             
 
 
     def checkForRelation(self):
@@ -264,7 +304,8 @@ class Relation(object):
             #self.analyzeLargeClassSmell(filesListWithBugFixedCommitsDict, self.projectName,projectPath,smell)
             #self.analyzeLongParameterClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeMessageChainsSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
-            self.analyzeParallelInheritanceHiearchySmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
+            #self.analyzeParallelInheritanceHiearchySmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
+            self.analyzeLazyClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
                                                                       
             print("Checking for Relation between smells and defects for "+self.projectName+" is done")
         except Exception as ex:
