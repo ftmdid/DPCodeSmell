@@ -5,9 +5,8 @@ Created on May 18, 2018
 '''
 
 import os
-from os import walk
-from os.path import join
 import re
+import ast
 
 
 def getCommonData(list1, list2): 
@@ -247,53 +246,38 @@ def checkIfFileExistsInFolder(projectPath, commitID):
     return False  
 
 
-# Total there are 433 Python files, 382 files that have class and function files, 51 files that have _init__ and document or empty files           
-if __name__ == '__main__':
-    projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'DemoProjects/numpy')
-    pythonFiles =[]
-    for path, subdirs,files in walk(projectPath):
-        for name in files:
-            if name[-3:]==".py": 
-                pythonFiles.append(join(path,name)) #pythonFiles that has all the python files in numpy project
-                
+def calculateClassComplexity(x,className):
+    classComplexityList=[]
+    complexty=0
+    for each in x:
+        if each.letter=='M':
+            if each.classname==className.lstrip().rstrip():
+                complexty += each.complexity
+                classComplexityList.append([each.fullname,each.complexity])
+    return (classComplexityList,complexty)
 
 
-    dataDict = getClassVsFuncInFiles(pythonFiles) # dataDict has the classes and functions in a file with their line numbers"""
-             
-    dataToRead = getLOCOfFiles(dataDict) # dataToRead has files with classes and functions with the line they start and their LOC count. 
-                      
-           
-             
-    file1 = open("FuncvsClsInFiles.txt","w")#append mode 
-
-    for k,v in dataToRead.items():
-        file1.write('{}-->{}\n'.format(k, v))
-        file1.write("\n")
-    file1.close()   
+'''
+    Referenced from: https://stackoverflow.com/questions/35796360/how-to-validate-the-syntax-of-a-python-script
+'''
+def isValidPythonFile(fname):
+    #with open(fname, encoding='windows-1252') as f:
+    with open(fname) as f:
+    #with open(fname, encoding="utf8", errors='ignore') as f:
+        contnts = f.read()
+    try:
+        ast.parse(contnts)
+        #or compile(contents, fname, 'exec', ast.PyCF_ONLY_AST)
+        return True
+    except SyntaxError:
+        return False                
     
- 
-    classDict = {}
-    for eachFile in pythonFiles:
-        with open(eachFile) as f:
-            dataFile = f.readlines()
-            #classDict[eachFile] = [len(dataFile)]
-            lineNo = 0
-            
-            for line in dataFile:
-                line = line.lstrip().rstrip()
-                if ("class " in line.lstrip() ) and (':' in line.lstrip().split('class ')[1]): 
-                    if ("(" in line) and (")" in line):
-                        print ("1= "+eachFile)
-                        
-                        print ("2= "+line) 
-                        
-                        line=line.split("(")[1].split(")")[0]
-                        if len(line)>0 and line!=object and ('TestCase' not in line):
-                            print ("3= "+line)
-                            searchForImportStatements(eachFile, line)
-                            
-
-
+def getASTClassName(moduleReflectionObject):
+    astClasses=moduleReflectionObject.classes()
+    astClassesList=[]
+    for elem in astClasses:
+        astClassesList.append(elem.name().rpartition('.')[-1])
+    return astClassesList
 
                      
 

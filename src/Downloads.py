@@ -6,12 +6,12 @@ Created on Jun 10, 2020
 
 import os
 import git
-import FileOperations as FO
+import src.FileOperations as FO
 
 import requests
 import csv
 from ratelimit import limits, sleep_and_retry
-import GitLogs as GL
+import src.GitLogs as GL
 
 
 class Downloads(object):

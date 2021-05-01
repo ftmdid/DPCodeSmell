@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 '''
 Created on Sep 15, 2020
 
@@ -15,8 +8,10 @@ Created on Sep 15, 2020
 import os
 import BadSmell as BS
 import csv
-import helper as help
+# import helper as help
 import parallelInheritance as inheritance
+# from radon import complexity
+
 
 #import src.defectAnalysis as defectAnalysis
 
@@ -152,6 +147,8 @@ def getLazyClassInProject(badSmellDetection, validationFolder):
     for k, _ in lazyClassList.items():
         lazyClassForToolCSVfileOut.writerow([k, lazyClassList[k]['classMethodCount'], lazyClassList[k]['classAttributesCount'], lazyClassList[k]['dit'], lazyClassList[k]['isLazyClass']])
 
+
+    
 if __name__ == '__main__':
     
     #projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'DemoProjects/numpy')
@@ -181,7 +178,8 @@ if __name__ == '__main__':
      
     #getLazyClassInProject(badSmellDetection, validationFolder)
              
-
+            
+    
     print("Done with validation!")
 
 

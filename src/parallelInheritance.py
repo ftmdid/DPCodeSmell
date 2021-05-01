@@ -7,9 +7,9 @@ Created on Jun 9, 2020
 import wget
 import os
 import zipfile
-from FileOperations import FileOperations
+from src.FileOperations import FileOperations
 import shutil
-import runOperations as op
+import src.runOperations as op
 
     
 def downloadProjectInASpecificCommit(projectName, commitID):

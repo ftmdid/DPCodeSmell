@@ -11,7 +11,7 @@ import re
 import sys
 import math
 import string
-import FileOperations as FO
+import src.FileOperations as FO
 import nltk
 
 nltk.download('punkt')

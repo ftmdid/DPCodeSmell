@@ -1,14 +1,12 @@
-
-
 '''
 Created on Oct 10, 2020
 
 @author: neda
 '''
 #import Downloads as download
-#import src.Analysis as analysis
+import src.Analysis as analysis
 
-import Relation as relation
+import src.Relation as relation
 
 
   
@@ -89,13 +87,13 @@ if __name__ == '__main__':
     print("Finished bad smell analysis on "+projectName) 
 '''
 
-    #'''
+    '''
     projectName="zulip"   
     print("Started bad smell analysis on "+projectName)
     relation3=relation.Relation(projectName)   
     relation3.checkForRelation()  
     print("Finished bad smell analysis on "+projectName) 
-    #'''
+    '''
     '''
     projectName="scikit-learn"   
     print("Started bad smell analysis on "+projectName)
@@ -117,13 +115,13 @@ if __name__ == '__main__':
     relation5.checkForRelation()
     print("Finished bad smell analysis on "+projectName) 
     '''
-    '''
+    #'''
     projectName="numpy"   
     print("Started bad smell analysis on "+projectName)
     relat=relation.Relation(projectName)  
     relat.checkForRelation()
     print("Finished bad smell analysis on "+projectName)
-    '''
+    #'''
             
     print("Done with Downloading!")
     

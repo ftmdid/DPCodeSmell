@@ -8,6 +8,11 @@ import re
 import runOperations as op
 import pythonMethods as pyMethods
 import parallelInheritance as pih
+# from radon.complexity import cc_rank, cc_visit
+from radon.complexity import cc_visit
+from cohesion.lcom import LCOM4
+from cohesion.reflection import ModuleReflection
+
 
 
 class BadSmell(object):
@@ -25,7 +30,7 @@ class BadSmell(object):
             Some part of it is referenced from: https://stackoverflow.com/questions/58142456/how-to-get-the-scope-of-a-class-in-terms-of-starting-line-and-end-line-in-python
         '''
         try:               
-                totalLine=len(source)
+                #totalLine=len(source)
                 classes = {}
                 current_class = None
                 for lineno, line in enumerate(source, start=0):
@@ -276,9 +281,62 @@ class BadSmell(object):
             return lazyClassList
         except Exception as ex:
             print(ex)
-            print("Exception occurrred in BadSmell.checkForParallelInheritanceHiearchy List in :"+fileInTheFolder)
-
-                
+            print("Exception occurrred in BadSmell.checkForLazyClass in :"+fileInTheFolder)
+    
+        
+        
+    def checkForDataClass(self,fileInTheFolder, projectName):
+        dataClassList={}
+        if not op.isValidPythonFile(fileInTheFolder):
+            print(fileInTheFolder)
+            
+            dataClassList["key"] = {'wmc':'none', 'lcom':'none', 'isDataClass':'none'}
+        else:
+            try:    
+                with open(fileInTheFolder, errors='ignore') as f:                    
+                    lines=f.readlines()
+                    classes=self.getClassLinesOfFile(lines)
+                    linsStr="".join(lines)
+                    x= cc_visit(linsStr)
+                    temp=fileInTheFolder
+                    fixturs=ModuleReflection.from_file(temp)
+                    
+                    fixtursClasses=op.getASTClassName(fixturs) #this is to eliminate the classes within comment
+                    temp=temp[:-3]
+                    temp=temp.replace("/", ".")
+                    temp= temp[1:]
+                         
+                    if classes!=None and len(classes.items())>=1:
+                         
+                        for key, _ in classes.items():  
+                            if key in fixtursClasses:
+                                if  '__init__' in fileInTheFolder:
+                                    temp=temp.replace('__init__',"")
+                                if '__main__' in fileInTheFolder:
+                                    temp=temp.replace('__main__','')
+                                className=temp+"."+key
+                                ref= fixturs.class_by_name(className)
+                                lcom= LCOM4().calculate(ref)
+                                     
+                                #classComplexityList,complexty=calculateClassComplexity(x, clss)
+                                _,complexty=op.calculateClassComplexity(x, key)
+             
+                                isDataClass=False
+                                if (lcom>1 or complexty>50):
+                                    isDataClass=True                      
+                                                            
+                                dataClassList[key] = {'wmc':complexty, 'lcom':lcom, 'isDataClass':isDataClass}
+             
+                f.close()
+                return dataClassList
+            except (TypeError or SyntaxError or TabError) as ex2:
+                pass
+                print(ex2.tostring() + "occurred, but it continues")
+            except Exception as ex:
+                print(ex)  
+                print("Exception occurrred in "+projectName+" BadSmell.checkForDataClass in :"+fileInTheFolder)
+    
+       
     def checkForMessageChain(self,fileName):
         try:
             messageChainDictForTheFile={}

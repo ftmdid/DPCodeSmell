@@ -4,12 +4,12 @@ Created on Jun 26, 2020
 @author: neda
 '''
 
-import FileOperations as FO
+import src.FileOperations as FO
 import os
 from datetime import datetime
 import csv
 import itertools
-import BadSmell as BS
+import src.BadSmell as BS
 import numpy as np
 
 class Relation(object):
@@ -301,11 +301,11 @@ class Relation(object):
                 rootName = os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+self.projectName.lower()+"/"+ each.split("@")[0]
                 filesListWithBugFixedCommitsDict[each] = self.checkFilesWithinRoot(rootName)
              
-            #self.analyzeLargeClassSmell(filesListWithBugFixedCommitsDict, self.projectName,projectPath,smell)
+            self.analyzeLargeClassSmell(filesListWithBugFixedCommitsDict, self.projectName,projectPath,smell)
             #self.analyzeLongParameterClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeMessageChainsSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeParallelInheritanceHiearchySmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
-            self.analyzeLazyClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
+            #self.analyzeLazyClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
                                                                       
             print("Checking for Relation between smells and defects for "+self.projectName+" is done")
         except Exception as ex:
