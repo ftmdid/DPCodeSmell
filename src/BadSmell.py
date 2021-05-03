@@ -6,13 +6,15 @@ Created on Mar 27, 2019
 
 import re
 import src.runOperations as op
-import src.pythonMethods as pyMethods
+# import src.pythonMethods as pyMethods
 import src.parallelInheritance as pih
 # from radon.complexity import cc_rank, cc_visit
 
 import src.dataClassSmell as dataClass
 import src.lazyClassSmell as lazyClass
 import src.longParameterListSmell as longParameterList
+import src.largeClassSmell as largeClass
+import src.messageChainSmell as messageChain
 
 
 
@@ -123,40 +125,7 @@ class BadSmell(object):
                 current_class = re.search(r'class (.+?)(?:\(|:)', each).group(1)
         return current_class
       
-    def checkForLargeClass(self,fileName):
-        try:
-            with open(fileName, "r") as f:
-                classesList={}
-                lines=f.readlines()
-                classes=self.getClassLinesOfFile(lines)
-                classLOC = 0
-                classMethodCount= 0
-                classAttr = 0
-                
-                if classes!=None and len(classes.items())>=1:
-                    
-                    for key, value in classes.items():  
-                        if 'start' and 'end' in value:  
-                            classLines=lines[int(value['start']):int(value['end'])]
-                            if len(classLines)>0:
-                                classLinesStr="\n".join(classLines)
-                                classLOC=op.loc(classLinesStr)['net']
-                                #classLOC=int(value['end'])-int(value['start'])
-                                classMethodCount=self.checkClassMethods(classLines)
-                                classAttr=self.getClassAttribututes(classLinesStr)
-                                isLargeClass=False
-                                if (classLOC>=200) or (classAttr+classMethodCount>40):
-                                    isLargeClass=True
-                                classesList[key]={'classLOC':classLOC,'classMethodCount':classMethodCount,'classAttributesCount':classAttr,'isLargeClass':isLargeClass }
-                return classesList
-                
-            f.close()
-        except Exception as ex:
-            print(ex)
-            print("Exception occurred in BadSmell.checkForLargeClass in "+fileName)
-    
     def getFunctionDefinition(self,methodLines):
-
         methodDef=""
         for i in range(len(methodLines)):
             if methodLines[i]:
@@ -168,12 +137,12 @@ class BadSmell(object):
                     methodDef +=methodLines[i]
                            
         return methodDef
-          
-    '''
+               
+    def getFunctionParametersCount(self,methodLines):
+        '''
             This method is method level smell and we check if number of parameters is greater 
             than or equal to 5, that is a sign of long parameter list smell. 
-    '''        
-    def getFunctionParametersCount(self,methodLines):
+        ''' 
         if not (")" and ":" in methodLines[0]):
             methodDef= self.getFunctionDefinition(methodLines)
         else:
@@ -192,6 +161,14 @@ class BadSmell(object):
                 funcAttrCount = 1
         return funcAttrCount
     
+    def checkForLargeClass(self,fileName):
+        try:
+            largeClassList= largeClass.calculateLargeClassSmell(fileName)
+            return largeClassList
+        except Exception as ex:
+            print(ex)
+            print("Exception occurred in BadSmell.checkForLargeClass in "+fileName)
+  
     def checkForLongParameterList(self,fileName):
         try:
             longParameterList=longParameterList.calculateLongParameterListSmell(fileName)
@@ -199,33 +176,7 @@ class BadSmell(object):
         except Exception as ex:
             print(ex)
             print("Exception occurrred in BadSmell.checkLongParameter List in :"+fileName)
-        # try:
-        #     with open(fileName, "r") as fileToBeRead:
-        #         lines= fileToBeRead.readlines()
-        #         methodsParameterList={}
-        #         methodParameterCount=0
-        #         methodsLines=self.getMethodsLinesOfFile(fileName)
-        #         if methodsLines!=None and len(methodsLines.items())>=1:
-        #             for key in methodsLines:  
-        #                 value=methodsLines[key]
-        #                 if 'start' and 'end' in value:  
-        #                     if value['end']>value['start']:
-        #                         methodLines=lines[int(value['start']):int(value['end'])]
-        #                     if value['end']==value['start']:
-        #                         methodLines=lines[int(value['start']):int(value['start'])+1]
-        #                     methodLOC=op.get_line_count("".join(methodLines))
-        #                     methodParameterCount=self.getFunctionParametersCount(methodLines)
-        #                     isLongParameterList=False
-        #                     if methodParameterCount>=5:
-        #                         isLongParameterList=True
-        #                     methodsParameterList[key]={'methodLoc':methodLOC,'methodParameterCount':methodParameterCount,'isLongParameterList':isLongParameterList}
-        #         return methodsParameterList
-        #     fileToBeRead.close()
-        # except Exception as ex:
-        #     print(ex)
-        #     print("Exception occurrred in BadSmell.checkLongParameter List in :"+fileName)
-        #
-
+       
     def checkForParallelInheritanceHiearchy(self,fileInTheFolder, projectName):
         commitID=op.find_between(fileInTheFolder, "@", "@")
         pythonFile=pih.downloadProjectInASpecificCommit(projectName, commitID)
@@ -269,36 +220,9 @@ class BadSmell(object):
     
     def checkForMessageChain(self,fileName):
         try:
-            messageChainDictForTheFile={}
-            with open(fileName, "r") as fileToBeRead:
-                lines= fileToBeRead.readlines()
-                for line in lines: 
-                    if ")." in line or (") ." in line):
-                        messageChain=self.checkForChain(line,0)
-                        isMessageChain=False
-                        if messageChain>=4:
-                            isMessageChain=True
-                        messageChainDictForTheFile[line.lstrip().rstrip()]={'messageChainCount':messageChain,'isMessageChain':isMessageChain}
-            return messageChainDictForTheFile
+            messageChainList=messageChain.calculateMessageChainSmell(fileName)
+            return messageChainList
         except Exception as ex:
             print(ex)
-            print("Exception occurred in checkForMessageChain of "+fileName)
-
-    def checkForChain(self,textToBeChecked, messageCount):
-        
-        pythonMethods=pyMethods.builtInFunctions+pyMethods.dictionaryMethods+pyMethods.fileMethods+pyMethods.listArrayMethods+pyMethods.setMethods+pyMethods.stringMethods+pyMethods.tupleMethods
-        if ")." in textToBeChecked:
-            patternIndex=textToBeChecked.find(").")
-            restOfStr=textToBeChecked[patternIndex+2:]
-            methodStartIndex=restOfStr.find("(")
-            methodName=restOfStr[:methodStartIndex]
-            if len(methodName)>0:
-                if (methodName+"()" in pythonMethods):
-                    return messageCount
-                else:
-                    return self.checkForChain(restOfStr,messageCount+1)
-            else:
-                return messageCount
-            messageCount=len(methodName)
-        else:
-            return messageCount
+            print("Exception occurrred in BadSmell.checkForMessageChain in :"+fileName)
+    
