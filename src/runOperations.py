@@ -4,9 +4,9 @@ Created on May 18, 2018
 @author: neda
 '''
 
-import os
+
 import re
-import ast
+
 
 
 def getCommonData(list1, list2): 
@@ -21,8 +21,7 @@ def getCommonData(list1, list2):
 def getDifference(list1, list2): 
     """ Returns the differences between two lists"""
     return (list(set(list1) - set(list2)))
-
-    
+   
 def listToString(s):  
     """Returns string and accepts list. It converts list to string """
     str1 = ""  # initialize an empty string 
@@ -85,8 +84,6 @@ def findWords(text):
     count = len(set(wordsList))
     return count
         
-
-
 def getClassMethodAndAttrCount(lines):
     """Returns the methods of a class and class attributes that starts with 'self.' """
     clsMethodCount = 0
@@ -95,7 +92,6 @@ def getClassMethodAndAttrCount(lines):
         clsMethodCount = lines.count("def ")
         clsAttrCount = findWords(lines)
     return clsMethodCount, clsAttrCount
-
 
 def getFuncAttrCount(v, i, lines):
     """ Returns the function attributes"""
@@ -107,7 +103,6 @@ def getFuncAttrCount(v, i, lines):
         else:
             funcAttrCount = 1
     return funcAttrCount
-
 
 def getClsFncInfo(dataFile, v, i):
     ''' Returns the class method and attribute count, loc count of a file/class, and function attribute count'''
@@ -123,7 +118,6 @@ def getClsFncInfo(dataFile, v, i):
     locCount = loc(lines)['net']
     
     return locCount, clsMethodCount, clsAttrCount, funcAttrCount
-
 
 def appendFileInfoToDict(dataToRead, k, v, i, locCount, clsMethodCount, clsAttrCount, funcAttrCount):
     ''' Appends the file name, the classes and functions in the file with their line name and the class method and 
@@ -158,7 +152,6 @@ def getLOCOfFiles(dataDict):
                         appendFileInfoToDict(dataToRead, k, v, i, locCount, clsMethodCount, clsAttrCount, funcAttrCount)
     return dataToRead
         
-
 def getClassVsFuncInFiles(pythonFiles):
     """ Returns the classes and functions in a file with their line numbers"""
     dataDict = {}
@@ -177,29 +170,8 @@ def getClassVsFuncInFiles(pythonFiles):
                         dataDict[eachFile].append([line.lstrip(), lineNo]) #lstrip() remove spaces from the beginning
      
                 lineNo += 1
-        
         f.close()
-    
     return dataDict
-
-def searchForImportStatements(fileName, keyword):
-    with open(fileName) as f:
-            dataFile = f.readlines() 
-            for line in dataFile:
-                line = line.lstrip()
-                if line.startswith('import') or line.startswith('from'):
-                    if keyword in line:
-                        
-                        if line.startswith('from'):
-                            importStat=line.split('import')[0].split('from')[1].strip()
-                            #folderNames = importStat.split('.')
-                            print ("4= "+line)
-                        if line.startswith('import'):
-                            #line=line.split('import')
-                            importStat=" ".join(line.split()[1:-1])
-                            #print (importStat)
-                            print ("5= "+importStat) 
-
 
 def checkForEmptyLines(lineStr):
     line = lineStr.replace('\r\n', '').strip()
@@ -219,7 +191,6 @@ def checkForEmptyLines(lineStr):
     else:
         return True
     
-
 def removeCommentsFromString(sourceCode):
     sourceCode = strip_blanklines(sourceCode)
     nondoctring = strip_docstring(sourceCode)
@@ -227,10 +198,10 @@ def removeCommentsFromString(sourceCode):
     sourceCode=noncomment.split('\n')
     return sourceCode
 
-'''
-    Referenced from: https://stackoverflow.com/questions/3368969/find-string-between-two-substrings
-'''
 def find_between( s, first, last ):
+    '''
+    Referenced from: https://stackoverflow.com/questions/3368969/find-string-between-two-substrings
+    '''
     try:
         start = s.index( first ) + len( first )
         end = s.index( last, start )
@@ -238,46 +209,13 @@ def find_between( s, first, last ):
     except ValueError:
         return ""
 
-def checkIfFileExistsInFolder(projectPath, commitID):
-    for name in os.listdir(projectPath):
-        if commitID in name:
-            return name
-                       
-    return False  
 
 
-def calculateClassComplexity(x,className):
-    classComplexityList=[]
-    complexty=0
-    for each in x:
-        if each.letter=='M':
-            if each.classname==className.lstrip().rstrip():
-                complexty += each.complexity
-                classComplexityList.append([each.fullname,each.complexity])
-    return (classComplexityList,complexty)
 
 
-'''
-    Referenced from: https://stackoverflow.com/questions/35796360/how-to-validate-the-syntax-of-a-python-script
-'''
-def isValidPythonFile(fname):
-    #with open(fname, encoding='windows-1252') as f:
-    with open(fname) as f:
-    #with open(fname, encoding="utf8", errors='ignore') as f:
-        contnts = f.read()
-    try:
-        ast.parse(contnts)
-        #or compile(contents, fname, 'exec', ast.PyCF_ONLY_AST)
-        return True
-    except SyntaxError:
-        return False                
-    
-def getASTClassName(moduleReflectionObject):
-    astClasses=moduleReflectionObject.classes()
-    astClassesList=[]
-    for elem in astClasses:
-        astClassesList.append(elem.name().rpartition('.')[-1])
-    return astClassesList
+
+
+
 
                      
 

@@ -9,15 +9,20 @@ import os
 import zipfile
 from src.FileOperations import FileOperations
 import shutil
-import src.runOperations as op
+# import src.runOperations as op
 
-    
+def checkIfFileExistsInFolder(projectPath, commitID):
+    for name in os.listdir(projectPath):
+        if commitID in name:
+            return name               
+    return False  
+  
 def downloadProjectInASpecificCommit(projectName, commitID):
     try:
         fileOp=FileOperations(projectName)
         outputDirectory = os.path.dirname(os.path.dirname(__file__)) + '/util/Zip'
         projectFolder = os.path.join(outputDirectory, projectName)
-        isFileExists=op.checkIfFileExistsInFolder(projectFolder, commitID)
+        isFileExists=checkIfFileExistsInFolder(projectFolder, commitID)
         if isFileExists!=False:
             pythonFile=isFileExists 
             print("project file exists, there is no need to download the "+projectName+" project with version id: "+ commitID)

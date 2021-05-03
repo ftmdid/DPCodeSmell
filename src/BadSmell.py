@@ -5,13 +5,14 @@ Created on Mar 27, 2019
 '''
 
 import re
-import runOperations as op
-import pythonMethods as pyMethods
-import parallelInheritance as pih
+import src.runOperations as op
+import src.pythonMethods as pyMethods
+import src.parallelInheritance as pih
 # from radon.complexity import cc_rank, cc_visit
-from radon.complexity import cc_visit
-from cohesion.lcom import LCOM4
-from cohesion.reflection import ModuleReflection
+
+import src.dataClassSmell as dataClass
+import src.lazyClassSmell as lazyClass
+import src.longParameterListSmell as longParameterList
 
 
 
@@ -51,8 +52,6 @@ class BadSmell(object):
                             if not ' ' in className:
                                 current_class=className.lstrip().rstrip()
                                 classes[current_class] = {'start': lineno}
-                        
-                    
                 if current_class:
                     #classes[current_class]['end'] = totalLine
                     classes[current_class]['end'] = -1
@@ -195,31 +194,38 @@ class BadSmell(object):
     
     def checkForLongParameterList(self,fileName):
         try:
-            with open(fileName, "r") as fileToBeRead:
-                lines= fileToBeRead.readlines()
-                methodsParameterList={}
-                methodParameterCount=0
-                methodsLines=self.getMethodsLinesOfFile(fileName)
-                if methodsLines!=None and len(methodsLines.items())>=1:
-                    for key in methodsLines:  
-                        value=methodsLines[key]
-                        if 'start' and 'end' in value:  
-                            if value['end']>value['start']:
-                                methodLines=lines[int(value['start']):int(value['end'])]
-                            if value['end']==value['start']:
-                                methodLines=lines[int(value['start']):int(value['start'])+1]
-                            methodLOC=op.get_line_count("".join(methodLines))
-                            methodParameterCount=self.getFunctionParametersCount(methodLines)
-                            isLongParameterList=False
-                            if methodParameterCount>=5:
-                                isLongParameterList=True
-                            methodsParameterList[key]={'methodLoc':methodLOC,'methodParameterCount':methodParameterCount,'isLongParameterList':isLongParameterList}
-                return methodsParameterList
-            fileToBeRead.close()
+            longParameterList=longParameterList.calculateLongParameterListSmell(fileName)
+            return longParameterList
         except Exception as ex:
             print(ex)
             print("Exception occurrred in BadSmell.checkLongParameter List in :"+fileName)
-    
+        # try:
+        #     with open(fileName, "r") as fileToBeRead:
+        #         lines= fileToBeRead.readlines()
+        #         methodsParameterList={}
+        #         methodParameterCount=0
+        #         methodsLines=self.getMethodsLinesOfFile(fileName)
+        #         if methodsLines!=None and len(methodsLines.items())>=1:
+        #             for key in methodsLines:  
+        #                 value=methodsLines[key]
+        #                 if 'start' and 'end' in value:  
+        #                     if value['end']>value['start']:
+        #                         methodLines=lines[int(value['start']):int(value['end'])]
+        #                     if value['end']==value['start']:
+        #                         methodLines=lines[int(value['start']):int(value['start'])+1]
+        #                     methodLOC=op.get_line_count("".join(methodLines))
+        #                     methodParameterCount=self.getFunctionParametersCount(methodLines)
+        #                     isLongParameterList=False
+        #                     if methodParameterCount>=5:
+        #                         isLongParameterList=True
+        #                     methodsParameterList[key]={'methodLoc':methodLOC,'methodParameterCount':methodParameterCount,'isLongParameterList':isLongParameterList}
+        #         return methodsParameterList
+        #     fileToBeRead.close()
+        # except Exception as ex:
+        #     print(ex)
+        #     print("Exception occurrred in BadSmell.checkLongParameter List in :"+fileName)
+        #
+
     def checkForParallelInheritanceHiearchy(self,fileInTheFolder, projectName):
         commitID=op.find_between(fileInTheFolder, "@", "@")
         pythonFile=pih.downloadProjectInASpecificCommit(projectName, commitID)
@@ -241,102 +247,26 @@ class BadSmell(object):
                 fileToRead.close()
             return parallelInheritanceHiearchyList
         
-    
         except Exception as ex:
             print(ex)
             print("Exception occurrred in BadSmell.checkForParallelInheritanceHiearchy List in :"+fileInTheFolder)
             
     def checkForLazyClass(self,fileInTheFolder, projectName):
-        commitID=op.find_between(fileInTheFolder, "@", "@")
-        pythonFile=pih.downloadProjectInASpecificCommit(projectName, commitID)
-        pihSmellListDict=pih.calculateParallelInheritanceHiearchySmell(pythonFile)
-        lazyClassList={}
         try:
-            with open(fileInTheFolder, "r") as f:
-                    lines=f.readlines()
-                    classes=self.getClassLinesOfFile(lines)
-                    classMethodCount= 0
-                    classAttr = 0
-                    dit=0
-                    if classes!=None and len(classes.items())>=1:
-                        for key, value in classes.items():  
-                            if 'start' and 'end' in value:  
-                                classLines=lines[int(value['start']):int(value['end'])]
-                                if len(classLines)>0:
-                                    classLinesStr="\n".join(classLines)
-                                    classMethodCount=self.checkClassMethods(classLines)
-                                    classAttr=self.getClassAttribututes(classLinesStr)
-                                    if key.lstrip().rstrip() in pihSmellListDict.keys():
-                                        dit = pihSmellListDict[key]['dit']
-                                    else:
-                                        dit = "none"
-                                    isLazyClass = False
-                                    #print("classMethodCount=" + str(classMethodCount) + " classAttributesCount=" + str(classAttr) + " dit=" + str(dit) + " isLazyClass=" + str(isLazyClass))
-                                    if dit != "none":
-                                        if (classMethodCount < 5 and classAttr < 5) or dit < 2:
-                                            isLazyClass = True
-                                        lazyClassList[key] = {'classMethodCount':classMethodCount, 'classAttributesCount':classAttr, 'dit':dit, 'isLazyClass':isLazyClass}
-    
-            f.close()
+            lazyClassList=lazyClass.calculateLazyClassSmell(fileInTheFolder, projectName) 
             return lazyClassList
         except Exception as ex:
             print(ex)
-            print("Exception occurrred in BadSmell.checkForLazyClass in :"+fileInTheFolder)
-    
-        
+            print("Exception occurrred in BadSmell.checkForLazyClass List in :"+fileInTheFolder)        
         
     def checkForDataClass(self,fileInTheFolder, projectName):
-        dataClassList={}
-        if not op.isValidPythonFile(fileInTheFolder):
-            print(fileInTheFolder)
-            
-            dataClassList["key"] = {'wmc':'none', 'lcom':'none', 'isDataClass':'none'}
-        else:
-            try:    
-                with open(fileInTheFolder, errors='ignore') as f:                    
-                    lines=f.readlines()
-                    classes=self.getClassLinesOfFile(lines)
-                    linsStr="".join(lines)
-                    x= cc_visit(linsStr)
-                    temp=fileInTheFolder
-                    fixturs=ModuleReflection.from_file(temp)
-                    
-                    fixtursClasses=op.getASTClassName(fixturs) #this is to eliminate the classes within comment
-                    temp=temp[:-3]
-                    temp=temp.replace("/", ".")
-                    temp= temp[1:]
-                         
-                    if classes!=None and len(classes.items())>=1:
-                         
-                        for key, _ in classes.items():  
-                            if key in fixtursClasses:
-                                if  '__init__' in fileInTheFolder:
-                                    temp=temp.replace('__init__',"")
-                                if '__main__' in fileInTheFolder:
-                                    temp=temp.replace('__main__','')
-                                className=temp+"."+key
-                                ref= fixturs.class_by_name(className)
-                                lcom= LCOM4().calculate(ref)
-                                     
-                                #classComplexityList,complexty=calculateClassComplexity(x, clss)
-                                _,complexty=op.calculateClassComplexity(x, key)
-             
-                                isDataClass=False
-                                if (lcom>1 or complexty>50):
-                                    isDataClass=True                      
-                                                            
-                                dataClassList[key] = {'wmc':complexty, 'lcom':lcom, 'isDataClass':isDataClass}
-             
-                f.close()
-                return dataClassList
-            except (TypeError or SyntaxError or TabError) as ex2:
-                pass
-                print(ex2.tostring() + "occurred, but it continues")
-            except Exception as ex:
-                print(ex)  
-                print("Exception occurrred in "+projectName+" BadSmell.checkForDataClass in :"+fileInTheFolder)
+        try:
+            dataClassList=dataClass.calculateDataClassSmell(fileInTheFolder, projectName)
+            return dataClassList
+        except Exception as ex:
+            print(ex)
+            print("Exception occurrred in BadSmell.checkForDataClass in :"+fileInTheFolder)
     
-       
     def checkForMessageChain(self,fileName):
         try:
             messageChainDictForTheFile={}
