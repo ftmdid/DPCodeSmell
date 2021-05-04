@@ -23,15 +23,14 @@ class Analysis(object):
         self.fileOp=FO.FileOperations(self.projectName)
         self.similiarityAnalysis=SC.SemanticAnalysis(self.projectName)
         
-    
-    """
+    def makeSyntacticSubjectAnalysis(self, subject):
+        """
         The syntactic confidence level is always an integer number between 0 and 2. 
         We initially assign a syntactic confidence syn of zero and raise the confidence
         by one for each of the following conditions that is met:
             1. The number is a bug number
             2. The log message contains a keyword or the log message contains only plain or bug numbers 
-    """    
-    def makeSyntacticSubjectAnalysis(self, subject):
+        """  
         confidenceLevel = 0
         if self.isBugNumber(subject):
             confidenceLevel +=1

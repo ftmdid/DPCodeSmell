@@ -168,6 +168,14 @@ class BadSmell(object):
         except Exception as ex:
             print(ex)
             print("Exception occurred in BadSmell.checkForLargeClass in "+fileName)
+            
+    def checkForMessageChain(self,fileName):
+        try:
+            messageChainList=messageChain.calculateMessageChainSmell(fileName)
+            return messageChainList
+        except Exception as ex:
+            print(ex)
+            print("Exception occurrred in BadSmell.checkForMessageChain in :"+fileName)
   
     def checkForLongParameterList(self,fileName):
         try:
@@ -218,11 +226,5 @@ class BadSmell(object):
             print(ex)
             print("Exception occurrred in BadSmell.checkForDataClass in :"+fileInTheFolder)
     
-    def checkForMessageChain(self,fileName):
-        try:
-            messageChainList=messageChain.calculateMessageChainSmell(fileName)
-            return messageChainList
-        except Exception as ex:
-            print(ex)
-            print("Exception occurrred in BadSmell.checkForMessageChain in :"+fileName)
+
     

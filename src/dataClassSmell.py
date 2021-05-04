@@ -32,7 +32,7 @@ def calculateDataClassSmell(fileInTheFolder, projectName):
     dataClassList={}
     smell = smll.BadSmell()
     try: 
-        with open(fileInTheFolder, errors='ignore') as f: 
+        with open(fileInTheFolder, encoding="utf-8", errors='ignore') as f:  #for numpy
             lines = f.readlines()
             classes = smell.getClassLinesOfFile(lines)
             linsStr = "".join(lines)

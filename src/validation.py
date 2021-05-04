@@ -6,10 +6,10 @@ Created on Sep 15, 2020
 
 
 import os
-import BadSmell as BS
+import src.BadSmell as BS
 import csv
 # import helper as help
-import parallelInheritance as inheritance
+import src.parallelInheritance as inheritance
 # from radon import complexity
 
 
@@ -36,7 +36,6 @@ def getClassFilesInProject(pythonFiles, validationFolder):
             for k, _ in classes.items():
                 classListForToolCSVfileOut.writerow([k, classes[k]['start'], each])
     
-
 def getLargeClassInfoInProject(pythonFiles, badSmellDetection, validationFolder):
     
     largeClassValidationForTool = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation/ToolValidation/LargeClassValidationForTool.csv'
@@ -102,7 +101,6 @@ def getRequestedItemFiles(fileName, requestedItem):
             print(ex)
             print("Exception occurred in getRequestedItemFiles method")
                 
-
 def getParallelInheritanceHierarchySmellInProject(validationFolder, os):
     parallelInheritanceHiearchyValidationForTool = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation/ToolValidation/parallelInheritanceHiearchyValidationForTool.csv'
     parallelInheritanceHiearchyForToolCSVfileOut = csv.writer(open(os.path.join(validationFolder, parallelInheritanceHiearchyValidationForTool), 'w+'))
@@ -179,6 +177,9 @@ if __name__ == '__main__':
     #getLazyClassInProject(badSmellDetection, validationFolder)
              
             
+    
+    
+    
     
     print("Done with validation!")
 

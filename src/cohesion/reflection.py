@@ -20,7 +20,8 @@ class ModuleReflection(Reflection):
     @classmethod
     def from_file(cls, file):
         file = file.replace('/', os.path.sep).replace('\\', os.path.sep)
-        with open(file, 'r') as handle:
+        #with open(file, 'r') as handle:
+        with open(file, encoding="utf-8", errors='ignore') as handle: #for numpy
             content = handle.read()
 
         name = file.rsplit('.', 1)[0]
