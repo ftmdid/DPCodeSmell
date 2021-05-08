@@ -1,0 +1,1071 @@
+
+
+import markdown
+import logging
+import traceback
+import urllib.parse
+import re
+import os.path
+import glob
+import twitter
+import platform
+import time
+import html.parser
+import httplib2
+import itertools
+import urllib.request, urllib.parse, urllib.error
+
+import hashlib
+
+from collections import defaultdict
+import hmac
+
+from django.core import mail
+from django.conf import settings
+
+from zerver.lib.avatar  import gravatar_hash
+from zerver.lib.bugdown import codehilite, fenced_code
+from zerver.lib.bugdown.fenced_code import FENCE_RE
+from zerver.lib.timeout import timeout, TimeoutExpired
+from zerver.lib.cache import cache_with_key, cache_get_many, cache_set_many
+import zerver.lib.alert_words as alert_words
+import zerver.lib.mention as mention
+
+
+if settings.USING_EMBEDLY:
+    from embedly import Embedly
+    embedly_client = Embedly(settings.EMBEDLY_KEY, timeout=2.5)
+
+# Format version of the bugdown rendering; stored along with rendered
+# messages so that we can efficiently determine what needs to be re-rendered
+version = 1
+
+def list_of_tlds():
+    # HACK we manually blacklist .py
+    blacklist = ['PY\n', ]
+
+    # tlds-alpha-by-domain.txt comes from http://data.iana.org/TLD/tlds-alpha-by-domain.txt
+    tlds_file = os.path.join(os.path.dirname(__file__), 'tlds-alpha-by-domain.txt')
+    tlds = [tld.lower().strip() for tld in open(tlds_file, 'r')
+                if not tld in blacklist and not tld[0].startswith('#')]
+    tlds.sort(key=len, reverse=True)
+    return tlds
+
+def walk_tree(root, processor, stop_after_first=False):
+    results = []
+    stack = [root]
+
+    while stack:
+        currElement = stack.pop()
+        for child in currElement.getchildren():
+            if child.getchildren():
+                stack.append(child)
+
+            result = processor(child)
+            if result is not None:
+                results.append(result)
+                if stop_after_first:
+                    return results
+
+    return results
+
+def add_a(root, url, link, height=None):
+    div = markdown.util.etree.SubElement(root, "div")
+    div.set("class", "message_inline_image");
+    a = markdown.util.etree.SubElement(div, "a")
+    a.set("href", link)
+    a.set("target", "_blank")
+    a.set("title", url_filename(link))
+    img = markdown.util.etree.SubElement(a, "img")
+    img.set("src", url)
+
+def hash_embedly_url(link):
+    return 'embedly:' + hashlib.sha1(link).hexdigest()
+
+@cache_with_key(lambda tweet_id: tweet_id, cache_name="database", with_statsd_key="tweet_data")
+def fetch_tweet_data(tweet_id):
+    if settings.TEST_SUITE:
+        from . import testing_mocks
+        res = testing_mocks.twitter(tweet_id)
+    else:
+        if settings.TWITTER_CONSUMER_KEY == '' or \
+           settings.TWITTER_CONSUMER_SECRET == '' or \
+           settings.TWITTER_ACCESS_TOKEN_KEY == '' or \
+           settings.TWITTER_ACCESS_TOKEN_SECRET == '':
+           return None
+
+        api = twitter.Api(consumer_key = settings.TWITTER_CONSUMER_KEY,
+                          consumer_secret = settings.TWITTER_CONSUMER_SECRET,
+                          access_token_key = settings.TWITTER_ACCESS_TOKEN_KEY,
+                          access_token_secret = settings.TWITTER_ACCESS_TOKEN_SECRET)
+
+        try:
+            # Sometimes Twitter hangs on responses.  Timing out here
+            # will cause the Tweet to go through as-is with no inline
+            # preview, rather than having the message be rejected
+            # entirely. This timeout needs to be less than our overall
+            # formatting timeout.
+            tweet = timeout(3, api.GetStatus, tweet_id)
+            res = tweet.AsDict()
+            res['media'] = tweet.media  # AsDict does not include media
+        except TimeoutExpired as e:
+            # We'd like to try again later and not cache the bad result,
+            # so we need to re-raise the exception (just as though
+            # we were being rate-limited)
+            raise
+        except twitter.TwitterError as e:
+            t = e.args[0]
+            if len(t) == 1 and ('code' in t[0]) and (t[0]['code'] == 34):
+                # Code 34 means that the message doesn't exist; return
+                # None so that we will cache the error
+                return None
+            elif len(t) == 1 and ('code' in t[0]) and (t[0]['code'] == 88 or
+                                                       t[0]['code'] == 130):
+                # Code 88 means that we were rate-limited and 130
+                # means Twitter is having capacity issues; either way
+                # just raise the error so we don't cache None and will
+                # try again later.
+                raise
+            else:
+                # It's not clear what to do in cases of other errors,
+                # but for now it seems reasonable to log at error
+                # level (so that we get notified), but then cache the
+                # failure to proceed with our usual work
+                logging.error(traceback.format_exc())
+                return None
+    return res
+
+def get_tweet_id(url):
+    parsed_url = urllib.parse.urlparse(url)
+    if not (parsed_url.netloc == 'twitter.com' or parsed_url.netloc.endswith('.twitter.com')):
+        return False
+    to_match = parsed_url.path
+    # In old-style twitter.com/#!/wdaher/status/1231241234-style URLs, we need to look at the fragment instead
+    if parsed_url.path == '/' and len(parsed_url.fragment) > 5:
+        to_match= parsed_url.fragment
+
+    tweet_id_match = re.match(r'^!?/.*?/status(es)?/(?P<tweetid>\d{10,18})(/photo/[0-9])?/?$', to_match)
+    if not tweet_id_match:
+        return False
+    return tweet_id_match.group("tweetid")
+
+class InlineHttpsProcessor(markdown.treeprocessors.Treeprocessor):
+    def run(self, root):
+        # Get all URLs from the blob
+        found_imgs = walk_tree(root, lambda e: e if e.tag == "img" else None)
+        for img in found_imgs:
+            url = img.get("src")
+            if not url.startswith("http://"):
+                # Don't rewrite images on our own site (e.g. emoji).
+                continue
+            digest = hmac.new(settings.CAMO_KEY, url, hashlib.sha1).hexdigest()
+            encoded_url = url.encode("hex")
+            img.set("src", "%s%s/%s" % (settings.CAMO_URI, digest, encoded_url))
+
+class InlineInterestingLinkProcessor(markdown.treeprocessors.Treeprocessor):
+    TWITTER_MAX_IMAGE_HEIGHT = 400
+    TWITTER_MAX_TO_PREVIEW = 3
+
+
+    def is_image(self, url):
+        if not settings.INLINE_IMAGE_PREVIEW:
+            return False
+        parsed_url = urllib.parse.urlparse(url)
+        # List from http://support.google.com/chromeos/bin/answer.py?hl=en&answer=183093
+        for ext in [".bmp", ".gif", ".jpg", "jpeg", ".png", ".webp"]:
+            if parsed_url.path.lower().endswith(ext):
+                return True
+        return False
+
+    def dropbox_image(self, url):
+        if not self.is_image(url):
+            return None
+        parsed_url = urllib.parse.urlparse(url)
+        if (parsed_url.netloc == 'dropbox.com' or parsed_url.netloc.endswith('.dropbox.com')) \
+                and (parsed_url.path.startswith('/s/') or parsed_url.path.startswith('/sh/')):
+            return "%s?dl=1" % (url,)
+        return None
+
+    def youtube_image(self, url):
+        if not settings.INLINE_IMAGE_PREVIEW:
+            return None
+        # Youtube video id extraction regular expression from http://pastebin.com/KyKAFv1s
+        # If it matches, match.group(2) is the video id.
+        youtube_re = r'^((?:https?://)?(?:youtu\.be/|(?:\w+\.)?youtube(?:-nocookie)?\.com/)(?:(?:(?:v|embed)/)|(?:(?:watch(?:_popup)?(?:\.php)?)?(?:\?|#!?)(?:.+&)?v=)))?([0-9A-Za-z_-]+)(?(1).+)?$'
+        match = re.match(youtube_re, url)
+        if match is None:
+            return None
+        return "https://i.ytimg.com/vi/%s/default.jpg" % (match.group(2),)
+
+    def twitter_text(self, text, urls, user_mentions, media):
+        """
+        Use data from the twitter API to turn links, mentions and media into A
+        tags.
+
+        This works by using the urls, user_mentions and media data from the
+        twitter API.
+
+        The first step is finding the locations of the URLs, mentions and media
+        in the text. For each match we build a dictionary with the start
+        location, end location, the URL to link to, and the text to show in the
+        link.
+
+        Next we sort the matches by start location. And for each we add the
+        text from the end of the last link to the start of the current link to
+        the output. The text needs to added to the text attribute of the first
+        node (the P tag) or the tail the last link created.
+
+        Finally we add any remaining text to the last node.
+        """
+
+        to_linkify = []
+        # Build dicts for URLs
+        for short_url, full_url in list(urls.items()):
+            for match in re.finditer(re.escape(short_url), text):
+                to_linkify.append({
+                    'start': match.start(),
+                    'end': match.end(),
+                    'url': short_url,
+                    'text': full_url,
+                })
+        # Build dicts for mentions
+        for user_mention in user_mentions:
+            screen_name = user_mention['screen_name']
+            mention_string = '@' + screen_name
+            for match in re.finditer(re.escape(mention_string), text):
+                to_linkify.append({
+                    'start': match.start(),
+                    'end': match.end(),
+                    'url': 'https://twitter.com/' + urllib.parse.quote(screen_name),
+                    'text': mention_string,
+                })
+        # Build dicts for media
+        for media_item in media:
+            short_url = media_item['url']
+            expanded_url = media_item['expanded_url']
+            for match in re.finditer(re.escape(short_url), text):
+                to_linkify.append({
+                    'start': match.start(),
+                    'end': match.end(),
+                    'url': short_url,
+                    'text': expanded_url,
+                })
+
+        def set_text(text):
+            """
+            Helper to set the text or the tail of the current_node
+            """
+            if current_node == p:
+                current_node.text = text
+            else:
+                current_node.tail = text
+
+        to_linkify.sort(key=lambda x: x['start'])
+        p = current_node = markdown.util.etree.Element('p')
+        current_index = 0
+        for link in to_linkify:
+            # The text we want to link starts in already linked text skip it
+            if link['start'] < current_index:
+                continue
+            # Add text from the end of last link to the start of the current
+            # link
+            set_text(text[current_index:link['start']])
+            current_index = link['end']
+            current_node = a = url_to_a(link['url'], link['text'])
+            p.append(a)
+
+        # Add any unused text
+        set_text(text[current_index:])
+        return p
+
+    def twitter_link(self, url):
+        tweet_id = get_tweet_id(url)
+
+        if not tweet_id:
+            return None
+
+        try:
+            res = fetch_tweet_data(tweet_id)
+            if res is None:
+                return None
+            user = res['user']
+            tweet = markdown.util.etree.Element("div")
+            tweet.set("class", "twitter-tweet")
+            img_a = markdown.util.etree.SubElement(tweet, 'a')
+            img_a.set("href", url)
+            img_a.set("target", "_blank")
+            profile_img = markdown.util.etree.SubElement(img_a, 'img')
+            profile_img.set('class', 'twitter-avatar')
+            # For some reason, for, e.g. tweet 285072525413724161,
+            # python-twitter does not give us a
+            # profile_image_url_https, but instead puts that URL in
+            # profile_image_url. So use _https if available, but fall
+            # back gracefully.
+            image_url = user.get('profile_image_url_https', user['profile_image_url'])
+            profile_img.set('src', image_url)
+
+            ## TODO: unescape is an internal function, so we should
+            ## use something else if we can find it
+            text = html.parser.HTMLParser().unescape(res['text'])
+            urls = res.get('urls', {})
+            user_mentions = res.get('user_mentions', [])
+            media = res.get('media', [])
+            p = self.twitter_text(text, urls, user_mentions, media)
+            tweet.append(p)
+
+            span = markdown.util.etree.SubElement(tweet, 'span')
+            span.text = "- %s (@%s)" % (user['name'], user['screen_name'])
+
+            # Add image previews
+            for media_item in media:
+                # Only photos have a preview image
+                if media_item['type'] != 'photo':
+                    continue
+
+                # Find the image size that is smaller than
+                # TWITTER_MAX_IMAGE_HEIGHT px tall or the smallest
+                size_name_tuples = list(media_item['sizes'].items())
+                size_name_tuples.sort(reverse=True,
+                                      key=lambda x: x[1]['h'])
+                for size_name, size in size_name_tuples:
+                    if size['h'] < self.TWITTER_MAX_IMAGE_HEIGHT:
+                        break
+
+                media_url = '%s:%s' % (media_item['media_url_https'], size_name)
+                img_div = markdown.util.etree.SubElement(tweet, 'div')
+                img_div.set('class', 'twitter-image')
+                img_a = markdown.util.etree.SubElement(img_div, 'a')
+                img_a.set('href', media_item['url'])
+                img_a.set('target', '_blank')
+                img_a.set('title', media_item['url'])
+                img = markdown.util.etree.SubElement(img_a, 'img')
+                img.set('src', media_url)
+
+            return tweet
+        except:
+            # We put this in its own try-except because it requires external
+            # connectivity. If Twitter flakes out, we don't want to not-render
+            # the entire message; we just want to not show the Twitter preview.
+            logging.warning(traceback.format_exc())
+            return None
+
+    def do_embedly(self, root, supported_urls):
+        # embed.ly support is disabled until it can be
+        # properly debugged.
+        #
+        # We're not deleting the code for now, since we expect to
+        # restore it and want to be able to update it along with
+        # future refactorings rather than keeping it as a separate
+        # branch.
+        if not settings.USING_EMBEDLY:
+            return
+
+        # We want this to be able to easily reverse the hashing later
+        keys_to_links = dict((hash_embedly_url(link), link) for link in supported_urls)
+        cache_hits = cache_get_many(list(keys_to_links.keys()), cache_name="database")
+
+        # Construct a dict of url => oembed_data pairs
+        oembeds = dict((keys_to_links[key], cache_hits[key]) for key in cache_hits)
+
+        to_process = [url for url in supported_urls if not url in oembeds]
+        to_cache = {}
+
+        if to_process:
+            # Don't touch embed.ly if we have everything cached.
+            try:
+                responses = embedly_client.oembed(to_process, maxwidth=250)
+            except httplib2.socket.timeout:
+                # We put this in its own try-except because it requires external
+                # connectivity. If embedly flakes out, we don't want to not-render
+                # the entire message; we just want to not show the embedly preview.
+                logging.warning("Embedly Embed timeout for URLs: %s" % (" ".join(to_process)))
+                logging.warning(traceback.format_exc())
+                return root
+            except Exception:
+                # If things break for any other reason, don't make things sad.
+                logging.warning(traceback.format_exc())
+                return root
+            for oembed_data in responses:
+                # Don't cache permanent errors
+                if oembed_data["type"] == "error" and \
+                        oembed_data["error_code"] in (500, 501, 503):
+                    continue
+                # Convert to dict because otherwise pickling won't work.
+                to_cache[oembed_data["original_url"]] = dict(oembed_data)
+
+            # Cache the newly collected data to the database
+            cache_set_many(dict((hash_embedly_url(link), to_cache[link]) for link in to_cache),
+                           cache_name="database")
+            oembeds.update(to_cache)
+
+        # Now let's process the URLs in order
+        for link in supported_urls:
+            oembed_data = oembeds[link]
+
+            if oembed_data["type"] in ("link"):
+                continue
+            elif oembed_data["type"] in ("video", "rich") and "script" not in oembed_data["html"]:
+                placeholder = self.markdown.htmlStash.store(oembed_data["html"], safe=True)
+                el = markdown.util.etree.SubElement(root, "p")
+                el.text = placeholder
+            else:
+                try:
+                    add_a(root,
+                          oembed_data["thumbnail_url"],
+                          link,
+                          height=oembed_data["thumbnail_height"])
+                except KeyError:
+                    # We didn't have a thumbnail, so let's just bail and keep on going...
+                    continue
+        return root
+
+    def run(self, root):
+        # Get all URLs from the blob
+        found_urls = walk_tree(root, lambda e: e.get("href") if e.tag == "a" else None)
+
+        # If there are more than 5 URLs in the message, don't do inline previews
+        if len(found_urls) == 0 or len(found_urls) > 5:
+            return
+
+        rendered_tweet_count = 0
+        embedly_urls = []
+        for url in found_urls:
+            dropbox = self.dropbox_image(url)
+            if dropbox is not None:
+                add_a(root, dropbox, url)
+                continue
+            if self.is_image(url):
+                add_a(root, url, url)
+                continue
+            if get_tweet_id(url):
+                if rendered_tweet_count >= self.TWITTER_MAX_TO_PREVIEW:
+                    # Only render at most one tweet per message
+                    continue
+                twitter_data = self.twitter_link(url)
+                if twitter_data is None:
+                    # This link is not actually a tweet known to twitter
+                    continue
+                rendered_tweet_count += 1
+                div = markdown.util.etree.SubElement(root, "div")
+                div.set("class", "inline-preview-twitter")
+                div.insert(0, twitter_data)
+                continue
+            if settings.USING_EMBEDLY:
+                if embedly_client.is_supported(url):
+                    embedly_urls.append(url)
+                    continue
+            # NOTE: settings.USING_EMBEDLY will prevent the below from running
+            youtube = self.youtube_image(url)
+            if youtube is not None:
+                add_a(root, youtube, url)
+                continue
+
+        if settings.USING_EMBEDLY:
+            self.do_embedly(root, embedly_urls)
+
+class Avatar(markdown.inlinepatterns.Pattern):
+    def handleMatch(self, match):
+        img = markdown.util.etree.Element('img')
+        email_address = match.group('email')
+        img.set('class', 'message_body_gravatar')
+        img.set('src', '/avatar/%s?s=30' % (email_address,))
+        img.set('title', email_address)
+        img.set('alt', email_address)
+        return img
+
+if settings.ENTERPRISE:
+    path_to_emoji = os.path.join(os.path.dirname(__file__), '..', '..', '..',
+                                 'prod-static', 'serve', 'third', 'gemoji', 'images', 'emoji', '*.png')
+else:
+    path_to_emoji = os.path.join(os.path.dirname(__file__), '..', '..', '..',
+                                 # This should be the root
+                                 'static', 'third', 'gemoji', 'images', 'emoji', '*.png')
+
+emoji_list = [os.path.splitext(os.path.basename(fn))[0] for fn in glob.glob(path_to_emoji)]
+
+
+def make_emoji(emoji_name, src, display_string):
+    elt = markdown.util.etree.Element('img')
+    elt.set('src', src)
+    elt.set('class', 'emoji')
+    elt.set("alt", display_string)
+    elt.set("title", display_string)
+    return elt
+
+class Emoji(markdown.inlinepatterns.Pattern):
+    def handleMatch(self, match):
+        orig_syntax = match.group("syntax")
+        name = orig_syntax[1:-1]
+
+        realm_emoji = {}
+        if db_data is not None:
+            realm_emoji = db_data['emoji']
+
+        if current_message and name in realm_emoji:
+            return make_emoji(name, realm_emoji[name], orig_syntax)
+        elif name in emoji_list:
+            src = 'static/third/gemoji/images/emoji/%s.png' % (name)
+            return make_emoji(name, src, orig_syntax)
+        else:
+            return None
+
+class StreamSubscribeButton(markdown.inlinepatterns.Pattern):
+    # This markdown extension has required javascript in
+    # static/js/custom_markdown.js
+    def handleMatch(self, match):
+        stream_name = match.group('stream_name')
+        stream_name = stream_name.replace('\\)', ')').replace('\\\\', '\\')
+
+        span = markdown.util.etree.Element('span')
+        span.set('class', 'inline-subscribe')
+        span.set('data-stream-name', stream_name)
+
+        button = markdown.util.etree.SubElement(span, 'button')
+        button.text = 'Subscribe to ' + stream_name
+        button.set('class', 'inline-subscribe-button zulip-button')
+
+        error = markdown.util.etree.SubElement(span, 'span')
+        error.set('class', 'inline-subscribe-error')
+
+        return span
+
+class ModalLink(markdown.inlinepatterns.Pattern):
+    """
+    A pattern that allows including in-app modal links in messages.
+    """
+    def handleMatch(self, match):
+        relative_url = match.group('relative_url')
+        text = match.group('text')
+
+        a_tag = markdown.util.etree.Element("a")
+        a_tag.set("href", relative_url)
+        a_tag.set("title", relative_url)
+        a_tag.set("data-toggle", "modal")
+        a_tag.text = text
+
+        return a_tag
+
+upload_re = re.compile(r"^(?:https://%s.s3.amazonaws.com|/user_uploads/\d+)/[^/]*/([^/]*)$" % (settings.S3_BUCKET,))
+def url_filename(url):
+    """Extract the filename if a URL is an uploaded file, or return the original URL"""
+    match = upload_re.match(url)
+    if match:
+        return match.group(1)
+    else:
+        return url
+
+def fixup_link(link, target_blank=True):
+    """Set certain attributes we want on every link."""
+    if target_blank:
+        link.set('target', '_blank')
+    link.set('title',  url_filename(link.get('href')))
+
+
+def sanitize_url(url):
+    """
+    Sanitize a url against xss attacks.
+    See the docstring on markdown.inlinepatterns.LinkPattern.sanitize_url.
+    """
+    try:
+        parts = urllib.parse.urlparse(url.replace(' ', '%20'))
+        scheme, netloc, path, params, query, fragment = parts
+    except ValueError:
+        # Bad url - so bad it couldn't be parsed.
+        return ''
+
+    # If there is no scheme or netloc and there is a '@' in the path,
+    # treat it as a mailto: and set the appropriate scheme
+    if scheme == '' and netloc == '' and '@' in path:
+        scheme = 'mailto'
+    elif scheme == '' and netloc == '' and len(path) > 0 and path[0] == '/':
+        # Allow domain-relative links
+        return urllib.parse.urlunparse(('', '', path, params, query, fragment))
+    elif (scheme, netloc, path, params, query) == ('', '', '', '', '') and len(fragment) > 0:
+        # Allow fragment links
+        return urllib.parse.urlunparse(('', '', '', '', '', fragment))
+
+    # Zulip modification: If scheme is not specified, assume http://
+    # We re-enter sanitize_url because netloc etc. need to be re-parsed.
+    if not scheme:
+        return sanitize_url('http://' + url)
+
+    locless_schemes = ['mailto', 'news']
+    if netloc == '' and scheme not in locless_schemes:
+        # This fails regardless of anything else.
+        # Return immediately to save additional proccessing
+        return None
+
+    # Upstream code will accept a URL like javascript://foo because it
+    # appears to have a netloc.  Additionally there are plenty of other
+    # schemes that do weird things like launch external programs.  To be
+    # on the safe side, we whitelist the scheme.
+    if scheme not in ('http', 'https', 'ftp', 'mailto'):
+        return None
+
+    # Upstream code scans path, parameters, and query for colon characters
+    # because
+    #
+    #    some aliases [for javascript:] will appear to urlparse() to have
+    #    no scheme. On top of that relative links (i.e.: "foo/bar.html")
+    #    have no scheme.
+    #
+    # We already converted an empty scheme to http:// above, so we skip
+    # the colon check, which would also forbid a lot of legitimate URLs.
+
+    # Url passes all tests. Return url as-is.
+    return urllib.parse.urlunparse((scheme, netloc, path, params, query, fragment))
+
+def url_to_a(url, text = None):
+    a = markdown.util.etree.Element('a')
+
+    href = sanitize_url(url)
+    if href is None:
+        # Rejected by sanitize_url; render it as plain text.
+        return url
+    if text is None:
+        text = markdown.util.AtomicString(url)
+
+    a.set('href', href)
+    a.text = text
+    fixup_link(a, not 'mailto:' in href[:7])
+    return a
+
+class AutoLink(markdown.inlinepatterns.Pattern):
+    def __init__(self, pattern):
+        markdown.inlinepatterns.Pattern.__init__(self, ' ')
+
+        # HACK: we just had python-markdown compile an empty regex.
+        # Now replace with the real regex compiled with the flags we want.
+
+        self.pattern = pattern
+        self.compiled_re = re.compile("^(.*?)%s(.*?)$" % pattern,
+                                      re.DOTALL | re.UNICODE | re.VERBOSE)
+
+    def handleMatch(self, match):
+        url = match.group('url')
+        return url_to_a(url)
+
+class UListProcessor(markdown.blockprocessors.OListProcessor):
+    """ Process unordered list blocks.
+
+        Based on markdown.blockprocessors.UListProcessor, but does not accept
+        '+' or '-' as a bullet character."""
+
+    TAG = 'ul'
+    RE = re.compile(r'^[ ]{0,3}[*][ ]+(.*)')
+
+class BugdownUListPreprocessor(markdown.preprocessors.Preprocessor):
+    """ Allows unordered list blocks that come directly after a
+        paragraph to be rendered as an unordered list
+
+        Detects paragraphs that have a matching list item that comes
+        directly after a line of text, and inserts a newline between
+        to satisfy Markdown"""
+
+    LI_RE = re.compile(r'^[ ]{0,3}[*][ ]+(.*)', re.MULTILINE)
+    HANGING_ULIST_RE = re.compile(r'^.+\n([ ]{0,3}[*][ ]+.*)', re.MULTILINE)
+
+    def run(self, lines):
+        """ Insert a newline between a paragraph and ulist if missing """
+        inserts = 0
+        fence = None
+        copy = lines[:]
+        for i in range(len(lines) - 1):
+            # Ignore anything that is inside a fenced code block
+            m = FENCE_RE.match(lines[i])
+            if not fence and m:
+                fence = m.group('fence')
+            elif fence and m and fence == m.group('fence'):
+                fence = None
+
+            # If we're not in a fenced block and we detect an upcoming list
+            #  hanging off a paragraph, add a newline
+            if not fence and lines[i] and \
+                self.LI_RE.match(lines[i+1]) and not self.LI_RE.match(lines[i]):
+                copy.insert(i+inserts+1, '')
+                inserts += 1
+        return copy
+
+# Based on markdown.inlinepatterns.LinkPattern
+class LinkPattern(markdown.inlinepatterns.Pattern):
+    """ Return a link element from the given match. """
+    def handleMatch(self, m):
+        href = m.group(9)
+        if not href:
+            return None
+
+        if href[0] == "<":
+            href = href[1:-1]
+        href = sanitize_url(self.unescape(href.strip()))
+        if href is None:
+            return None
+
+        el = markdown.util.etree.Element('a')
+        el.text = m.group(2)
+        el.set('href', href)
+        fixup_link(el, target_blank = (href[:1] != '#'))
+        return el
+
+def prepare_realm_pattern(source):
+    """ Augment a realm filter so it only matches after start-of-string,
+    whitespace, or opening delimiters, won't match if there are word
+    characters directly after, and saves what was matched as "name". """
+    return r"""(?<![^\s'"\(,:<])(?P<name>""" + source + ')(?!\w)'
+
+# Given a regular expression pattern, linkifies groups that match it
+# using the provided format string to construct the URL.
+class RealmFilterPattern(markdown.inlinepatterns.Pattern):
+    """ Applied a given realm filter to the input """
+    def __init__(self, source_pattern, format_string, markdown_instance=None):
+        self.pattern = prepare_realm_pattern(source_pattern)
+        self.format_string = format_string
+        markdown.inlinepatterns.Pattern.__init__(self, self.pattern, markdown_instance)
+
+    def handleMatch(self, m):
+        return url_to_a(self.format_string % m.groupdict(),
+                        m.group("name"))
+
+class UserMentionPattern(markdown.inlinepatterns.Pattern):
+    def find_user_for_mention(self, name):
+        if db_data is None:
+            return (False, None)
+
+        if mention.user_mention_matches_wildcard(name):
+            return (True, None)
+
+        user = db_data['full_names'].get(name.lower(), None)
+        if user is None:
+            user = db_data['short_names'].get(name.lower(), None)
+
+        return (False, user)
+
+    def handleMatch(self, m):
+        name = m.group(2) or m.group(3)
+
+        if current_message:
+            wildcard, user = self.find_user_for_mention(name)
+
+            if wildcard:
+                current_message.mentions_wildcard = True
+                email = "*"
+            elif user:
+                current_message.mentions_user_ids.add(user['id'])
+                name = user['full_name']
+                email = user['email']
+            else:
+                # Don't highlight @mentions that don't refer to a valid user
+                return None
+
+            el = markdown.util.etree.Element("span")
+            el.set('class', 'user-mention')
+            el.set('data-user-email', email)
+            el.text = "@%s" % (name,)
+            return el
+
+class AlertWordsNotificationProcessor(markdown.preprocessors.Preprocessor):
+    def run(self, lines):
+        if current_message and db_data is not None:
+            # We check for a user's custom notifications here, as we want
+            # to check for plaintext words that depend on the recipient.
+            realm_words = db_data['realm_alert_words']
+            content = '\n'.join(lines).lower()
+
+            allowed_before_punctuation = "|".join([r'\s', '^', r'[\(\"]'])
+            allowed_after_punctuation = "|".join([r'\s', '$', r'[\)\"\?:.,]'])
+
+            for user_id, words in list(realm_words.items()):
+                for word in words:
+                    escaped = re.escape(word.lower())
+                    match_re = re.compile(r'(?:%s)%s(?:%s)' %
+                                            (allowed_before_punctuation,
+                                             escaped,
+                                             allowed_after_punctuation))
+                    if re.search(match_re, content):
+                        current_message.user_ids_with_alert_words.add(user_id)
+
+        return lines
+
+# This prevents realm_filters from running on the content of a
+# Markdown link, breaking up the link.  This is a monkey-patch, but it
+# might be worth sending a version of this change upstream.
+class AtomicLinkPattern(LinkPattern):
+    def handleMatch(self, m):
+        ret = LinkPattern.handleMatch(self, m)
+        if ret is None:
+            return None
+        if not isinstance(ret, str):
+            ret.text = markdown.util.AtomicString(ret.text)
+        return ret
+
+class Bugdown(markdown.Extension):
+    def extendMarkdown(self, md, md_globals):
+        del md.preprocessors['reference']
+
+        for k in ('image_link', 'image_reference', 'automail',
+                  'autolink', 'link', 'reference', 'short_reference',
+                  'escape', 'strong_em', 'emphasis', 'emphasis2',
+                  'linebreak', 'strong'):
+            del md.inlinePatterns[k]
+        try:
+            # linebreak2 was removed upstream in version 3.2.1, so
+            # don't throw an error if it is not there
+            del md.inlinePatterns['linebreak2']
+        except Exception:
+            pass
+
+        md.preprocessors.add("custom_text_notifications", AlertWordsNotificationProcessor(md), "_end")
+
+        # Custom bold syntax: **foo** but not __foo__
+        md.inlinePatterns.add('strong',
+            markdown.inlinepatterns.SimpleTagPattern(r'(\*\*)([^\n]+?)\2', 'strong'),
+            '>not_strong')
+
+        for k in ('hashheader', 'setextheader', 'olist', 'ulist'):
+            del md.parser.blockprocessors[k]
+
+        md.parser.blockprocessors.add('ulist', UListProcessor(md.parser), '>hr')
+
+        # Note that !gravatar syntax should be deprecated long term.
+        md.inlinePatterns.add('avatar', Avatar(r'!avatar\((?P<email>[^)]*)\)'), '_begin')
+        md.inlinePatterns.add('gravatar', Avatar(r'!gravatar\((?P<email>[^)]*)\)'), '_begin')
+
+        md.inlinePatterns.add('stream_subscribe_button', StreamSubscribeButton(r'!_stream_subscribe_button\((?P<stream_name>(?:[^)\\]|\\\)|\\)*)\)'), '_begin')
+        md.inlinePatterns.add(
+            'modal_link',
+            ModalLink(r'!modal_link\((?P<relative_url>[^)]*), (?P<text>[^)]*)\)'),
+            '_begin')
+        md.inlinePatterns.add('usermention', UserMentionPattern(mention.find_mentions), '>backtick')
+        md.inlinePatterns.add('emoji', Emoji(r'(?<!\w)(?P<syntax>:[^:\s]+:)(?!\w)'), '_end')
+        md.inlinePatterns.add('link', AtomicLinkPattern(markdown.inlinepatterns.LINK_RE, md), '>backtick')
+
+        for (pattern, format_string) in self.getConfig("realm_filters"):
+            md.inlinePatterns.add('realm_filters/%s' % (pattern,),
+                                  RealmFilterPattern(pattern, format_string), '>link')
+
+        # A link starts at a word boundary, and ends at space, punctuation, or end-of-input.
+        #
+        # We detect a url either by the `https?://` or by building around the TLD.
+
+        # In lieu of having a recursive regex (which python doesn't support) to match
+        # arbitrary numbers of nested matching parenthesis, we manually build a regexp that
+        # can match up to six
+        # The inner_paren_contents chunk matches the innermore non-parenthesis-holding text,
+        # and the paren_group matches text with, optionally, a matching set of parens
+        inner_paren_contents = r"[^\s()\"]*"
+        paren_group = r"""
+                        [^\s()\"]*?            # Containing characters that won't end the URL
+                        (?: \( %s \)           # and more characters in matched parens
+                            [^\s()\"]*?        # followed by more characters
+                        )*                     # zero-or-more sets of paired parens
+                       """
+        nested_paren_chunk = paren_group
+        for i in range(6):
+            nested_paren_chunk = nested_paren_chunk % (paren_group,)
+        nested_paren_chunk = nested_paren_chunk % (inner_paren_contents,)
+        tlds = '|'.join(list_of_tlds())
+        link_regex = r"""
+            (?<![^\s'"\(,:<])    # Start after whitespace or specified chars
+                                 # (Double-negative lookbehind to allow start-of-string)
+            (?P<url>             # Main group
+                (?:(?:           # Domain part
+                    https?://[\w.:@-]+?   # If it has a protocol, anything goes.
+                   |(?:                   # Or, if not, be more strict to avoid false-positives
+                        (?:[\w-]+\.)+     # One or more domain components, separated by dots
+                        (?:%s)            # TLDs (filled in via format from tlds-alpha-by-domain.txt)
+                    )
+                )
+                (?:/             # A path, beginning with /
+                    %s           # zero-to-6 sets of paired parens
+                )?)              # Path is optional
+                | (?:[\w.-]+\@[\w.-]+\.[\w]+) # Email is separate, since it can't have a path
+            )
+            (?=                            # URL must be followed by (not included in group)
+                [:;\?\),\.\'\"\>]*         # Optional punctuation characters
+                (?:\Z|\s)                  # followed by whitespace or end of string
+            )
+            """ % (tlds, nested_paren_chunk)
+        md.inlinePatterns.add('autolink', AutoLink(link_regex), '>link')
+
+        md.preprocessors.add('hanging_ulists',
+                                 BugdownUListPreprocessor(md),
+                                 "_begin")
+
+        md.treeprocessors.add("inline_interesting_links", InlineInterestingLinkProcessor(md), "_end")
+
+        if settings.CAMO_URI:
+            md.treeprocessors.add("rewrite_to_https", InlineHttpsProcessor(md), "_end")
+
+        if self.getConfig("realm") == "mit.edu/zephyr_mirror":
+            # Disable almost all inline patterns for mit.edu users' traffic that is mirrored
+            # Note that inline_interesting_links is a treeprocessor and thus is not removed
+            for k in list(md.inlinePatterns.keys()):
+                if k not in ["autolink"]:
+                    del md.inlinePatterns[k]
+            for k in list(md.treeprocessors.keys()):
+                if k not in ["inline_interesting_links", "inline", "rewrite_to_https"]:
+                    del md.treeprocessors[k]
+            for k in list(md.preprocessors.keys()):
+                if k not in ["custom_text_notifications"]:
+                    del md.preprocessors[k]
+            for k in list(md.parser.blockprocessors.keys()):
+                if k not in ["paragraph"]:
+                    del md.parser.blockprocessors[k]
+
+md_engines = {}
+realm_filter_data = {}
+
+def make_md_engine(key, opts):
+    md_engines[key] = markdown.Markdown(
+        safe_mode     = 'escape',
+        output_format = 'html',
+        extensions    = ['nl2br',
+                         'tables',
+                         codehilite.makeExtension(configs=[
+                    ('force_linenos', False),
+                    ('guess_lang',    False)]),
+                         fenced_code.makeExtension(),
+                         Bugdown(opts)])
+
+def subject_links(domain, subject):
+    from zerver.models import get_realm, RealmFilter, realm_filters_for_domain
+    matches = []
+
+    try:
+        realm_filters = realm_filters_for_domain(domain)
+
+        for realm_filter in realm_filters:
+            pattern = prepare_realm_pattern(realm_filter[0])
+            for m in re.finditer(pattern, subject):
+                matches += [realm_filter[1] % m.groupdict()]
+        return matches
+    except RealmFilter.DoesNotExist:
+        return matches
+
+def make_realm_filters(domain, filters):
+    global md_engines, realm_filter_data
+    if domain in md_engines:
+        del md_engines[domain]
+    realm_filter_data[domain] = filters
+
+    # Because of how the Markdown config API works, this has confusing
+    # large number of layers of dicts/arrays :(
+    make_md_engine(domain, {"realm_filters": [filters, "Realm-specific filters for %s" % (domain,)],
+                           "realm": [domain, "Realm name"]})
+
+def maybe_update_realm_filters(domain):
+    from zerver.models import realm_filters_for_domain, all_realm_filters
+
+    # If domain is None, load all filters
+    if domain is None:
+        all_filters = all_realm_filters()
+        all_filters['default'] = []
+        for domain, filters in list(all_filters.items()):
+            make_realm_filters(domain, filters)
+        # Hack to ensure that getConfig("realm") is right for mirrored Zephyrs
+        make_realm_filters("mit.edu/zephyr_mirror", [])
+    else:
+        realm_filters = realm_filters_for_domain(domain)
+        if domain not in realm_filter_data or realm_filter_data[domain] != realm_filters:
+            # Data has changed, re-load filters
+            make_realm_filters(domain, realm_filters)
+
+maybe_update_realm_filters(domain=None)
+
+# We want to log Markdown parser failures, but shouldn't log the actual input
+# message for privacy reasons.  The compromise is to replace all alphanumeric
+# characters with 'x'.
+#
+# We also use repr() to improve reproducibility, and to escape terminal control
+# codes, which can do surprisingly nasty things.
+_privacy_re = re.compile(r'\w', flags=re.UNICODE)
+def _sanitize_for_log(md):
+    return repr(_privacy_re.sub('x', md))
+
+
+# Filters such as UserMentionPattern need a message, but python-markdown
+# provides no way to pass extra params through to a pattern. Thus, a global.
+current_message = None
+
+# We avoid doing DB queries in our markdown thread to avoid the overhead of
+# opening a new DB connection. These connections tend to live longer than the
+# threads themselves, as well.
+db_data = None
+
+def do_convert(md, realm_domain=None, message=None):
+    """Convert Markdown to HTML, with Zulip-specific settings and hacks."""
+    from zerver.models import get_active_user_dicts_in_realm, UserProfile
+
+    if message:
+        maybe_update_realm_filters(message.get_realm().domain)
+
+    if realm_domain in md_engines:
+        _md_engine = md_engines[realm_domain]
+    else:
+        _md_engine = md_engines["default"]
+    # Reset the parser; otherwise it will get slower over time.
+    _md_engine.reset()
+
+    global current_message
+    current_message = message
+
+    # Pre-fetch data from the DB that is used in the bugdown thread
+    global db_data
+    if message:
+        realm_users = get_active_user_dicts_in_realm(message.get_realm())
+
+        db_data = {'realm_alert_words': alert_words.alert_words_in_realm(message.get_realm()),
+                   'full_names':        dict((user['full_name'].lower(), user) for user in realm_users),
+                   'short_names':       dict((user['short_name'].lower(), user) for user in realm_users),
+                   'emoji':             message.get_realm().get_emoji()}
+
+    try:
+        # Spend at most 5 seconds rendering.
+        # Sometimes Python-Markdown is really slow; see
+        # https://trac.zulip.net/ticket/345
+        return timeout(5, _md_engine.convert, md)
+    except:
+        from zerver.lib.actions import internal_send_message
+
+        cleaned = _sanitize_for_log(md)
+
+        # Output error to log as well as sending a zulip and email
+        logging.getLogger('').error('Exception in Markdown parser: %sInput (sanitized) was: %s'
+            % (traceback.format_exc(), cleaned))
+        subject = "Markdown parser failure on %s" % (platform.node(),)
+        if settings.ERROR_BOT is not None:
+            internal_send_message(settings.ERROR_BOT, "stream",
+                    "errors", subject, "Markdown parser failed, email sent with details.")
+        mail.mail_admins(subject, "Failed message: %s\n\n%s\n\n" % (
+                                    cleaned, traceback.format_exc()),
+                         fail_silently=False)
+        return None
+    finally:
+        current_message = None
+        db_data = None
+
+bugdown_time_start = 0
+bugdown_total_time = 0
+bugdown_total_requests = 0
+
+def get_bugdown_time():
+    return bugdown_total_time
+
+def get_bugdown_requests():
+    return bugdown_total_requests
+
+def bugdown_stats_start():
+    global bugdown_time_start
+    bugdown_time_start = time.time()
+
+def bugdown_stats_finish():
+    global bugdown_total_time
+    global bugdown_total_requests
+    global bugdown_time_start
+    bugdown_total_requests += 1
+    bugdown_total_time += (time.time() - bugdown_time_start)
+
+def convert(md, realm_domain=None, message=None):
+    bugdown_stats_start()
+    ret = do_convert(md, realm_domain, message)
+    bugdown_stats_finish()
+    return ret
