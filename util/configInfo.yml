@@ -1,7 +1,7 @@
 github:
     url:  https://github.com/
 clone:
-    path: /DemoProjects 
+    path: /Projects 
     path2: /Sieve
 repo:
     url2: numpy/numpy

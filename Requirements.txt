@@ -16,8 +16,7 @@ zipfile: pip install zipfile36
 numpy: pip install numpy
 
 
-Needs to be checked:
 Radon: https://pypi.org/project/radon/
 
-Levenstein: https://pypi.org/project/python-Levenshtein/
-	    pip install python-Levenshtein
+#Levenstein: https://pypi.org/project/python-Levenshtein/
+#	    pip install python-Levenshtein

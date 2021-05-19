@@ -93,16 +93,16 @@ class Relation(object):
                 largeClassDict = {}
                 for fileInTheFolder in filesInFolder:
                     fileIndex = filesInFolder.index(fileInTheFolder)
-                    if (bugFixedCommitIndexInItsFolder-fileIndex<=5) and (bugFixedCommitIndexInItsFolder-fileIndex>=0):
-                        largeClassDict = smell.checkForLargeClass(fileInTheFolder)
-                        if largeClassDict:
-                            for k, v in largeClassDict.items():
-                                #if str(v['isLargeClass']) == "True":
-                                    fileIndex = filesInFolder.index(fileInTheFolder)
-                                    rootName = fileInTheFolder.split("@")[0] 
-                #                   commitID=fileName.split('@')[1]
-                                    #largeClassRelationAnalysisCSVoutList.append([fileName.split('@')[1],fileInTheFolder,k, "Yes", str(fileIndex), str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
-                                    largeClassRelationAnalysisCSVoutList.append([fileName.split('@')[1],fileInTheFolder,k, str(v['isLargeClass']), str(fileIndex), str(bugFixedCommitIndexInItsFolder),str(bugFixedCommitIndexInItsFolder-fileIndex) ,str(len(filesInFolder)), rootName])
+                    #if (bugFixedCommitIndexInItsFolder-fileIndex<=5) and (bugFixedCommitIndexInItsFolder-fileIndex>=0):
+                    largeClassDict = smell.checkForLargeClass(fileInTheFolder)
+                    if largeClassDict:
+                        for k, v in largeClassDict.items():
+                            #if str(v['isLargeClass']) == "True":
+                            fileIndex = filesInFolder.index(fileInTheFolder)
+                            rootName = fileInTheFolder.split("@")[0] 
+                #           commitID=fileName.split('@')[1]
+                            #largeClassRelationAnalysisCSVoutList.append([fileName.split('@')[1],fileInTheFolder,k, "Yes", str(fileIndex), str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
+                            largeClassRelationAnalysisCSVoutList.append([fileName.split('@')[1],fileInTheFolder,k, str(v['isLargeClass']), str(fileIndex), str(bugFixedCommitIndexInItsFolder),str(bugFixedCommitIndexInItsFolder-fileIndex) ,str(len(filesInFolder)), rootName])
                                 
             largeClassRelationAnalysisCSVoutList=self.checkForDuplicatesInListsofList((largeClassRelationAnalysisCSVoutList))
             for analysis in largeClassRelationAnalysisCSVoutList:
@@ -340,12 +340,12 @@ class Relation(object):
                 rootName = os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+self.projectName.lower()+"/"+ each.split("@")[0]
                 filesListWithBugFixedCommitsDict[each] = self.checkFilesWithinRoot(rootName)
              
-            #self.analyzeLargeClassSmell(filesListWithBugFixedCommitsDict, self.projectName,projectPath,smell)
+            self.analyzeLargeClassSmell(filesListWithBugFixedCommitsDict, self.projectName,projectPath,smell)
             #self.analyzeLongParameterClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeMessageChainsSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeParallelInheritanceHiearchySmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeLazyClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
-            self.analyzeDataClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
+            #self.analyzeDataClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
                                                                       
             print("Checking for Relation between smells and defects for "+self.projectName+" is done")
         except Exception as ex:

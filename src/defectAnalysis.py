@@ -62,9 +62,9 @@ def removeDuplicatesFromListofList(fileList):
             newFileList.append(elem)
     return newFileList
 
-if __name__ == '__main__':
-    fileName="LargeClassRelationAnalysis.csv"
-    fileList=checkForDefectAnalysis(fileName)
-    fileList= removeDuplicatesFromListofList(fileList)
-    for each in fileList:
-        print(each)
+# if __name__ == '__main__':
+#     fileName="LargeClassRelationAnalysis.csv"
+#     fileList=checkForDefectAnalysis(fileName)
+#     fileList= removeDuplicatesFromListofList(fileList)
+#     for each in fileList:
+#         print(each)

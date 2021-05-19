@@ -12,11 +12,11 @@ import sys
 import math
 import string
 import src.FileOperations as FO
-import nltk
+#import nltk
 
-nltk.download('punkt')
-nltk.download('stopwords')
-nltk.download('wordnet')
+# nltk.download('punkt')
+# nltk.download('stopwords')
+# nltk.download('wordnet')
 
 
 class SemanticAnalysis(object):

@@ -148,7 +148,7 @@ class Downloads(object):
 
 
 if __name__ == '__main__':
-    projectName='zulip'
+    projectName='numpy'
     #projectName='keras'
     #projectName='numpy'
     #projectName='models'

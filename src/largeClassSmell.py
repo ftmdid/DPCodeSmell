@@ -10,7 +10,8 @@ import src.runOperations as op
 def calculateLargeClassSmell(fileName):
     try:
         smell=smll.BadSmell()
-        with open(fileName, "r") as f:
+        #with open(fileName, "r") as f:
+        with open(fileName,  encoding="utf-8", errors='ignore') as f:
             classesList={}
             lines=f.readlines()
             classes=smell.getClassLinesOfFile(lines)
