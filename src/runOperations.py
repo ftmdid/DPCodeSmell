@@ -39,7 +39,7 @@ def strip_docstring(blob):
     """Removes docstrings from code"""
     docstring = True
     while docstring == True:
-        match_docstring = re.search('\n\s*"""[^"""]*"""', blob)
+        match_docstring = re.search('\n\s*"""[^"""]*"""', blob)         
         if not match_docstring:
             docstring = False
         else:
@@ -48,7 +48,7 @@ def strip_docstring(blob):
 
 def strip_blanklines(blob):
     """Strips blank lines from the code"""
-    lines = blob.split('\n')
+    lines = blob.split("\n")
     return '\n'.join([line for line in lines if line.strip() != ''])
 
 def strip_comments(blob, delim='#'):

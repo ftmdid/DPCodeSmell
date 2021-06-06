@@ -26,8 +26,8 @@ def calculateLazyClassSmell(fileInTheFolder, projectName):
                         classLines=lines[int(value['start']):int(value['end'])]
                         if len(classLines)>0:
                             classLinesStr="\n".join(classLines)
-                            classMethodCount=smell.checkClassMethods(classLines)
-                            classAttr=smell.getClassAttribututes(classLinesStr)
+                            classMethodCount=smell.checkClassMethodsWithSelf(classLines)
+                            classAttr=smell.getClassInstanceAttributesWithSelf(classLinesStr)
                             if key.lstrip().rstrip() in pihSmellListDict.keys():
                                 dit = pihSmellListDict[key]['dit']
                             else:

@@ -1,3 +1,8 @@
+
+
+
+
+
 '''
 Created on Sep 15, 2020
 
@@ -8,10 +13,8 @@ Created on Sep 15, 2020
 import os
 import src.BadSmell as BS
 import csv
-import src.helper as help
 import src.parallelInheritance as inheritance
-from future.builtins.misc import isinstance
-# from radon import complexity
+import src.calculateRefusedBequest as rBequest
 
 
 #import src.defectAnalysis as defectAnalysis
@@ -129,8 +132,8 @@ def getLazyClassInProject(badSmellDetection, validationFolder):
                 classLines = lines[int(value['start']):int(value['end'])]
                 if len(classLines) > 0:
                     classLinesStr = "\n".join(classLines)
-                    classMethodCount = badSmellDetection.checkClassMethods(classLines)
-                    classAttr = badSmellDetection.getClassAttribututes(classLinesStr)
+                    classMethodCount = badSmellDetection.checkClassMethodsWithSelf(classLines)
+                    classAttr = badSmellDetection.getClassInstanceAttributesWithSelf(classLinesStr)
                     if key.lstrip().rstrip() in pihSmellListDict.keys():
                         dit = pihSmellListDict[key]['dit']
                     else:
@@ -146,11 +149,30 @@ def getLazyClassInProject(badSmellDetection, validationFolder):
     for k, _ in lazyClassList.items():
         lazyClassForToolCSVfileOut.writerow([k, lazyClassList[k]['classMethodCount'], lazyClassList[k]['classAttributesCount'], lazyClassList[k]['dit'], lazyClassList[k]['isLazyClass']])
 
+def getRefusedBequestInProject(badSmellDetection, validationFolder):
+    fileName= os.path.join(validationFolder,"allPythonFiles.py")
+    
+    refusedBequesValidationForTool = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation/ToolValidation/refusedBequestValidationForTool.csv'
+    refusedBequestForToolCSVfileOut = csv.writer(open(os.path.join(validationFolder, refusedBequesValidationForTool), 'w+'))
+    refusedBequestForToolCSVfileOut.writerow(['Child Class Name', 'Parent Class Name','Depth of Inheritance Tree of Child Class' ,'Used Number 0f InheritanceMembers', 'Total Number Of Inheritance Members','Average Inheritance Usage Ratio For The Child Class','Average Inheritance Usage Ratio For The Project', 'Is Refused Bequest'])
+   
+    refusedBequestDict=rBequest.calculateRefusedBequest(fileName)
+    
+    for k, _ in refusedBequestDict.items():
+        refusedBequestForToolCSVfileOut.writerow([k, 
+                                                  refusedBequestDict[k]['parentClassName'], 
+                                                  refusedBequestDict[k]['dit'],
+                                                  refusedBequestDict[k]['totalNumberOfUsedInheritanceMembers'], 
+                                                  refusedBequestDict[k]['totalNumberOfInheritanceMembers'], 
+                                                  refusedBequestDict[k]['averageInheritanceUsageRatio'],
+                                                  refusedBequestDict[k]['averageInheritanceUsageRatioOfTheProject'],
+                                                  refusedBequestDict[k]['isRefusedBequest']
+                                                      ])
 
     
 if __name__ == '__main__':
     
-    #projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'DemoProjects/numpy')
+    projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Projects/numpy')
     projectName="numpy"
     pythonFiles= help.getAllPythonFilesInProject(projectName)
     
@@ -160,14 +182,11 @@ if __name__ == '__main__':
     
     validationFolder = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation/ToolValidation'
     
-   
-    
-    #getLargeClassInfoInProject(pythonFiles, badSmellDetection, validationFolder)
-         
-  
     #getClassFilesInProject(pythonFiles, validationFolder)
                  
     #getMethodFilesInProject(pythonFiles, validationFolder)
+    
+    #getLargeClassInfoInProject(pythonFiles, badSmellDetection, validationFolder)
     
     #getLongParameterListSmellsInProject(pythonFiles, badSmellDetection, validationFolder)
  
@@ -176,94 +195,10 @@ if __name__ == '__main__':
     #getParallelInheritanceHierarchySmellInProject(validationFolder)
      
     #getLazyClassInProject(badSmellDetection, validationFolder)
-             
     
-    def getClassName(instance):
-        return instance.__class__.__name__
-    #fileName= os.path.join(validationFolder,"allPythonFilesIn_keras_withCommitID_0a9c0ca4.py")
-    fileName= os.path.join(validationFolder,"untitled.py")
-    
-    
-    import ast
-    import inspect
+    getRefusedBequestInProject(badSmellDetection, validationFolder)
+         
 
-    
-    with open(fileName, "r") as source:
-        contents=source.read()
-        lines=contents.split("\n")
-        tree = ast.parse(contents) 
-        for each in tree.body:
-           
-
-            if isinstance(each, ast.ClassDef):
-                print(each)
-                print(each.name)
-                
-                import src.refusedBequest as rb
-      
-                # baseClssStartPosition = rb.getStartPosition(each)
-                # print(baseClssStartPosition)
-                # baseClssEndPosition = rb.getEndPosition(each)
-                # print(baseClssEndPosition)
-                #
-                baseClssFunctions = rb.findMethodsOfAExecutableClass(each)
-                
-                if rb.hasSuperClassInExecutableClass(each):
-                    superClss=rb.getSuperClassesInExecutableClass(each)
-                    if len(superClss)==1:
-                        superClssNode = rb.findNode(superClss[0], tree)
-                       
-                        if rb.checkClassType(superClssNode):
-                            print("builtin")
-                            superClssFunctions = rb.findMethodsOfABuiltinClass(superClssNode)   
-                        else:
-                            superClssFunctions =rb.findMethodsOfAExecutableClass(superClssNode)
-                
-                        
-                        print(dir(superClssNode))
-                        print(rb.findOverriddenMethods(superClssNode, each))
-                        
-
-
-
-
-
-                # baseClss=each.bases
-                # if baseClss and len(baseClss)>0:
-                #     #print(dir(baseClss[0])) 
-                #     membrs= inspect.getmembers(each)
-                #     #indx = membrs.index('__dict__')
-                #     for itm in membrs:
-                #         if '__dict__' in itm:
-                #             for fncs in (itm[1]['body']):
-                #                 print(inspect.getmembers(fncs))                           
-                    
-                    #print(list(set(dir(baseClss[0])) - set(dir(each))))
-                    
-                # for itm in (inspect.getmembers(each)):
-                #     print(itm)
-                #
-
-    '''
-    
-                baseClss=each.bases
-                print(baseClss)
-                if baseClss and len(baseClss)>0:
-                    for i in range(len(baseClss)):
-                        print(baseClss[i].id)
-                
-                #print(each.bases.id)
-                print(lines[each.lineno-1])
-                
-                for classItem in each.body:
-                    print(classItem)
-                    if isinstance(classItem, ast.FunctionDef):
-                        for fncItem in classItem.body:
-                            print(fncItem)
-                           
-    '''
-    
-    
     
     print("Done with validation!")
 

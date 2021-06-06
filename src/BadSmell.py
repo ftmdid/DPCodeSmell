@@ -18,6 +18,7 @@ import src.messageChainSmell as messageChain
 
 
 
+
 class BadSmell(object):
     '''
     classdocs
@@ -33,7 +34,7 @@ class BadSmell(object):
             Some part of it is referenced from: https://stackoverflow.com/questions/58142456/how-to-get-the-scope-of-a-class-in-terms-of-starting-line-and-end-line-in-python
         '''
         try:               
-                #totalLine=len(source)
+                totalLine=len(source)
                 classes = {}
                 current_class = None
                 for lineno, line in enumerate(source, start=0):
@@ -42,7 +43,7 @@ class BadSmell(object):
                             classes[current_class]['end'] = lineno - 1
                             current_class = None
                             
-                    if line.lstrip().startswith('class ') and (":" in line):
+                    if line.lstrip().startswith('class ') and (":" in line) and not(line.startswith('#')):
                         if (current_class in classes.keys())  and ('end' not in  classes[current_class].keys()):
                             classes[current_class]['end'] = lineno - 1
                             current_class = None
@@ -55,8 +56,8 @@ class BadSmell(object):
                                 current_class=className.lstrip().rstrip()
                                 classes[current_class] = {'start': lineno}
                 if current_class:
-                    #classes[current_class]['end'] = totalLine
-                    classes[current_class]['end'] = -1
+                    classes[current_class]['end'] = totalLine
+                    #classes[current_class]['end'] = -1
                 return classes
         except Exception as ex:
             print(ex)
@@ -87,36 +88,156 @@ class BadSmell(object):
         except Exception as ex:
             print(ex)
             print("Exception occurred in BadSmell.getMethodsLinesOfFile method")
+                
                
-    def checkClassMethods(self,classLines):
+    def checkClassMethodsWithSelf(self,classLines):
             try:
                 methodsList=[]
                 for each in classLines:
                     if re.match(r'def (.+?)( ?\()', each.lstrip()):
                         if 'self'  in each:
                             currentMethod=each.split('def')[1].lstrip().split('(')[0]
-                            methodsList.append(currentMethod)
+                            methodsList.append(currentMethod.lstrip().rstrip())
                 
-                return len(methodsList)
+                return methodsList
             except Exception as ex:
                 print(ex)
-                print("Exception occurred in BadSmell.checkClassMethods method") 
+                print("Exception occurred in BadSmell.checkClassMethodsWithSelf method") 
     
-    def getClassAttribututes(self,classLines):
+    def checkClassMethodsWithCls(self,classLines):
+            try:
+                methodsList=[]
+                for each in classLines:
+                    if re.match(r'def (.+?)( ?\()', each.lstrip()):
+                        if 'cls'  in each:
+                            currentMethod=each.split('def')[1].lstrip().split('(')[0]
+                            methodsList.append(currentMethod.lstrip().rstrip())
+                
+                return methodsList
+            except Exception as ex:
+                print(ex)
+                print("Exception occurred in BadSmell.checkClassMethodsWithCls method") 
+    
+    def getClassInstanceAttributesWithSelf(self,classLines):
         try:
-            classLines = op.strip_blanklines(classLines)
-            nondoctring = op.strip_docstring(classLines)
-            noncomment = op.strip_comments(nondoctring, '#')
-            classLines=noncomment.split('\n')
             attributesList=[]
             for each in classLines:
-                if each.lstrip().startswith('self.') and ('=' in each):
-                    currentAttribute = re.search(r'self.(.+?)=', each).group(1)
-                    attributesList.append(currentAttribute)
-            return len(list(set(attributesList))) 
+                if re.match(r'(.+?)?(self\.)(.+)(.+)?', each.lstrip().rstrip()):
+                    currentAttribute = re.search(r'(.+?)?(self\.)(.+)(.+)?', each.lstrip().rstrip()).group(3)
+                    if ":" in currentAttribute:
+                        currentAttribute = currentAttribute.split(":")[0]
+                    
+                    if "=" in currentAttribute:
+                        currentAttribute = currentAttribute.split("=")[0]
+
+                    if "," in currentAttribute:
+                        currentAttribute = currentAttribute.split(",")[0]
+
+                    if "." in currentAttribute:
+                        currentAttribute = currentAttribute.split(".")[0] 
+
+                    if ")" in currentAttribute:
+                        currentAttribute = currentAttribute.split(")")[0] 
+                        
+                    if not "(" in  currentAttribute: 
+                        if "." in currentAttribute:
+                            currentAttribute= currentAttribute.split('.')[0]
+                           
+                        if ' ' in currentAttribute:
+                            indx = currentAttribute.index(' ')
+                            currentAttribute= currentAttribute[0:indx]
+                        
+                        if '[' in currentAttribute:
+                            currentAttribute= currentAttribute.split('[')[0]
+                        
+                        if ";" in currentAttribute:
+                            currentAttribute = currentAttribute.split(";")[0]
+                           
+                        
+                        attributesList.append(currentAttribute.lstrip().rstrip())  
+                     
+            return list(set(attributesList)) 
         except Exception as ex:
             print(ex)
-            print("Exception occurred in getClassAttributes method")   
+            print("Exception occurred in BadSmell.getClassInstanceAttributesWithSelf method")  
+            
+    def getClassInstanceAttributesWithCls(self,classLines):
+        try:
+
+            attributesList=[]
+            for each in classLines:
+                if re.match(r'(.+?)?(cls\.)(.+)(.+)?', each.lstrip().rstrip()):
+                    currentAttribute = re.search(r'(.+?)?(cls\.)(.+)(.+)?', each.lstrip().rstrip()).group(3)
+                    if ":" in currentAttribute:
+                        currentAttribute = currentAttribute.split(":")[0]
+                    
+                    if "=" in currentAttribute:
+                        currentAttribute = currentAttribute.split("=")[0]
+
+                    if "," in currentAttribute:
+                        currentAttribute = currentAttribute.split(",")[0]
+
+                    if "." in currentAttribute:
+                        currentAttribute = currentAttribute.split(".")[0] 
+
+                    if ")" in currentAttribute:
+                        currentAttribute = currentAttribute.split(")")[0] 
+                        
+
+                    if not "(" in  currentAttribute: 
+                        if "." in currentAttribute:
+                            currentAttribute= currentAttribute.split('.')[0]
+                           
+                        if ' ' in currentAttribute:
+                            indx = currentAttribute.index(' ')
+                            currentAttribute= currentAttribute[0:indx]
+                        
+                        if '[' in currentAttribute:
+                            currentAttribute= currentAttribute.split('[')[0]
+                           
+                        
+                        attributesList.append(currentAttribute.lstrip().rstrip())  
+                          
+            return list(set(attributesList)) 
+        except Exception as ex:
+            print(ex)
+            print("Exception occurred in BadSmell.getClassInstanceAttributesWithCls method")  
+
+            
+    def getClassAttributes(self, classLines):
+        try:
+            classAttrList=[]
+            
+            classLineIndex=self.findClassDefinitionLine(classLines)
+            firstMethodIndex=self.findFirstMethodDefinitionLine(classLines)
+            classLines=classLines[classLineIndex:firstMethodIndex]
+            if classLines:
+                for each in classLines:
+                    if not re.match(r'class (.+)(.+?):',each):
+                        if '=' in each:
+                            stringToBeSearched=each.split('=')[0]
+                            if re.match('    [a-zA-Z0-9]+(.+)?[a-zA-Z0-9]+',stringToBeSearched):
+                                classAttrList.append(each.split('=')[0].lstrip().rstrip())
+            
+            return list(set(classAttrList))
+            
+        except Exception as ex:
+            print(ex)
+            print("Exception occurred in BadSmell.getClassAttributesForRefusedBequest method")
+
+
+
+                
+    def findFirstMethodDefinitionLine(self, classLines):
+        for each in classLines:
+                if 'def ' in each:
+                    return classLines.index(each)
+    
+    def findClassDefinitionLine(self, classLines):
+        for each in classLines:
+                if 'class ' in each:
+                    return classLines.index(each)                
+    
                     
     def getClassName(self,classLines):
         current_class=""
