@@ -1,8 +1,3 @@
-
-
-
-
-
 '''
 Created on Sep 15, 2020
 
@@ -14,8 +9,10 @@ import os
 import src.BadSmell as BS
 import csv
 import src.parallelInheritance as inheritance
-import src.calculateRefusedBequest as rBequest
-
+import src.refusedBequestSmell as rBequest
+import src.helper as help
+import src.longMethodSmell as lMethod
+import ast
 
 #import src.defectAnalysis as defectAnalysis
 
@@ -169,6 +166,66 @@ def getRefusedBequestInProject(badSmellDetection, validationFolder):
                                                   refusedBequestDict[k]['isRefusedBequest']
                                                       ])
 
+def getLongMethodsInProject(validationFolder, projectPath):
+    longMethodValidationForTool = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation/ToolValidation/LongMethodValidationForTool.csv'
+    longMethodForToolCSVfileOut = csv.writer(open(os.path.join(validationFolder, longMethodValidationForTool), 'w+'))
+    longMethodForToolCSVfileOut.writerow(['Method Name', 'Method LOC','isLongMethod' ,'is Class Method', 'is Large Class', 'File Name'])
+   
+    longMethodDict = {}
+    
+   
+    for subdirs, _, files in os.walk(projectPath):
+        for filename in files:
+            if not (filename.startswith('test')) and filename.endswith(".py"):
+                #print(subdirs)
+              
+                fileToBeRead = os.path.join(subdirs, filename)
+                fileLines = lMethod.readFile(fileToBeRead)
+                parsedFile =  lMethod.parseFile(fileToBeRead)
+                parsedFileContent = list(ast.walk(parsedFile))
+                
+                for content in parsedFileContent:
+                    if isinstance(content, ast.ClassDef):
+                        #className = content.name
+                        classLinesOfCode = lMethod.countLines(content)
+                        
+                        classMethods = lMethod.findClassFuncNodes(content)
+                        classMethodCounts = len(classMethods)
+                        
+                        classAttributes = lMethod.getClassAttributes(content) # fileToBeRead is temporary
+                        classAttributesCounts  = len(classAttributes)
+                        
+                        isLargeClass = ((classLinesOfCode>=200) or ((classMethodCounts + classAttributesCounts)>40))
+                        isLongMethod = False
+                        for classMethod in classMethods:
+                            classMethodName = classMethod.name
+                            classMethodLinesOfCode = lMethod.countLines(classMethod)
+                            if classMethodLinesOfCode>30:
+                                isLongMethod = True
+                            longMethodDict[classMethodName]={'mName':classMethodName, 'mLOC':classMethodLinesOfCode,'isLongMethod': isLongMethod,'isClassMethod':'Yes', 'isLargeClass':isLargeClass, 'fName':fileToBeRead}
+                
+                    if isinstance(content, ast.FunctionDef):
+                        if lMethod.checkIfRegMethod(content, fileLines):
+                            methodLinesOfCode = lMethod.countLines(content)
+                            methodName = content.name
+                            isLongMethod = False
+                            isLargeClass=False
+                            if methodLinesOfCode>30:
+                                isLongMethod= True
+                            longMethodDict[methodName]={'mName':methodName, 'mLOC':methodLinesOfCode,'isLongMethod': isLongMethod,'isClassMethod':'No', 'isLargeClass':isLargeClass, 'fName':fileToBeRead}
+        
+        
+    for k, _ in longMethodDict.items():
+        longMethodForToolCSVfileOut.writerow([k, 
+                                              longMethodDict[k]['mLOC'], 
+                                              longMethodDict[k]['isLongMethod'],
+                                              longMethodDict[k]['isClassMethod'], 
+                                              longMethodDict[k]['isLargeClass'], 
+                                              longMethodDict[k]['fName']
+                                                  
+                                                      ])
+  
+  
     
 if __name__ == '__main__':
     
@@ -196,9 +253,14 @@ if __name__ == '__main__':
      
     #getLazyClassInProject(badSmellDetection, validationFolder)
     
-    getRefusedBequestInProject(badSmellDetection, validationFolder)
-         
-
+    #getRefusedBequestInProject(badSmellDetection, validationFolder)
+    
+    getLongMethodsInProject(validationFolder, projectPath)
+    
+              
+            
+            
+            
     
     print("Done with validation!")
 

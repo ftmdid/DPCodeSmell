@@ -256,7 +256,7 @@ def calculateNumberOfChildren(key, classLines):
         print("Exception occurrred in parallelInheritance.calculateNumberOfChildren()")
                  
     
-def calculateParallelInheritanceHiearchySmell(pythonFile):
+def calculateParallelInheritanceHiearchySmell(pythonFile, projectName):
     try:
         pihSmellListDict={}
         
@@ -280,7 +280,7 @@ def calculateParallelInheritanceHiearchySmell(pythonFile):
         return pihSmellListDict
     except Exception as ex:
         print(ex)
-        print("Exception occurrred in parallelInheritance.calculateParallelInheritanceHiearchySmell()")
+        print("Exception occurrred in parallelInheritance.calculateParallelInheritanceHiearchySmell()" + " in "+ pythonFile + " of "+ projectName)
      
 
 '''

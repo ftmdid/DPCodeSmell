@@ -9,12 +9,14 @@ import src.runOperations as op
 # import src.pythonMethods as pyMethods
 import src.parallelInheritance as pih
 # from radon.complexity import cc_rank, cc_visit
-
+import src.refusedBequestSmell as requestBequest
 import src.dataClassSmell as dataClass
 import src.lazyClassSmell as lazyClass
 import src.longParameterListSmell as longParameterList
 import src.largeClassSmell as largeClass
 import src.messageChainSmell as messageChain
+import src.longMethodSmell as longMethod
+
 
 
 
@@ -346,6 +348,21 @@ class BadSmell(object):
         except Exception as ex:
             print(ex)
             print("Exception occurrred in BadSmell.checkForDataClass in :"+fileInTheFolder)
+            
+    def checkForRefusedBequest(self,fileInTheFolder, projectName):
+        try:
+            refusedBequestList=requestBequest.calculateRefusedBequestSmell(fileInTheFolder, projectName)
+            return refusedBequestList
+        except Exception as ex:
+            print(ex)
+            print("Exception occurrred in BadSmell.checkForRefusedBequest in :"+fileInTheFolder)
     
-
+    def checkForLongMethod(self,fileInTheFolder, projectName):
+        try:
+            longMethodList=longMethod.calculateLongMethodSmell(fileInTheFolder, projectName)
+            return longMethodList
+        except Exception as ex:
+            print(ex)
+            print("Exception occurrred in BadSmell.checkForRefusedBequest in :"+fileInTheFolder)
+  
     

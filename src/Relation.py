@@ -308,7 +308,102 @@ class Relation(object):
             print(ex)
             print("Exception occurred in Relation.analyzeDataClassSmell() method")                             
 
+    def analyzeRefusedBequestSmell(self,filesListWithBugFixedCommitsDict, projectName,projectPath,smell):  
+        try:
+            print("Started on refused bequest bad smell analysis for "+projectName)       
+            relationAnalysisRefusedBequestSmellCSVfile = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/BadSmells/RefusedBequest/RefusedBequestSmellRelationAnalysisOf'+self.projectName+'.csv'
+            relationAnalysisRefusedBequestSmellCSVout = csv.writer(open(os.path.join(projectPath, relationAnalysisRefusedBequestSmellCSVfile), 'w+'))
+            relationAnalysisRefusedBequestSmellCSVout.writerow(('CommitID', 'File Name','Class Name' ,'DIT','IUR','Total IR','AUIR','AvgAUIR','isRefusedBequest', 'Index of File In Folder','Index of Bug Fixed Commit In File', "Number of Files In Folder", "Folder"))
+                
+            refusedBequestSmellDict={}
+            fileIndex = 0
+            refusedBequestSmellRelationAnalysisCSVoutList=[]
+    
+            #for fileName, filesInRootOfFileName in filesListWithBugFixedCommitsDict.items():  # key=fileName, value=filesInRootOfFileName
+            if filesListWithBugFixedCommitsDict:
+                print("there are "+str(len(filesListWithBugFixedCommitsDict.keys())) + " possible choices")
+                count = 0
+                for fileName in filesListWithBugFixedCommitsDict.keys():  # key=fileName, value=filesInRootOfFileName
+                    count +=1 
+                    print("<--------------------------------->"+str(count)+"<--------------------------------->")
+                    filesInFolder=filesListWithBugFixedCommitsDict[fileName]
+                    bugFixedCommitFileDir=  os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+self.projectName.lower()+"/"+ fileName.split("@")[0] +"/"+fileName
+                    bugFixedCommitIndexInItsFolder=filesInFolder.index(bugFixedCommitFileDir)
+                    print("There are "+str(len(filesInFolder)) +" files in the "+fileName.split("@")[0])  
+                    countOfFiles=1
+                    for fileInTheFolder in filesInFolder:
+                        
+                            fileIndex = filesInFolder.index(fileInTheFolder)
+                            if (bugFixedCommitIndexInItsFolder-fileIndex<=3) and (bugFixedCommitIndexInItsFolder-fileIndex>=-1):
+                                print("\n")
+                                print(" Files in the "+fileName.split("@")[0] +" count of "+str(countOfFiles))
+                                print("filename is "+str(fileInTheFolder))
+                                refusedBequestSmellDict=smell.checkForRefusedBequest(fileInTheFolder, self.projectName)
+                                if refusedBequestSmellDict:
+                                    for k, v in refusedBequestSmellDict.items():
+                                            #if str(v['isPIHSmell'])=="True":
+                                        #fileIndex = filesInFolder.index(fileInTheFolder)
+                                        rootName = fileInTheFolder.split("@")[0] 
+                                        refusedBequestSmellRelationAnalysisCSVoutList.append([fileName.split('@')[1], 
+                                                                                              fileInTheFolder,
+                                                                                              k,
+                                                                                              str(v['dit']),
+                                                                                              str(v['totalNumberOfUsedInheritanceMembers']),
+                                                                                              str(v['totalNumberOfInheritanceMembers']),
+                                                                                              str(v['averageInheritanceUsageRatio']),
+                                                                                              str(v['averageInheritanceUsageRatioOfTheProject']),
+                                                                                              str(v['isRefusedBequest']), 
+                                                                                              str(fileIndex),
+                                                                                              str(bugFixedCommitIndexInItsFolder) ,
+                                                                                              str(len(filesInFolder)), 
+                                                                                              rootName])
+                                    countOfFiles +=1
+                                        
+                                
+                refusedBequestSmellRelationAnalysisCSVoutList=self.checkForDuplicatesInListsofList(refusedBequestSmellRelationAnalysisCSVoutList)
+                for analysis in refusedBequestSmellRelationAnalysisCSVoutList:
+                    relationAnalysisRefusedBequestSmellCSVout.writerow(analysis)
+                print("Refused Bequest bad smell analysis for "+projectName +" is done!")
+        except Exception as ex:
+            print(ex)
+            print("Exception occurred in Relation.analyzeRefusedBequestSmell() method")                             
+    
+    def analyzeLongMethodSmell(self,filesListWithBugFixedCommitsDict, projectName,projectPath,smell):  
+        try:
+            print("Started on long method bad smell analysis for "+projectName)       
+            relationAnalysisLongMethodSmellCSVfile = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/BadSmells/LongMethod/LongMethodSmellRelationAnalysisOf'+self.projectName+'.csv'
+            relationAnalysisLongMethodsSmellCSVout = csv.writer(open(os.path.join(projectPath, relationAnalysisLongMethodSmellCSVfile), 'w+'))
+            relationAnalysisLongMethodsSmellCSVout.writerow(('CommitID', 'File Name','Method Name' ,'Method LOC','is Class Method','is Large Class','is Long Method', 'Index of File In Folder','Index of Bug Fixed Commit In File', "Number of Files In Folder", "Folder"))
+               
+            longMethodSmellDict={}
+            fileIndex = 0
+            longMethodSmellRelationAnalysisCSVoutList=[]
+    
+            #for fileName, filesInRootOfFileName in filesListWithBugFixedCommitsDict.items():  # key=fileName, value=filesInRootOfFileName
+            if filesListWithBugFixedCommitsDict:
 
+                for fileName in filesListWithBugFixedCommitsDict.keys():  # key=fileName, value=filesInRootOfFileName
+                    filesInFolder=filesListWithBugFixedCommitsDict[fileName]
+                    bugFixedCommitFileDir=  os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+self.projectName.lower()+"/"+ fileName.split("@")[0] +"/"+fileName
+                    bugFixedCommitIndexInItsFolder=filesInFolder.index(bugFixedCommitFileDir)
+                      
+                    for fileInTheFolder in filesInFolder:
+                            fileIndex = filesInFolder.index(fileInTheFolder)
+                            longMethodSmellDict=smell.checkForLongMethod(fileInTheFolder, self.projectName)
+                            if longMethodSmellDict:
+                                for k, v in longMethodSmellDict.items():
+                                    rootName = fileInTheFolder.split("@")[0] 
+                                    longMethodSmellRelationAnalysisCSVoutList.append([fileName.split('@')[1], fileInTheFolder,k,str(v['methodLinesOfCode']),str(v['isClassMethod']),str(v['isLargeClass']),str(v['isLongMethod']), str(fileIndex),str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
+                                  
+            longMethodSmellRelationAnalysisCSVoutList=self.checkForDuplicatesInListsofList(longMethodSmellRelationAnalysisCSVoutList)
+            for analysis in longMethodSmellRelationAnalysisCSVoutList:
+                relationAnalysisLongMethodsSmellCSVout.writerow(analysis)
+            print("Long Method bad smell analysis for "+projectName +" is done!")
+                
+        except Exception as ex:
+            print(ex)
+            print("Exception occurred in Relation.analyzeLongMethodSmell() method") 
+             
     def checkForRelation(self):
         try:
              
@@ -334,18 +429,20 @@ class Relation(object):
                  
             possibleChoices = list(set(possibleChoices))  
           
-                  
+                 
             filesListWithBugFixedCommitsDict = {} #337 files that have bug fixed commit IDs
             for each in possibleChoices:
                 rootName = os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+self.projectName.lower()+"/"+ each.split("@")[0]
                 filesListWithBugFixedCommitsDict[each] = self.checkFilesWithinRoot(rootName)
              
-            self.analyzeLargeClassSmell(filesListWithBugFixedCommitsDict, self.projectName,projectPath,smell)
+            #self.analyzeLargeClassSmell(filesListWithBugFixedCommitsDict, self.projectName,projectPath,smell)
             #self.analyzeLongParameterClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeMessageChainsSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeParallelInheritanceHiearchySmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeLazyClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeDataClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
+            #self.analyzeRefusedBequestSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
+            self.analyzeLongMethodSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
                                                                       
             print("Checking for Relation between smells and defects for "+self.projectName+" is done")
         except Exception as ex:
