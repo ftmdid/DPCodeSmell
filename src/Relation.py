@@ -334,9 +334,10 @@ class Relation(object):
                     for fileInTheFolder in filesInFolder:
                         
                             fileIndex = filesInFolder.index(fileInTheFolder)
-                            if (bugFixedCommitIndexInItsFolder-fileIndex<=3) and (bugFixedCommitIndexInItsFolder-fileIndex>=-1):
+                            if (bugFixedCommitIndexInItsFolder-fileIndex<2) and (bugFixedCommitIndexInItsFolder-fileIndex>=-1):
                                 print("\n")
-                                print(" Files in the "+fileName.split("@")[0] +" count of "+str(countOfFiles))
+                                print("BugFixedCommit index is "+str(bugFixedCommitIndexInItsFolder))
+                                print("File index is "+str(fileIndex))
                                 print("filename is "+str(fileInTheFolder))
                                 refusedBequestSmellDict=smell.checkForRefusedBequest(fileInTheFolder, self.projectName)
                                 if refusedBequestSmellDict:
@@ -441,8 +442,8 @@ class Relation(object):
             #self.analyzeParallelInheritanceHiearchySmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeLazyClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeDataClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
-            #self.analyzeRefusedBequestSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
-            self.analyzeLongMethodSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
+            self.analyzeRefusedBequestSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
+            #self.analyzeLongMethodSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
                                                                       
             print("Checking for Relation between smells and defects for "+self.projectName+" is done")
         except Exception as ex:
