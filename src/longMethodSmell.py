@@ -17,8 +17,11 @@ def calculateLongMethodSmell(fileName, projectName):
         fileLines = readFile(fileToBeRead)
         parsedFile =  parseFile(fileToBeRead)
         parsedFileContent = list(ast.walk(parsedFile))
-                
+        methodLinesOfCode=0
+        methodName=""
+        
         for content in parsedFileContent:
+            isLargeClass=False
             if isinstance(content, ast.ClassDef):
                 #className = content.name
                 classLinesOfCode = countLines(content)
@@ -28,22 +31,23 @@ def calculateLongMethodSmell(fileName, projectName):
                         
                 classAttributes = getClassAttributes(content) 
                 classAttributesCounts  = len(classAttributes)
-                        
+                 
                 isLargeClass = ((classLinesOfCode>=200) or ((classMethodCounts + classAttributesCounts)>40))
                 isLongMethod = False
                 for classMethod in classMethods:
-                    classMethodName = classMethod.name
-                    classMethodLinesOfCode = countLines(classMethod)
-                    if classMethodLinesOfCode>30:
+                    methodName = classMethod.name
+                    methodLinesOfCode = countLines(classMethod)
+                    if methodLinesOfCode>30:
                         isLongMethod = True
-                    longMethodDict[classMethodName]={'mName':classMethodName, 'mLOC':classMethodLinesOfCode,'isLongMethod': isLongMethod,'isClassMethod':'Yes', 'isLargeClass':isLargeClass, 'fName':fileToBeRead}
+                    longMethodDict[methodName]={'mName':methodName, 'mLOC':methodLinesOfCode,'isLongMethod': isLongMethod,'isClassMethod':'Yes', 'isLargeClass':isLargeClass, 'fName':fileToBeRead}
                 
-            if isinstance(content, ast.FunctionDef):
+            elif isinstance(content, ast.FunctionDef):
+                methodLinesOfCode=0
+                methodName=""
                 if checkIfRegMethod(content, fileLines):
                     methodLinesOfCode = countLines(content)
                     methodName = content.name
                     isLongMethod = False
-                    isLargeClass=False
                     if methodLinesOfCode>30:
                         isLongMethod= True
                     longMethodDict[methodName]={'mName':methodName, 'mLOC':methodLinesOfCode,'isLongMethod': isLongMethod,'isClassMethod':'No', 'isLargeClass':isLargeClass, 'fName':fileToBeRead}
@@ -84,7 +88,8 @@ def parseFile(filename):
         with tokenize.open(filename) as f:
             return ast.parse(f.read(), filename=filename)
     '''
-    with open(filename, 'r',encoding="utf-8", errors='ignore') as f:
+    #with open(filename, 'r',encoding="utf-8", errors='ignore') as f:
+    with open(filename,'r',encoding="utf-8", errors='ignore') as f:
         content = f.read()
         parsedFile = ast.parse(content)
         return parsedFile
@@ -153,7 +158,7 @@ def fileToTree(filename):
 
 def readFile(fileName):
     #fileLines=[]
-    with open(fileName, "r") as f:
+    with open(fileName,"r", encoding="utf-8", errors='ignore') as f:
         fileLines = f.readlines()
         f.close()
     return fileLines

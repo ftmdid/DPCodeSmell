@@ -176,8 +176,8 @@ class Relation(object):
                         
                     messageChainDict= smell.checkForMessageChain(fileInTheFolder)
                     if messageChainDict:
-                        for k, v in messageChainDict.items():
-                            if str(v["isMessageChain"])=="True":
+                        for k, _ in messageChainDict.items():
+                            # if str(v["isMessageChain"])=="True":
                                 rootName = fileInTheFolder.split("@")[0] 
                                 messageChainRelationAnalysisCVoutList.append([fileName.split('@')[1],fileInTheFolder,k, "Yes", str(fileIndex), str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
     
@@ -215,8 +215,6 @@ class Relation(object):
                             parallelInheritanceHierarchySmellDict=smell.checkForParallelInheritanceHiearchy(fileInTheFolder, self.projectName)
                             if parallelInheritanceHierarchySmellDict:
                                 for k, v in parallelInheritanceHierarchySmellDict.items():
-                                        #if str(v['isPIHSmell'])=="True":
-                                    #fileIndex = filesInFolder.index(fileInTheFolder)
                                     rootName = fileInTheFolder.split("@")[0] 
                                     parallelInheritanceHierarchySmellRelationAnalysisCSVoutList.append([fileName.split('@')[1], fileInTheFolder,k,str(v['dit']),str(v['noc']),str(v['isPIHSmell']), str(fileIndex),str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
                                     
@@ -255,8 +253,6 @@ class Relation(object):
                             lazyClassSmellDict=smell.checkForLazyClass(fileInTheFolder, self.projectName)
                             if lazyClassSmellDict:
                                 for k, v in lazyClassSmellDict.items():
-                                        #if str(v['isPIHSmell'])=="True":
-                                    #fileIndex = filesInFolder.index(fileInTheFolder)
                                     rootName = fileInTheFolder.split("@")[0] 
                                     lazyClassSmellRelationAnalysisCSVoutList.append([fileName.split('@')[1], fileInTheFolder,k,str(v['classMethodCount']),str(v['classAttributesCount']),str(v['dit']),str(v['isLazyClass']), str(fileIndex),str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
                                     
@@ -294,8 +290,6 @@ class Relation(object):
                             dataClassSmellDict=smell.checkForDataClass(fileInTheFolder, self.projectName)
                             if dataClassSmellDict:
                                 for k, v in dataClassSmellDict.items():
-                                        #if str(v['isPIHSmell'])=="True":
-                                    #fileIndex = filesInFolder.index(fileInTheFolder)
                                     rootName = fileInTheFolder.split("@")[0] 
                                     dataClassSmellRelationAnalysisCSVoutList.append([fileName.split('@')[1], fileInTheFolder,k,str(v['wmc']),str(v['lcom']),str(v['isDataClass']), str(fileIndex),str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
                                     
@@ -342,8 +336,6 @@ class Relation(object):
                                 refusedBequestSmellDict=smell.checkForRefusedBequest(fileInTheFolder, self.projectName)
                                 if refusedBequestSmellDict:
                                     for k, v in refusedBequestSmellDict.items():
-                                            #if str(v['isPIHSmell'])=="True":
-                                        #fileIndex = filesInFolder.index(fileInTheFolder)
                                         rootName = fileInTheFolder.split("@")[0] 
                                         refusedBequestSmellRelationAnalysisCSVoutList.append([fileName.split('@')[1], 
                                                                                               fileInTheFolder,
@@ -390,12 +382,13 @@ class Relation(object):
                       
                     for fileInTheFolder in filesInFolder:
                             fileIndex = filesInFolder.index(fileInTheFolder)
-                            longMethodSmellDict=smell.checkForLongMethod(fileInTheFolder, self.projectName)
-                            if longMethodSmellDict:
-                                for k, v in longMethodSmellDict.items():
-                                    rootName = fileInTheFolder.split("@")[0] 
-                                    longMethodSmellRelationAnalysisCSVoutList.append([fileName.split('@')[1], fileInTheFolder,k,str(v['methodLinesOfCode']),str(v['isClassMethod']),str(v['isLargeClass']),str(v['isLongMethod']), str(fileIndex),str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
-                                  
+                            if (bugFixedCommitIndexInItsFolder-fileIndex<50) and (bugFixedCommitIndexInItsFolder-fileIndex>=-2):
+                                longMethodSmellDict=smell.checkForLongMethod(fileInTheFolder, self.projectName)
+                                if longMethodSmellDict:
+                                    for k, v in longMethodSmellDict.items():
+                                        rootName = fileInTheFolder.split("@")[0] 
+                                        longMethodSmellRelationAnalysisCSVoutList.append([fileName.split('@')[1], fileInTheFolder,k,str(v['mLOC']),str(v['isClassMethod']),str(v['isLargeClass']),str(v['isLongMethod']), str(fileIndex),str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
+                                              
             longMethodSmellRelationAnalysisCSVoutList=self.checkForDuplicatesInListsofList(longMethodSmellRelationAnalysisCSVoutList)
             for analysis in longMethodSmellRelationAnalysisCSVoutList:
                 relationAnalysisLongMethodsSmellCSVout.writerow(analysis)
@@ -442,8 +435,8 @@ class Relation(object):
             #self.analyzeParallelInheritanceHiearchySmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeLazyClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeDataClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
-            self.analyzeRefusedBequestSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
-            #self.analyzeLongMethodSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
+            #self.analyzeRefusedBequestSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
+            self.analyzeLongMethodSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
                                                                       
             print("Checking for Relation between smells and defects for "+self.projectName+" is done")
         except Exception as ex:
