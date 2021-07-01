@@ -2,9 +2,8 @@ import re
 import src.runOperations as op
 import src.BadSmell as smll
 import src.parallelInheritance as inheritance
-import src.removeComments as rC
+#import src.removeComments as rC
 import src.parallelInheritance as pih
-from test.test_importlib.namespace_pkgs.project1.parent import child
 
 
 def calculateRefusedBequestSmell(fileInTheFolder, projectName):
@@ -19,7 +18,7 @@ def calculateRefusedBequestSmell(fileInTheFolder, projectName):
         count=0
         if refusedBequestSmellDict:
             for k in refusedBequestSmellDict.keys():
-                if refusedBequestSmellDict[k]:
+                if refusedBequestSmellDict[k] and 'parentClassName' in refusedBequestSmellDict[k].keys():
                     if refusedBequestSmellDict[k]['parentClassName']!="":
                         avgUsedInheritanceMembers +=refusedBequestSmellDict[k]['averageInheritanceUsageRatio']
                         count +=1
