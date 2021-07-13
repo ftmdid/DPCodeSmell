@@ -127,9 +127,6 @@ def getClassLinesForRefusedBequest(key, classes,lines):
                 if classLines:
                     sourceCode = ''.join(classLines)
                     classLines= op.removeCommentsFromString(sourceCode)
-                    #classLines = rC.remove_comments_and_docstrings(sourceCode).split('\n')
-                #     sourceCode = ''.join(classLines)
-                #     classLines  = op.removeCommentsFromString(sourceCode)
         return classLines
     except Exception as ex:
         print(ex)
@@ -163,13 +160,11 @@ def getClassAttributesForRefusedBequest(classLines):
         print(ex)
         print("Exception occurred in refusedBequestSmell.getClassAttributesForRefusedBequest")
   
-
 def getClassAttributesForWholeProject(classes,lines):
     classAttributes={}
     try:
         if classes!=None and len(classes.items())>=1:    
             for key, _ in classes.items():
-                #print(key)
                 classLines=[]
                 value = classes[key]
                 if 'start' and 'end' in value: 
@@ -177,7 +172,6 @@ def getClassAttributesForWholeProject(classes,lines):
                     source= classLines
                     if source:
                         classLines=op.removeCommentsFromString(''.join(source))
-                    #classLines= rC.remove_comments_and_docstrings(''.join(source)).split("\n")
                     classAttributes[key.lstrip()]=getClassAttributesForRefusedBequest(classLines)
               
         return classAttributes
@@ -185,10 +179,7 @@ def getClassAttributesForWholeProject(classes,lines):
         print(ex)
         print("Exception occurred in refusedBequestSmell.getClassAttributesForWholeProject")
        
-        
-        
-
-            
+                  
 def getCalledParentMethodsForRefusedBequest(parentClassKey,parentClassMethods, childrenClassLines):
     try:
         calledParentMethodsList=[]
@@ -219,8 +210,6 @@ def getUsedInheritanceMembersForRefusedBequest(childClassAttributes,parentClassA
     except Exception as ex:
         print(ex)
         print("Exception occurred in refusedBequestSmell.getUsedInheritanceMembersForRefusedBequest")
-  
-        
          
 def calculateUsedInheritanceMembersForRefusedBequest(calledParentMethodsList,usedInheritanceMembersDict):
     try:
@@ -231,10 +220,7 @@ def calculateUsedInheritanceMembersForRefusedBequest(calledParentMethodsList,use
     except Exception as ex:
         print(ex)
         print("Exception occurred in refusedBequestSmell.calculateUsedInheritanceMembersForRefusedBequest")
-  
-    
-    
-    
+      
 def calculateTotalNumberOfInheritanceMembersForRefusedBequest(parentClassAttributes):
     try:
         totalNumberOfInheritanceMembers=0
@@ -249,19 +235,18 @@ def calculateTotalNumberOfInheritanceMembersForRefusedBequest(parentClassAttribu
     
 def getCalledParentMethodsWithSelfAndClsForRefusedBequest(parentClassKey, parentClassAttributes, childClassLines):
     try:
-        print(parentClassKey)
-        calledParentMethodsWithSelfKeyword = getCalledParentMethodsForRefusedBequest(parentClassKey, parentClassAttributes['classMethodsWithSelf'], childClassLines)
-        calledParentMethodsWithClsKeyword = getCalledParentMethodsForRefusedBequest(parentClassKey[0], parentClassAttributes['classMethodsWithCls'], childClassLines)
         calledParentMethods= []
-        calledParentMethods = calledParentMethodsWithSelfKeyword + calledParentMethodsWithClsKeyword
+        if parentClassAttributes:
+            calledParentMethodsWithSelfKeyword = getCalledParentMethodsForRefusedBequest(parentClassKey, parentClassAttributes['classMethodsWithSelf'], childClassLines)
+            calledParentMethodsWithClsKeyword = getCalledParentMethodsForRefusedBequest(parentClassKey[0], parentClassAttributes['classMethodsWithCls'], childClassLines)
+            
+            calledParentMethods = calledParentMethodsWithSelfKeyword + calledParentMethodsWithClsKeyword
         return calledParentMethods
     except Exception as ex:
         print(ex)
         print("Exception occurred in refusedBequestSmell.getCalledParentMethodsWithSelfAndClsForRefusedBequest")
        
-    
 
-    
 def calculateAUIRForRefusedBequest(parentClassKey, childClassAttributes, parentClassAttributes, calledParentMethods):
     try:
         totalNumberOfUsedInheritanceMembers=0
@@ -298,7 +283,6 @@ def calculateRefusedBequest(fileName):
             
             lines=[]
             lines = f.readlines()
-            #lines = rC.remove_comments_and_docstrings(fileLines).split('\n')
          
             parentsDict={}
             parentsDict= inheritance.getParentsOfAClassesInACommit(classLines)
@@ -320,14 +304,6 @@ def calculateRefusedBequest(fileName):
                     parentClassAttributes={}
                     calledParentMethods=[]
                     print("child class key is: "+key)
-                    if key=="TextFormatsTest":
-                        print("buradayim")
-                    # if key=="EM":
-                    #     print("buradayim")
-                    # if key=="_PartitionIterator":
-                    #     print("buradayim")
-                    # if key=="directive":
-                    #     print("buradayim")
                     childClassLines = getClassLinesForRefusedBequest(key,classes, lines)
                     if key in classesAttributesDict.keys():
                         childClassAttributes=classesAttributesDict[key.strip()]
@@ -339,8 +315,6 @@ def calculateRefusedBequest(fileName):
                     
                     refusedBequestDict[key]={}  
                     if len(parentClassKey)==1 and parentClassKey[0]!='' and parentClassKey[0]!='object' : 
-                        if parentClassKey[0]=="TensorFlowTestCase":
-                            print("buradayim")
            
                         print("parent of child is "+parentClassKey[0])
                         parentClassKey=checkIfParentNamedAsDifferentlyForRefusedBequest(parentClassKey[0], parentClassKey,lines)
@@ -348,15 +322,15 @@ def calculateRefusedBequest(fileName):
                         if checkIfParentClassExistInProjectForRefusedBequest(parentClassKey[0], lines):
                             print(parentClassKey[0])
                             if parentClassKey[0] in classesAttributesDict.keys():
-                                print("parent in line 338")
                                 parentClassAttributes = classesAttributesDict[parentClassKey[0].lstrip()]
                             else:
-                                print("parent in line 341")
                                 parentClassLines = getClassLinesForRefusedBequest(parentClassKey[0], classes, lines)
                                 parentClassAttributes = getClassAttributesForRefusedBequest(parentClassLines)
+                           
                             print("parent class attributes is calculated. ") 
                             calledParentMethods = getCalledParentMethodsWithSelfAndClsForRefusedBequest(parentClassKey[0], parentClassAttributes, childClassLines)
                             print("called parent methods are calculated. ")    
+                            
                             refusedBequestDict[key]=calculateAUIRForRefusedBequest(parentClassKey[0], childClassAttributes, parentClassAttributes, calledParentMethods) 
                             refusedBequestDict[key]['dit']=dit 
                         

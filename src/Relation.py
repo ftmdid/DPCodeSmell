@@ -328,7 +328,7 @@ class Relation(object):
                     for fileInTheFolder in filesInFolder:
                         
                             fileIndex = filesInFolder.index(fileInTheFolder)
-                            if (bugFixedCommitIndexInItsFolder-fileIndex<2) and (bugFixedCommitIndexInItsFolder-fileIndex>=-1):
+                            if (bugFixedCommitIndexInItsFolder-fileIndex<=50) and (bugFixedCommitIndexInItsFolder-fileIndex>=-1):
                                 print("\n")
                                 print("BugFixedCommit index is "+str(bugFixedCommitIndexInItsFolder))
                                 print("File index is "+str(fileIndex))
@@ -382,12 +382,12 @@ class Relation(object):
                       
                     for fileInTheFolder in filesInFolder:
                             fileIndex = filesInFolder.index(fileInTheFolder)
-                            if (bugFixedCommitIndexInItsFolder-fileIndex<50) and (bugFixedCommitIndexInItsFolder-fileIndex>=-2):
-                                longMethodSmellDict=smell.checkForLongMethod(fileInTheFolder, self.projectName)
-                                if longMethodSmellDict:
-                                    for k, v in longMethodSmellDict.items():
-                                        rootName = fileInTheFolder.split("@")[0] 
-                                        longMethodSmellRelationAnalysisCSVoutList.append([fileName.split('@')[1], fileInTheFolder,k,str(v['mLOC']),str(v['isClassMethod']),str(v['isLargeClass']),str(v['isLongMethod']), str(fileIndex),str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
+                            # if (bugFixedCommitIndexInItsFolder-fileIndex<50) and (bugFixedCommitIndexInItsFolder-fileIndex>=-2):
+                            longMethodSmellDict=smell.checkForLongMethod(fileInTheFolder, self.projectName)
+                            if longMethodSmellDict:
+                                for k, v in longMethodSmellDict.items():
+                                    rootName = fileInTheFolder.split("@")[0] 
+                                    longMethodSmellRelationAnalysisCSVoutList.append([fileName.split('@')[1], fileInTheFolder,k,str(v['mLOC']),str(v['isClassMethod']),str(v['isLargeClass']),str(v['isLongMethod']), str(fileIndex),str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
                                               
             longMethodSmellRelationAnalysisCSVoutList=self.checkForDuplicatesInListsofList(longMethodSmellRelationAnalysisCSVoutList)
             for analysis in longMethodSmellRelationAnalysisCSVoutList:
@@ -435,8 +435,8 @@ class Relation(object):
             #self.analyzeParallelInheritanceHiearchySmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeLazyClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeDataClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
-            #self.analyzeRefusedBequestSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
-            self.analyzeLongMethodSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
+            self.analyzeRefusedBequestSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
+            #self.analyzeLongMethodSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
                                                                       
             print("Checking for Relation between smells and defects for "+self.projectName+" is done")
         except Exception as ex:
