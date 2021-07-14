@@ -7,15 +7,15 @@ Created on Mar 27, 2019
 import re
 import src.runOperations as op
 # import src.pythonMethods as pyMethods
-import src.parallelInheritance as pih
-# from radon.complexity import cc_rank, cc_visit
-import src.smell.refusedBequestSmell as requestBequest
+
+import src.smell.longParameterListSmell as longParameterList
+import src.smell.refusedBequestSmell as refusedBequest
 import src.smell.dataClassSmell as dataClass
 import src.smell.lazyClassSmell as lazyClass
-import src.smell.longParameterListSmell as longParameterList
 import src.smell.largeClassSmell as largeClass
 import src.smell.messageChainSmell as messageChain
 import src.smell.longMethodSmell as longMethod
+import src.smell.parallelInheritance as pih
 
 
 
@@ -351,7 +351,7 @@ class BadSmell(object):
             
     def checkForRefusedBequest(self,fileInTheFolder, projectName):
         try:
-            refusedBequestList=requestBequest.calculateRefusedBequestSmell(fileInTheFolder, projectName)
+            refusedBequestList=refusedBequest.calculateRefusedBequestSmell(fileInTheFolder, projectName)
             return refusedBequestList
         except Exception as ex:
             print(ex)
