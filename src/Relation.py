@@ -430,12 +430,12 @@ class Relation(object):
                 filesListWithBugFixedCommitsDict[each] = self.checkFilesWithinRoot(rootName)
              
             #self.analyzeLargeClassSmell(filesListWithBugFixedCommitsDict, self.projectName,projectPath,smell)
-            #self.analyzeLongParameterClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
+            self.analyzeLongParameterClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeMessageChainsSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeParallelInheritanceHiearchySmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeLazyClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeDataClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
-            self.analyzeRefusedBequestSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
+            #self.analyzeRefusedBequestSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeLongMethodSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
                                                                       
             print("Checking for Relation between smells and defects for "+self.projectName+" is done")

@@ -9,13 +9,13 @@ import src.runOperations as op
 # import src.pythonMethods as pyMethods
 import src.parallelInheritance as pih
 # from radon.complexity import cc_rank, cc_visit
-import src.refusedBequestSmell as requestBequest
-import src.dataClassSmell as dataClass
-import src.lazyClassSmell as lazyClass
-import src.longParameterListSmell as longParameterList
-import src.largeClassSmell as largeClass
-import src.messageChainSmell as messageChain
-import src.longMethodSmell as longMethod
+import src.smell.refusedBequestSmell as requestBequest
+import src.smell.dataClassSmell as dataClass
+import src.smell.lazyClassSmell as lazyClass
+import src.smell.longParameterListSmell as longParameterList
+import src.smell.largeClassSmell as largeClass
+import src.smell.messageChainSmell as messageChain
+import src.smell.longMethodSmell as longMethod
 
 
 
