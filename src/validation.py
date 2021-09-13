@@ -8,13 +8,13 @@ Created on Sep 15, 2020
 import os
 import src.BadSmell as BS
 import csv
-import src.parallelInheritance as inheritance
-import src.refusedBequestSmell as rBequest
-import src.helper as help
-import src.longMethodSmell as lMethod
+import src.smell.parallelInheritance as inheritance
+import src.smell.refusedBequestSmell as rBequest
+import src.helper as helper
+import src.smell.longMethodSmell as lMethod
 import src.smell.featureEnvySmell as fEnvy
 import ast
-from nltk.tbl import feature
+
 
 #import src.defectAnalysis as defectAnalysis
 
@@ -227,13 +227,38 @@ def getLongMethodsInProject(validationFolder, projectPath):
                                                   
                                                       ])
   
-  
+def getFeatureEnvyInProject(validationFolder, projectPath):
+    
+    featureEnvyValidationForTool = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation/ToolValidation/FeatureEnvyValidationForTool.csv'
+    featureEnvyForToolCSVfileOut = csv.writer(open(os.path.join(validationFolder, featureEnvyValidationForTool), 'w+'))
+    featureEnvyForToolCSVfileOut.writerow(['Class Name', 'NIC','AID' ,'ALD', 'Total Calls','isFeatureEnvy', 'File Name'])
+       
+        
+    featureEnvyDict={}
+    for subdirs, _, files in os.walk(projectPath):
+        for filename in files:
+            if not (filename.startswith('test')) and filename.endswith(".py"):
+    
+                fileToBeRead = os.path.join(subdirs, filename)
+                print(fileToBeRead)
+                featureEnvyDict.update(fEnvy.calculateFeatureEnvy(fileToBeRead))
+                    
+    for k, _ in featureEnvyDict.items():
+        featureEnvyForToolCSVfileOut.writerow([k, 
+                                               featureEnvyDict[k]['NIC'], 
+                                               featureEnvyDict[k]['AID'],
+                                               featureEnvyDict[k]['ALD'], 
+                                               featureEnvyDict[k]['totalCalls'], 
+                                               featureEnvyDict[k]['isFeatureEnvy'],
+                                               featureEnvyDict[k]['fName']
+                                                      
+                                                          ]) 
     
 if __name__ == '__main__':
     
     projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Projects/numpy')
     projectName="numpy"
-    pythonFiles= help.getAllPythonFilesInProject(projectName)
+    pythonFiles= helper.getAllPythonFilesInProject(projectName)
     
     #print("There are "+str(len(pythonFiles)) + " in total")
     
@@ -259,48 +284,8 @@ if __name__ == '__main__':
     
     #getLongMethodsInProject(validationFolder, projectPath)
     
-    featureEnvyValidationForTool = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation/ToolValidation/FeatureEnvyValidationForTool.csv'
-    featureEnvyForToolCSVfileOut = csv.writer(open(os.path.join(validationFolder, featureEnvyValidationForTool), 'w+'))
-    featureEnvyForToolCSVfileOut.writerow(['Class Name', 'NIC','AID' ,'ALD', 'Total Calls','isFeatureEnvy', 'File Name'])
-   
-    
-    featureEnvyDict={}
-    for subdirs, _, files in os.walk(projectPath):
-        for filename in files:
-            if not (filename.startswith('test')) and filename.endswith(".py"):
+    getFeatureEnvyInProject(validationFolder, projectPath)
 
-                fileToBeRead = os.path.join(subdirs, filename)
-                methodsOfFile = fEnvy.getMethodsInFile(fileToBeRead)
-                fileLines = lMethod.readFile(fileToBeRead)
-                parsedFile =  lMethod.parseFile(fileToBeRead)
-                parsedFileContent = list(ast.walk(parsedFile))
-                NIC=0
-                AID=0
-                ALD=0
-                totalCalls=0
-                for content in parsedFileContent:
-                    if isinstance(content, ast.ClassDef):
-                        classData=fEnvy.visitClassNode(content, methodsOfFile)
-                        className=content.name
-                        isFeatureEnvy=False
-                        if classData:
-                            NIC= classData[0]
-                            AID= len(classData[1])
-                            ALD= len(classData[2])
-                            totalCalls= len(classData[3])
-                            isFeatureEnvy= ((AID>4) and (AID<=totalCalls) and (ALD>3) and (NIC<3))
-                        featureEnvyDict[className]={'NIC':NIC, 'AID':AID, 'ALD':ALD, 'totalCalls':totalCalls, 'isFeatureEnvy':isFeatureEnvy, 'fName':fileToBeRead}    
-                     
-    for k, _ in featureEnvyDict.items():
-        featureEnvyForToolCSVfileOut.writerow([k, 
-                                              featureEnvyDict[k]['NIC'], 
-                                              featureEnvyDict[k]['AID'],
-                                              featureEnvyDict[k]['ALD'], 
-                                              featureEnvyDict[k]['totalCalls'], 
-                                              featureEnvyDict[k]['isFeatureEnvy'],
-                                              featureEnvyDict[k]['fName']
-                                                  
-                                                      ])
   
          
     

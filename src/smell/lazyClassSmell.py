@@ -5,7 +5,7 @@ Created on May 4, 2021
 '''
 import src.runOperations as op
 import src.BadSmell as smll
-import src.parallelInheritance as pih
+import src.smell.parallelInheritance as pih
 
 def calculateLazyClassSmell(fileInTheFolder, projectName):
     smell = smll.BadSmell()

@@ -1,9 +1,8 @@
 import re
 import src.runOperations as op
 import src.BadSmell as smll
-import src.parallelInheritance as inheritance
-#import src.removeComments as rC
-import src.parallelInheritance as pih
+import src.smell.parallelInheritance as inheritance
+
 
 
 def calculateRefusedBequestSmell(fileInTheFolder, projectName):
@@ -12,7 +11,7 @@ def calculateRefusedBequestSmell(fileInTheFolder, projectName):
         smell = smll.BadSmell()
         commitID=op.find_between(fileInTheFolder, "@", "@")
         refusedBequestSmellDict={}
-        pythonFile=pih.downloadProjectInASpecificCommit(projectName, commitID)
+        pythonFile=inheritance.downloadProjectInASpecificCommit(projectName, commitID)
         refusedBequestSmellDict=calculateRefusedBequest(pythonFile)
         avgUsedInheritanceMembers=0
         count=0

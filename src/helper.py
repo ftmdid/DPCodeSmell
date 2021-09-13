@@ -10,7 +10,9 @@ from os import walk
 from os.path import join 
 
 
-
+def removeEmptyStringsFromListOfStrings(pythonList):
+    pythonList = [x for x in pythonList if x]
+    return pythonList
 
 def countFilesFolderForValidation():
     validationFolder = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation'
