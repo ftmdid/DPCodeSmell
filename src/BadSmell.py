@@ -16,6 +16,7 @@ import src.smell.largeClassSmell as largeClass
 import src.smell.messageChainSmell as messageChain
 import src.smell.longMethodSmell as longMethod
 import src.smell.parallelInheritance as pih
+import src.smell.featureEnvySmell as fEnvy
 
 
 
@@ -306,8 +307,8 @@ class BadSmell(object):
             return longParameterList
         except Exception as ex:
             print(ex)
-            print("Exception occurrred in BadSmell.checkLongParameter List in :"+fileName)
-       
+            print("Exception occurrred in BadSmell.checkLongParameterList in :"+fileName)
+        
     def checkForParallelInheritanceHiearchy(self,fileInTheFolder, projectName):
         commitID=op.find_between(fileInTheFolder, "@", "@")
         pythonFile=pih.downloadProjectInASpecificCommit(projectName, commitID)
@@ -364,5 +365,13 @@ class BadSmell(object):
         except Exception as ex:
             print(ex)
             print("Exception occurrred in BadSmell.checkForRefusedBequest in :"+fileInTheFolder)
+            
+    def checkForFeatureEnvy(self,fileName, projectName):
+        try:
+            featureEnvyList=fEnvy.calculateFeatureEnvy(fileName, projectName)
+            return featureEnvyList
+        except Exception as ex:
+            print(ex)
+            print("Exception occurrred in BadSmell.checkForFeatureEnvy in :"+fileName)
   
     

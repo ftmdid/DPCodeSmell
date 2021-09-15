@@ -7,8 +7,6 @@ Created on May 18, 2018
 
 import re
 
-
-
 def getCommonData(list1, list2): 
     """ Returns the similiarities between two lists"""
     similiarities = []

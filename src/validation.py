@@ -240,7 +240,6 @@ def getFeatureEnvyInProject(validationFolder, projectPath):
             if not (filename.startswith('test')) and filename.endswith(".py"):
     
                 fileToBeRead = os.path.join(subdirs, filename)
-                print(fileToBeRead)
                 featureEnvyDict.update(fEnvy.calculateFeatureEnvy(fileToBeRead))
                     
     for k, _ in featureEnvyDict.items():
@@ -284,7 +283,7 @@ if __name__ == '__main__':
     
     #getLongMethodsInProject(validationFolder, projectPath)
     
-    getFeatureEnvyInProject(validationFolder, projectPath)
+    #getFeatureEnvyInProject(validationFolder, projectPath)
 
   
          

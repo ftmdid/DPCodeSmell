@@ -397,6 +397,47 @@ class Relation(object):
         except Exception as ex:
             print(ex)
             print("Exception occurred in Relation.analyzeLongMethodSmell() method") 
+    
+    def analyzeFeatureEnvySmell(self,filesListWithBugFixedCommitsDict, projectName,projectPath,smell):  
+        try:
+            print("Started on feature envy bad smell analysis for "+projectName)       
+            relationAnalysisFeatureEnvySmellCSVfile = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/BadSmells/FeatureEnvy/FeatureEnvySmellRelationAnalysisOf'+self.projectName+'.csv'
+            relationAnalysisFeatureEnvySmellCSVout = csv.writer(open(os.path.join(projectPath, relationAnalysisFeatureEnvySmellCSVfile), 'w+'))
+            relationAnalysisFeatureEnvySmellCSVout.writerow(('CommitID', 'File Name','Class Name' ,'is Feature Envy', 'Index of File In Folder','Index of Bug Fixed Commit In File', "Number of Files In Folder", "Folder"))
+               
+            isFeatureEnvySmellDict={}
+            fileIndex = 0
+            isFeatureEnvySmellRelationAnalysisCSVoutList=[]
+    
+            #for fileName, filesInRootOfFileName in filesListWithBugFixedCommitsDict.items():  # key=fileName, value=filesInRootOfFileName
+            if filesListWithBugFixedCommitsDict:
+
+                for fileName in filesListWithBugFixedCommitsDict.keys():  # key=fileName, value=filesInRootOfFileName
+                    filesInFolder=filesListWithBugFixedCommitsDict[fileName]
+                    bugFixedCommitFileDir=  os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+self.projectName.lower()+"/"+ fileName.split("@")[0] +"/"+fileName
+                    bugFixedCommitIndexInItsFolder=filesInFolder.index(bugFixedCommitFileDir)
+                      
+                    for fileInTheFolder in filesInFolder:
+                            fileIndex = filesInFolder.index(fileInTheFolder)
+                            #if (bugFixedCommitIndexInItsFolder-fileIndex<50) and (bugFixedCommitIndexInItsFolder-fileIndex>=-2):
+                            print("\n")
+                            print("BugFixedCommit index is "+str(bugFixedCommitIndexInItsFolder))
+                            print("File index is "+str(fileIndex))
+                            print("filename is "+str(fileInTheFolder))
+                            isFeatureEnvySmellDict=smell.checkForFeatureEnvy(fileInTheFolder, self.projectName)
+                            if isFeatureEnvySmellDict:
+                                for k, v in isFeatureEnvySmellDict.items():
+                                    rootName = fileInTheFolder.split("@")[0] 
+                                    isFeatureEnvySmellRelationAnalysisCSVoutList.append([fileName.split('@')[1], fileInTheFolder,k,str(v['isFeatureEnvy']),str(fileIndex),str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
+                                              
+            isFeatureEnvySmellRelationAnalysisCSVoutList=self.checkForDuplicatesInListsofList(isFeatureEnvySmellRelationAnalysisCSVoutList)
+            for analysis in isFeatureEnvySmellRelationAnalysisCSVoutList:
+                relationAnalysisFeatureEnvySmellCSVout.writerow(analysis)
+            print("Feature Envy bad smell analysis for "+projectName +" is done!")
+                
+        except Exception as ex:
+            print(ex)
+            print("Exception occurred in Relation.analyzeFeatureEnvySmell() method") 
              
     def checkForRelation(self):
         try:
@@ -430,14 +471,16 @@ class Relation(object):
                 filesListWithBugFixedCommitsDict[each] = self.checkFilesWithinRoot(rootName)
              
             #self.analyzeLargeClassSmell(filesListWithBugFixedCommitsDict, self.projectName,projectPath,smell)
-            self.analyzeLongParameterClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
+            #self.analyzeLongParameterClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeMessageChainsSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeParallelInheritanceHiearchySmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeLazyClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeDataClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeRefusedBequestSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeLongMethodSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
-                                                                      
+            self.analyzeFeatureEnvySmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
+            
+                                                                    
             print("Checking for Relation between smells and defects for "+self.projectName+" is done")
         except Exception as ex:
             print(ex)
