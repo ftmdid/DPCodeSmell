@@ -245,7 +245,7 @@ class FileOperations(object):
         
     def createCopyOfModifiedPythonFilesInFolder(self, filesList, projectName):
         
-        repoPath= os.path.join(os.path.dirname(os.path.dirname(__file__)), 'DemoProjects/'+projectName)
+        repoPath= os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Projects/'+projectName)
         repo = Repo(repoPath)
         commitsList  = repo.iter_commits()
         next(commitsList)

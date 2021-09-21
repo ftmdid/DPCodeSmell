@@ -1,6 +1,7 @@
 '''
 Created on Sep 15, 2020
 
+
 @author: neda
 '''
 
@@ -14,6 +15,8 @@ import src.helper as helper
 import src.smell.longMethodSmell as lMethod
 import src.smell.featureEnvySmell as fEnvy
 import ast
+import src.smell.shotgunSurgerySmell as sSurgery
+from git import repo
 
 
 #import src.defectAnalysis as defectAnalysis
@@ -284,8 +287,95 @@ if __name__ == '__main__':
     #getLongMethodsInProject(validationFolder, projectPath)
     
     #getFeatureEnvyInProject(validationFolder, projectPath)
+    
+    
+    #import src.BadSmell as BS
+    from src.runOperations import find_between 
+    import src.FileOperations as FO
+    import src.Relation as RL
+    import numpy as np
+    projectName= "keras"
+    smell=BS.BadSmell()
+    fileOp= FO.FileOperations(projectName)
+    relat= RL.Relation(projectName)
+    from git import Repo
+    
+    
+    repoPath= os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Projects/'+projectName)
+    repo = Repo(repoPath)
+    commits_touching_path = list(repo.iter_commits(paths=repoPath))
+    
 
-  
+    projectPath = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/SemanticVsSyntacticAnalysis'
+    csvfile = 'SemanticVsSyntacticAnalysisOf'+projectName+'.csv'
+    '''
+                buggedCommits=['Issue ID', 'Issue Body','issue User', 'commitID','Commit Subject',"Semantic Confidence Level","Syntactic Confidence Level"]
+    '''
+             
+    buggedCommitsList = fileOp.readCSVFile(os.path.join(projectPath, csvfile))
+               
+    folderDirs = os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+projectName.lower()
+    modifiedFileListDict =relat.getModifiedFilesFromProject(folderDirs)  # key is the file itself and the value is the commit id on the file name,  # 14885 files modified
+ 
+    commitIDList = relat.getcommitIDsFromSyntacticvsSemanticAnalysisFile(buggedCommitsList)  # this has commitID on the analysis csv file, # 2862 commits
+    commitIDList = list(set(commitIDList))
+             
+    possibleChoices = []  
+    possibleChoices=np.array([file for file, commitIDInFile in modifiedFileListDict.items() for commitID in commitIDList if commitID in commitIDInFile])
+        
+                 
+    possibleChoices = list(set(possibleChoices))  
+          
+                 
+    filesListWithBugFixedCommitsDict = {} #337 files that have bug fixed commit IDs
+    for each in possibleChoices:
+        rootName = os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+relat.projectName.lower()+"/"+ each.split("@")[0]
+        filesListWithBugFixedCommitsDict[each] = relat.checkFilesWithinRoot(rootName)
+        for fileName in filesListWithBugFixedCommitsDict.keys():  # key=fileName, value=filesInRootOfFileName
+            filesInFolder=filesListWithBugFixedCommitsDict[fileName]
+            bugFixedCommitFileDir=  os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+projectName.lower()+"/"+ fileName.split("@")[0] +"/"+fileName
+            bugFixedCommitIndexInItsFolder=filesInFolder.index(bugFixedCommitFileDir)
+                   
+            for fileInTheFolder in filesInFolder:
+                commits=[]
+                fileIndex = filesInFolder.index(fileInTheFolder)
+                if fileIndex== bugFixedCommitIndexInItsFolder -1:
+                    bugFixedCommitID = find_between(bugFixedCommitFileDir, "@", "@")
+                    fileCommitID = find_between(fileInTheFolder, "@", "@")
+                    print(fileIndex, bugFixedCommitIndexInItsFolder)
+                 
+                    
+                    differs = repo.git.diff(fileCommitID, bugFixedCommitID)
+                    #print(differs)
+                    
+                    
+                    #get the diff between two hashes in gitpython
+                    print("fileCommitID:" + fileCommitID)
+                    sourceCommit= repo.commit(fileCommitID)
+                    print("bugFixedCommitId:"+bugFixedCommitID)
+                    targetCommit = repo.commit(bugFixedCommitID)
+                    git_diff = sourceCommit.diff( targetCommit )
+                    changedFiles = [ f.b_path for f in git_diff ]
+                    #print( "\n".join( changedFiles ))
+                    list1=[]
+                    list2=[]
+                    for each in changedFiles:
+                        if each.endswith('.py'):
+                            print(each)
+                            str1= repo.git.show('%s:%s' % (fileCommitID, each))
+                            list1= str1.split('\n')
+                            str2= repo.git.show('%s:%s' % (bugFixedCommitID, each))
+                            list2=str2.split('\n')
+
+                            
+                            print(list1==list2)
+                            print(list(set(list1) - set(list2)))
+                    
+                            s = set(list2)
+                            temp3 = [x for x in list1 if x not in s]
+                            print(temp3)
+                    
+
          
     
     print("Done with validation!")

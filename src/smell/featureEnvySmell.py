@@ -43,7 +43,7 @@ def calculateFeatureEnvy(fileName, projectName):
 def visitClassNode(content, methodsOfFile,classOfFile, textOfFile):
     methodsOfClass= getClassMethods(content)
     if hasattr(content, 'bases') and len(content.bases)>0:
-        
+        NIC=[]
         NIC=len(content.bases)
         NIC +=getImportStatementsInClass(content)
         if NIC>0:
@@ -252,6 +252,6 @@ def visitFunctionNodeForClassWoutInheritance(node,methodsOfClass):
                             totalCalls.append(functionName)
     totalCalls = helperMethods.removeEmptyStringsFromListOfStrings(totalCalls)
     localCalls = helperMethods.removeEmptyStringsFromListOfStrings(localCalls)
-    foreignCalls = helperMethods.removeEmptyStringsFromListOfStrings(foreignCalls)
+    #foreignCalls = helperMethods.removeEmptyStringsFromListOfStrings(foreignCalls)
     return [foreignCalls, localCalls,totalCalls]  
         

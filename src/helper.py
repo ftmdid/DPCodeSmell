@@ -65,7 +65,7 @@ def getTotalLinesInAProject(projectName):
         
 def getAllPythonFilesInProject(projectName):
     pythonFiles = []
-    projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'DemoProjects/'+projectName)
+    projectPath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Projects/'+projectName)
     for path, _, files in walk(projectPath):
         for name in files:
             if not name.lower().startswith('test'):
