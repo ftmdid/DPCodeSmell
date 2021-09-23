@@ -438,6 +438,44 @@ class Relation(object):
         except Exception as ex:
             print(ex)
             print("Exception occurred in Relation.analyzeFeatureEnvySmell() method") 
+            
+            
+    def analyzeShotgunSurgerySmell(self,filesListWithBugFixedCommitsDict, projectName,projectPath,smell):  
+        try:
+            print("Started on shotgun surgery bad smell analysis for "+projectName)       
+            relationAnalysisShotgunSurgerySmellCSVfile = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/BadSmells/ShotgunSurgery/ShotgunSurgerySmellRelationAnalysisOf'+self.projectName+'.csv'
+            relationAnalysisShotgunSurgerySmellCSVout = csv.writer(open(os.path.join(projectPath, relationAnalysisShotgunSurgerySmellCSVfile), 'w+'))
+            relationAnalysisShotgunSurgerySmellCSVout.writerow(('CommitID', 'File Name','Method Name' ,'isShotgunSurgery', 'Index of File In Folder','Index of Bug Fixed Commit In File', "Number of Files In Folder", "Folder"))
+               
+            isShotgunSurgerySmellDict={}
+            fileIndex = 0
+            shotgunSurgerySmellRelationAnalysisCSVoutList=[]
+    
+            #for fileName, filesInRootOfFileName in filesListWithBugFixedCommitsDict.items():  # key=fileName, value=filesInRootOfFileName
+            if filesListWithBugFixedCommitsDict:
+
+                for fileName in filesListWithBugFixedCommitsDict.keys():  # key=fileName, value=filesInRootOfFileName
+                    filesInFolder=filesListWithBugFixedCommitsDict[fileName]
+                    bugFixedCommitFileDir=  os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+self.projectName.lower()+"/"+ fileName.split("@")[0] +"/"+fileName
+                    bugFixedCommitIndexInItsFolder=filesInFolder.index(bugFixedCommitFileDir)
+                      
+                    for fileInTheFolder in filesInFolder:
+                            fileIndex = filesInFolder.index(fileInTheFolder)
+                            
+                            isShotgunSurgerySmellDict=smell.checkForShotgunSurgery(fileInTheFolder, self.projectName)
+                            if isShotgunSurgerySmellDict:
+                                for k, v in isShotgunSurgerySmellDict.items():
+                                    rootName = fileInTheFolder.split("@")[0] 
+                                    shotgunSurgerySmellRelationAnalysisCSVoutList.append([fileName.split('@')[1], fileInTheFolder,k,str(v['isFeatureEnvy']),str(fileIndex),str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
+                                              
+            shotgunSurgerySmellRelationAnalysisCSVoutList=self.checkForDuplicatesInListsofList(shotgunSurgerySmellRelationAnalysisCSVoutList)
+            for analysis in shotgunSurgerySmellRelationAnalysisCSVoutList:
+                relationAnalysisShotgunSurgerySmellCSVout.writerow(analysis)
+            print("Shotgun Surgery bad smell analysis for "+projectName +" is done!")
+                
+        except Exception as ex:
+            print(ex)
+            print("Exception occurred in Relation.analyzeShotgunSurgerySmell() method") 
              
     def checkForRelation(self):
         try:
@@ -478,7 +516,8 @@ class Relation(object):
             #self.analyzeDataClassSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeRefusedBequestSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             #self.analyzeLongMethodSmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
-            self.analyzeFeatureEnvySmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
+            #self.analyzeFeatureEnvySmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
+            self.analyzeShotgunSurgerySmell(filesListWithBugFixedCommitsDict, self.projectName, projectPath, smell)
             
                                                                     
             print("Checking for Relation between smells and defects for "+self.projectName+" is done")

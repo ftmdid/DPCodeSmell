@@ -17,6 +17,7 @@ import src.smell.messageChainSmell as messageChain
 import src.smell.longMethodSmell as longMethod
 import src.smell.parallelInheritance as pih
 import src.smell.featureEnvySmell as fEnvy
+import src.smell.shotgunSurgerySmell as sSurgery
 
 
 
@@ -370,6 +371,14 @@ class BadSmell(object):
         try:
             featureEnvyList=fEnvy.calculateFeatureEnvy(fileName, projectName)
             return featureEnvyList
+        except Exception as ex:
+            print(ex)
+            print("Exception occurrred in BadSmell.checkForFeatureEnvy in :"+fileName)
+        
+    def checkForShotgunSurgery(self,fileName, projectName):
+        try:
+            shotgunSurgeryList=sSurgery.calculateShotgunSurgery(fileName, projectName)
+            return shotgunSurgeryList
         except Exception as ex:
             print(ex)
             print("Exception occurrred in BadSmell.checkForFeatureEnvy in :"+fileName)

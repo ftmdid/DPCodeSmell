@@ -77,13 +77,13 @@ if __name__ == '__main__':
     relation2.checkForRelation() 
     print("Finished bad smell analysis on "+projectName)
     '''
-    '''
+    #'''
     projectName="keras"   
     print("Started bad smell analysis on "+projectName)
     relation4=relation.Relation(projectName)   
     relation4.checkForRelation()  
     print("Finished bad smell analysis on "+projectName) 
-    '''
+    #'''
     '''
     projectName="models"   
     print("Started bad smell analysis on "+projectName)

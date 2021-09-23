@@ -7,8 +7,45 @@ import ast
 import src.smell.longMethodSmell as lMethod
 import src.smell.featureEnvySmell as fEnvy
 import src.helper as helperMethods
+import src.smell.parallelInheritance as inheritance
+from src.runOperations import find_between
 
-def calculateShotgunSurgery(fileName, projectName):
+
+
+def calculateShotgunSurgery(fileInTheFolder, projectName):
+    #fileCommitID = find_between(fileInTheFolder, "@", "@")
+    #filePath= inheritance.downloadProjectInASpecificCommit(projectName, fileCommitID) # project that is modified before bug fix commit
+    #foreignClassCallOfEachClassInAProject=calculateForeignMethodsOfClasses(filePath, projectName)
+    foreignClassCallOfEachClassInAProject=calculateForeignMethodsOfClasses(fileInTheFolder, projectName)
+    parsedFile =  lMethod.parseFile(fileInTheFolder)
+    parsedFileContent = list(ast.walk(parsedFile))
+    methodResultDict= {}
+    classMethodResultDict={}
+    for content in parsedFileContent:
+        if isinstance(content, ast.ClassDef):
+            methodResult=[]
+            for childNode in list(ast.walk(content)):
+                if isinstance(childNode, ast.FunctionDef): 
+                    searchKeyword = content.name +"."+childNode.name
+                    methodResult = searchForMethod(searchKeyword, foreignClassCallOfEachClassInAProject)
+                    methodResultDict[childNode.name]= {'CM':methodResult[0],'CC':methodResult[1]}
+            classMethodResultDict[content.name]=methodResultDict
+    return classMethodResultDict
+    
+                   
+def searchForMethod(searchKeyword, dictToBeSearched):
+    CM=[]
+    CC=[]
+    for className, value in dictToBeSearched.items():
+        for methodName, v in value.items():
+            if searchKeyword in v:
+                CM.append(methodName)
+                CC.append(className)
+    return [CM,CC]
+          
+
+
+def calculateForeignMethodsOfClasses(fileName, projectName):
     try:
         #methodsOfFile = fEnvy.getMethodsInFile(fileName)
         #classOfFile = fEnvy.getClassesInFile(fileName)
@@ -22,13 +59,13 @@ def calculateShotgunSurgery(fileName, projectName):
             if isinstance(content, ast.ClassDef):
                 classData=visitClassNode(content, methodsOfFile,classOfFile, textOfFile) # returns NIC and foreign calls
                 classDict[content.name]=classData[1] 
-        #return classDict  
+        return classDict  
         
-        for content in parsedFileContent:
-            if isinstance(content, ast.ClassDef):
-                for childNode in list(ast.walk(content)):
-                    if isinstance(childNode, ast.FunctionDef): 
-                        searchKeyword = content.name +"."+childNode.method
+        # for content in parsedFileContent:
+        #     if isinstance(content, ast.ClassDef):
+        #         for childNode in list(ast.walk(content)):
+        #             if isinstance(childNode, ast.FunctionDef): 
+        #                 searchKeyword = content.name +"."+childNode.method
             
     
         
@@ -36,12 +73,7 @@ def calculateShotgunSurgery(fileName, projectName):
         print(ex)
         print("Exception occurred in shotgunSurgerySmell.calculateShotgunSurgery in "+fileName + " of " + projectName)
 
-def searchForMethod(searchKeyword, dictToBeSearched):
-    for key, value in dictToBeSearched.items():
-        for k, v in value.items():
-            if searchKeyword in v:
-                print("this")
-         
+
 def getClassesInFile(parsedFileContent):
     classOfFile = []
     for content in parsedFileContent:

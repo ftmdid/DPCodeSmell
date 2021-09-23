@@ -21,6 +21,8 @@ def downloadProjectInASpecificCommit(projectName, commitID):
     try:
         fileOp=FileOperations(projectName)
         outputDirectory = os.path.dirname(os.path.dirname(__file__)) + '/util/Zip'
+        if 'src' in outputDirectory:
+            outputDirectory = outputDirectory.replace('src/','')
         projectFolder = os.path.join(outputDirectory, projectName)
         isFileExists=checkIfFileExistsInFolder(projectFolder, commitID)
         if isFileExists!=False:
