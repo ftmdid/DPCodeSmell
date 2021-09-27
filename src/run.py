@@ -3,9 +3,8 @@ Created on Oct 10, 2020
 
 @author: neda
 '''
-import src.Downloads as download
-import src.Analysis as analysis
-
+#import src.Downloads as download
+#import src.Analysis as analysis
 import src.Relation as relation
 
 
@@ -14,7 +13,7 @@ if __name__ == '__main__':
     
     #projectName='zulip'
     projectName='keras'
-    #projectName='numpy'
+    projectName='numpy'
     #projectName='models'
     #projectName="scikit-learn"
     #downloads = download.Downloads(projectName)

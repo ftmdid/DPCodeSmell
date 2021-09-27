@@ -202,14 +202,11 @@ def visitCall(node):
             callID= node.func.id
         except AttributeError:
             if isinstance(node.func, ast.Attribute):
-                # if hasattr(node.func, "value"):
-                #     if hasattr(node.func.value, "func"):
-                #         if hasattr(node.func.value.func, "id"):
-                #             callID= node.func.value.func.id
-                #elif hasattr(node.func, "attr"):
-                callID= node.func.attr
-                # else:
-                #     callID = node.func.attr
+
+                if hasattr(node.func, "attr"):
+                
+                    callID= node.func.attr
+
             elif isinstance(node.func, ast.Subscript):
                 if hasattr(node.func.value, "id"):
                     callID= node.func.value.id

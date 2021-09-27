@@ -274,7 +274,7 @@ def getShotgunSurgeryInProject(validationFolder, projectPath):
     
     shotgunSurgeryValidationForTool = os.path.dirname(os.path.dirname(__file__)) + '/util/Validation/ToolValidation/ShotgunSurgeryValidationForTool.csv'
     shotgunSurgeryForToolCSVfileOut = csv.writer(open(os.path.join(validationFolder, shotgunSurgeryValidationForTool), 'w+'))
-    shotgunSurgeryForToolCSVfileOut.writerow(['Class Name', 'Method Name','CC' ,'CM'])
+    shotgunSurgeryForToolCSVfileOut.writerow(['Class Name', 'Method Name' ,'CM', 'Length of CM','CC', 'Length of CC'])
            
     pythonFile = os.path.join(validationFolder, 'allPythonFiles.py')
   
@@ -284,7 +284,7 @@ def getShotgunSurgeryInProject(validationFolder, projectPath):
                         
     for k, v in classMethodResultDict.items():
         for key, _ in v.items():
-            shotgunSurgeryForToolCSVfileOut.writerow([k,key, len(classMethodResultDict[key]['CM']), len(classMethodResultDict[key]['CC'])]) 
+            shotgunSurgeryForToolCSVfileOut.writerow([k,key, v[key]['CM'],len( v[key]['CM']) ,v[key]['CC'], len(v[key]['CC'])]) 
             
 
     
@@ -322,8 +322,8 @@ if __name__ == '__main__':
     
     getShotgunSurgeryInProject(validationFolder, projectPath)
     
-  
-    
+   
+
     
     
     
