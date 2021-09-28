@@ -1,8 +1,8 @@
 '''
-Created on Aug 15, 2021
-Modified on Sept 15, 2021
-@author: neda
+    Created on Aug 15, 2021
+    @author: neda
 '''
+
 import ast
 import src.smell.longMethodSmell as lMethod
 import src.smell.featureEnvySmell as fEnvy
@@ -11,13 +11,11 @@ import src.smell.parallelInheritance as inheritance
 from src.runOperations import find_between
 
 
-
-
 def calculateShotgunSurgery(fileInTheFolder, projectName):
-    #fileCommitID = find_between(fileInTheFolder, "@", "@")
-    #filePath= inheritance.downloadProjectInASpecificCommit(projectName, fileCommitID) # project that is modified before bug fix commit
-    #foreignClassCallOfEachClassInAProject=calculateForeignMethodsOfClasses(filePath, projectName)
-    foreignClassCallOfEachClassInAProject=calculateForeignMethodsOfClasses(fileInTheFolder, projectName)
+    fileCommitID = find_between(fileInTheFolder, "@", "@")
+    filePath= inheritance.downloadProjectInASpecificCommit(projectName, fileCommitID) # project that is modified before bug fix commit
+    foreignClassCallOfEachClassInAProject=calculateForeignMethodsOfClasses(filePath, projectName)
+    #foreignClassCallOfEachClassInAProject=calculateForeignMethodsOfClasses(fileInTheFolder, projectName)
     parsedFile =  lMethod.parseFile(fileInTheFolder)
     parsedFileContent = list(ast.walk(parsedFile))
     methodResultDict= {}
@@ -34,8 +32,7 @@ def calculateShotgunSurgery(fileInTheFolder, projectName):
                     methodResultDict[childNode.name]= {'CM':methodResult[0],'CC':list(set(methodResult[1]))}
             classMethodResultDict[content.name]=methodResultDict
     return classMethodResultDict
-
-                
+               
 def searchForMethod(searchKeyword, dictToBeSearched):
     CM=[]
     CC=[]
@@ -49,28 +46,18 @@ def searchForMethod(searchKeyword, dictToBeSearched):
     CC= list(set(CC))
     return [CM,CC]
           
-
-
 def calculateForeignMethodsOfClasses(fileName, projectName):
     try:
         parsedFile =  lMethod.parseFile(fileName)
         parsedFileContent = list(ast.walk(parsedFile))
         classOfFile = getClassesInFile(parsedFileContent)
-        methodsOfFile = getMethodsInFile(parsedFileContent)
+        #methodsOfFile = getMethodsInFile(parsedFileContent)
         classMethodsOfFile= calculateClassMethods(parsedFileContent) # this has the methods of the classes in the file
         textOfFile = lMethod.readFile(fileName)
         classDict={}
         for content in parsedFileContent:
             if isinstance(content, ast.ClassDef):
-                # if content.name=="system_info":
-                #     print("here")
-                # if content.name=="fftw_info":
-                #     print("burada")
-                # if content.name=="djbfft_info":
-                #     print("burada")
-                # if content.name=="mkl_info":
-                #     print("burada")
-                classData=visitClassNode(content, methodsOfFile,classOfFile, textOfFile, classMethodsOfFile) # returns NIC and foreign calls
+                classData=visitClassNode(content,classOfFile, textOfFile, classMethodsOfFile) # returns NIC and foreign calls
                 classDict[content.name]=classData[1] 
         return classDict    
          
@@ -90,9 +77,6 @@ def calculateClassMethods(parsedFileContent):
                     classDict[className].append(methodName) 
     return classDict
 
-            
-    
-    
 def getClassesInFile(parsedFileContent):
     classOfFile = []
     for content in parsedFileContent:
@@ -108,22 +92,21 @@ def getMethodsInFile(parsedFileContent):
         elif isinstance(content, ast.FunctionDef):
             methodsOfFile.append(content.name)
     return methodsOfFile
-    
-          
-def visitClassNode(content, methodsOfFile,classOfFile, textOfFile, classMethodsOfFile):
+       
+def visitClassNode(content,classOfFile, textOfFile, classMethodsOfFile):
     methodsOfClass= fEnvy.getClassMethods(content)
     if hasattr(content, 'bases') and len(content.bases)>0:
         NIC=[]
         NIC.append(content.bases)
         NIC.append(fEnvy.getImportStatementsInClass(content))
         if len(NIC)>0:
-            calls=getMethodCallOfEachClass(content, methodsOfFile,methodsOfClass,classOfFile, textOfFile,classMethodsOfFile)
+            calls=getMethodCallOfEachClass(content,methodsOfClass,classOfFile, textOfFile,classMethodsOfFile)
         return [len(NIC), calls] # calls: AID
     else:
         NIC = []
         NIC.append(fEnvy.getImportStatementsInClass(content))
         if len(NIC)>0:
-            calls = getMethodCallOfEachClass(content, methodsOfFile,methodsOfClass,classOfFile,textOfFile,classMethodsOfFile)
+            calls = getMethodCallOfEachClass(content,methodsOfClass,classOfFile,textOfFile,classMethodsOfFile)
         return [len(NIC), calls]  # calls: AID    
 
 def getImportStatementsInClass(content):
@@ -136,7 +119,7 @@ def getImportStatementsInClass(content):
 def checkIfParentClassIsCalled(parentClassList,functionName,textOfFile,childNode):
     return [True for x in parentClassList if x+"."+functionName in textOfFile[childNode.lineno-1].lstrip().rstrip()]
     
-def getMethodCallOfEachClass(node,methodsOfFile,methodsOfClass, classOfFile, textOfFile,classMethodsOfFile):
+def getMethodCallOfEachClass(node,methodsOfClass, classOfFile, textOfFile,classMethodsOfFile):
     
     childnodes = list(ast.walk(node))
     pythonMethods = fEnvy.getPythonMethods()
@@ -155,12 +138,25 @@ def getMethodCallOfEachClass(node,methodsOfFile,methodsOfClass, classOfFile, tex
                         if not ([child.lineno, functionName] in nodesList):
                             nodesList.append([child.lineno, functionName])
                                 
-                            if "super()."+functionName in textOfFile[child.lineno-1].lstrip().rstrip():
-                                if hasattr(childNode, 'bases') and len(childNode.bases)>0:
-                                    if len(childNode.bases)==1:
-                                        superClass = childNode.bases[0].id
-                                        if functionName!="super":
-                                            foreignCalls.append(superClass+"."+functionName)
+                            if (("super()."+functionName) in textOfFile[child.lineno-1].lstrip().rstrip()):
+                                if hasattr(node, 'bases'):
+                                    if len(node.bases)==1:
+                                        if hasattr(node.bases[0],"id"):
+                                            superClass = node.bases[0].id
+                                        elif hasattr(node.bases[0], "attr"):
+                                            superClass = node.bases[0].attr
+                                        foreignCalls.append(superClass+"."+functionName)
+                                    elif len(node.bases)>1:
+                                        superClasses=[]
+                                        for i in range(len(node.bases)):
+                                            if hasattr(node.bases[i], "id"):
+                                                superClasses.append(node.bases[i].id)
+                                            elif hasattr(node.bases[i], "attr"):
+                                                superClasses.append(node.bases[i].attr)
+                                        for superClass in superClasses:
+                                            if superClass in classMethodsOfFile.keys():
+                                                if (functionName in classMethodsOfFile[superClass]):
+                                                    foreignCalls.append(superClass+"."+functionName)      
                                         
                             elif True in checkIfParentClassIsCalled(parentClassList,functionName,textOfFile,child):
                                 for x in parentClassList:
@@ -169,8 +165,6 @@ def getMethodCallOfEachClass(node,methodsOfFile,methodsOfClass, classOfFile, tex
                             else:
                                 if functionName in pythonMethods:
                                     continue
-                                # elif functionName in methodsOfFile:
-                                #     continue
                                 elif functionName in methodsOfClass:
                                     continue
                                 elif functionName in classOfFile: #create an instance of another class
@@ -185,8 +179,6 @@ def getMethodCallOfEachClass(node,methodsOfFile,methodsOfClass, classOfFile, tex
                                                     superClass = node.bases[0].id
                                                 elif hasattr(node.bases[0], "attr"):
                                                     superClass = node.bases[0].attr
-                                                else:
-                                                    print("error")
                                                 foreignCalls.append(superClass+"."+functionName)
                                             elif len(node.bases)>1:
                                                 superClasses=[]
@@ -195,9 +187,7 @@ def getMethodCallOfEachClass(node,methodsOfFile,methodsOfClass, classOfFile, tex
                                                         superClasses.append(node.bases[i].id)
                                                     elif hasattr(node.bases[i], "attr"):
                                                         superClasses.append(node.bases[i].attr)
-                                                    else:
-                                                        print("error")
-                                               
+                                                
                                                 for superClass in superClasses:
                                                     if superClass in classMethodsOfFile.keys():
                                                         if (functionName in classMethodsOfFile[superClass]):

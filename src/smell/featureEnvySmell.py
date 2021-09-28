@@ -223,10 +223,6 @@ def visitCall(node):
         print(ex)
         print("Exception occurred in featureEnvySmell.visitCall()")
         
-        
-            
-    
-
 def visitFunctionNodeForClassWoutInheritance(node,methodsOfClass):
     
     childnodes = list(ast.walk(node))

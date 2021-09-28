@@ -320,7 +320,7 @@ if __name__ == '__main__':
     
     #getFeatureEnvyInProject(validationFolder, projectPath)
     
-    getShotgunSurgeryInProject(validationFolder, projectPath)
+    #getShotgunSurgeryInProject(validationFolder, projectPath)
     
    
 
