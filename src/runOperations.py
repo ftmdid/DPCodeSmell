@@ -52,7 +52,14 @@ def strip_blanklines(blob):
 def strip_comments(blob, delim='#'):
     """Strips comments from the code"""
     lines = blob.split('\n')
-    return '\n'.join([line for line in lines if line.strip()[0] != delim])
+    newLines=[]
+    for line in lines:
+        if not line.lstrip().startswith(delim):
+            newLines.append(line)
+
+    return  '\n'.join([each for each in newLines])
+            
+    #return '\n'.join([line for line in lines if line.strip()[0] != delim])
 
 def loc(blob, delim='#'):
     """Returns the total line count, nonblank line count, and net line count excluding comments and docstrings"""
@@ -190,10 +197,11 @@ def checkForEmptyLines(lineStr):
         return True
     
 def removeCommentsFromString(sourceCode):
-    sourceCode = strip_blanklines(sourceCode)
+    #sourceCode = strip_blanklines(sourceCode)
     nondoctring = strip_docstring(sourceCode)
     noncomment = strip_comments(nondoctring, '#')
     sourceCode=noncomment.split('\n')
+
     return sourceCode
 
 def find_between( s, first, last ):
@@ -208,9 +216,40 @@ def find_between( s, first, last ):
         return ""
 
 
-
-
-
+def getMethodLinesOfClass(source):
+    try:            
+        totalLine=len(source)
+        methods = {}
+        current_method = None
+        for lineno, line in enumerate(source, start=0):
+            if current_method and not line.startswith(' '):
+                if line != '\n':
+                    #methods[current_method]['end'] = lineno - 1
+                    methods[current_method]['end'] = lineno
+                    current_method = None
+            #if line.lstrip().startswith('def ') and (":" in line) and not(line.startswith('#')):               
+            #if line.lstrip().startswith('def ') and ((":" in line) or (":" in totalLine[lineno+1])) and not(line.startswith('#')):
+            if line.lstrip().startswith('def ')  and not(line.startswith('#')):
+                if (current_method in methods.keys())  and ('end' not in  methods[current_method].keys()):
+                    #methods[current_method]['end'] = lineno - 1
+                    methods[current_method]['end'] = lineno
+                    current_method = None
+                if "(" and ")" in line:
+                    current_method=line.split('def ')[1].lstrip().split('(')[0].lstrip().rstrip()
+                    methods[current_method] = {'start': lineno}
+                    
+                else:
+                    className=line.split('def ')[1].lstrip().split(':')[0].lstrip().rstrip()
+                    if not ' ' in className:
+                        current_method=className.lstrip().rstrip()
+                        methods[current_method] = {'start': lineno}
+        if current_method:
+            methods[current_method]['end'] = totalLine
+            #classes[current_class]['end'] = -1
+        return methods
+    except Exception as ex:
+        print(ex)
+        print("Exception occurred in runOperations.getMethodLinesOfClass")
 
 
 

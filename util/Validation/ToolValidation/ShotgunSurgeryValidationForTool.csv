@@ -298,10 +298,10 @@ VariableSet,__init__,[],0,[],0
 VariableSet,_init_parse,[],0,[],0
 VariableSet,_init_parse_var,[],0,[],0
 VariableSet,interpolate,[],0,[],0
+VariableSet,_interpolate,[],0,[],0
 VariableSet,variables,[],0,[],0
 VariableSet,__getitem__,[],0,[],0
 VariableSet,__setitem__,[],0,[],0
-VariableSet,_interpolate,[],0,[],0
 InstallableLib,__init__,[],0,[],0
 Configuration,__init__,[],0,[],0
 Configuration,todict,[],0,[],0
@@ -316,7 +316,7 @@ Configuration,add_subpackage,[],0,[],0
 Configuration,add_data_dir,[],0,[],0
 Configuration,_optimize_data_files,[],0,[],0
 Configuration,add_data_files,[],0,[],0
-Configuration,add_define_macros,[],0,[],0
+Configuration,add_,[],0,[],0
 Configuration,add_include_dirs,[],0,[],0
 Configuration,add_headers,[],0,[],0
 Configuration,paths,[],0,[],0
@@ -338,37 +338,37 @@ Configuration,_get_svn_revision,[],0,[],0
 Configuration,_get_hg_revision,[],0,[],0
 Configuration,get_version,[],0,[],0
 Configuration,make_svn_version_py,[],0,[],0
+Configuration,generate_svn_version_py,[],0,[],0
+Configuration,rm_file,[],0,[],0
 Configuration,make_hg_version_py,[],0,[],0
+Configuration,generate_hg_version_py,[],0,[],0
 Configuration,make_config_py,[],0,[],0
 Configuration,get_info,[],0,[],0
-Configuration,generate_svn_version_py,[],0,[],0
-Configuration,generate_hg_version_py,[],0,[],0
-Configuration,rm_file,[],0,[],0
 Log,_log,[],0,[],0
 Log,good,[],0,[],0
 PathScaleCCompiler,__init__,[],0,[],0
-system_info,__init__,"['_numpy_info.__init__', 'mkl_info.__init__', 'x11_info.__init__']",3,"['x11_info', '_numpy_info', 'mkl_info']",3
+system_info,__init__,"['_numpy_info.__init__', 'mkl_info.__init__', 'x11_info.__init__']",3,"['x11_info', 'mkl_info', '_numpy_info']",3
 system_info,parse_config_files,[],0,[],0
 system_info,calc_libraries_info,[],0,[],0
-system_info,set_info,"['accelerate_info.calc_info', 'blas_opt_info._calc_info_mkl', 'mkl_info.calc_info', 'blas_opt_info._calc_info_openblas', 'x11_info.calc_info', 'fft_opt_info.calc_info', 'blas_opt_info._calc_info_blas', 'boost_python_info.calc_info', 'fftw_info.calc_ver_info', 'lapack_info.calc_info', 'f2py_info.calc_info', 'djbfft_info.calc_info', 'lapack_opt_info._calc_info_atlas', 'flame_info.calc_info', '_numpy_info.calc_info', '_pkg_config_info.calc_info', 'numpy_linalg_lapack_lite.calc_info', 'lapack_opt_info._calc_info_flame', 'blas_opt_info._calc_info_blis', 'lapack_src_info.calc_info', 'blas_src_info.calc_info', 'lapack_opt_info._calc_info_accelerate', 'blas_info.calc_info', 'lapack_opt_info._calc_info_lapack', 'blas_opt_info._calc_info_accelerate', 'lapack_opt_info._calc_info_openblas', 'lapack_opt_info._calc_info_mkl', 'umfpack_info.calc_info', 'agg2_info.calc_info', 'blas_opt_info._calc_info_from_envvar', 'lapack_opt_info._calc_info_from_envvar', 'amd_info.calc_info', 'atlas_info.calc_info', 'numerix_info.calc_info', 'blas_opt_info._calc_info_atlas']",35,"['_pkg_config_info', 'mkl_info', 'f2py_info', 'numpy_linalg_lapack_lite', '_numpy_info', 'lapack_info', 'umfpack_info', 'lapack_opt_info', 'lapack_src_info', 'agg2_info', 'atlas_info', 'djbfft_info', 'fft_opt_info', 'blas_info', 'x11_info', 'fftw_info', 'accelerate_info', 'numerix_info', 'boost_python_info', 'blas_opt_info', 'flame_info', 'blas_src_info', 'amd_info']",23
-system_info,get_option_single,"['fftw_info.calc_ver_info', 'blas_info.calc_info', 'lapack_info.calc_info', 'umfpack_info.calc_info', 'mkl_info.calc_info', 'x11_info.calc_info', 'amd_info.calc_info', 'atlas_info.calc_info']",8,"['lapack_info', 'atlas_info', 'mkl_info', 'blas_info', 'umfpack_info', 'x11_info', 'fftw_info', 'amd_info']",8
+system_info,set_info,"['lapack_info.calc_info', 'numerix_info.calc_info', 'agg2_info.calc_info', 'lapack_opt_info._calc_info_accelerate', 'f2py_info.calc_info', 'atlas_info.calc_info', 'blas_opt_info._calc_info_blis', 'x11_info.calc_info', 'umfpack_info.calc_info', 'lapack_opt_info._calc_info_flame', 'djbfft_info.calc_info', 'blas_opt_info._calc_info_blas', '_numpy_info.calc_info', '_pkg_config_info.calc_info', 'amd_info.calc_info', 'lapack_opt_info._calc_info_lapack', 'lapack_opt_info._calc_info_atlas', 'blas_src_info.calc_info', 'lapack_opt_info._calc_info_from_envvar', 'fft_opt_info.calc_info', 'mkl_info.calc_info', 'flame_info.calc_info', 'lapack_opt_info._calc_info_openblas', 'blas_opt_info._calc_info_from_envvar', 'blas_opt_info._calc_info_atlas', 'blas_opt_info._calc_info_accelerate', 'blas_opt_info._calc_info_openblas', 'lapack_src_info.calc_info', 'lapack_opt_info._calc_info_mkl', 'boost_python_info.calc_info', 'numpy_linalg_lapack_lite.calc_info', 'blas_info.calc_info', 'fftw_info.calc_ver_info', 'blas_opt_info._calc_info_mkl']",34,"['agg2_info', 'umfpack_info', 'blas_src_info', 'fftw_info', 'boost_python_info', 'fft_opt_info', 'djbfft_info', 'flame_info', '_pkg_config_info', 'f2py_info', 'x11_info', '_numpy_info', 'lapack_opt_info', 'blas_opt_info', 'blas_info', 'mkl_info', 'numpy_linalg_lapack_lite', 'numerix_info', 'lapack_info', 'atlas_info', 'lapack_src_info', 'amd_info']",22
+system_info,get_option_single,"['mkl_info.calc_info', 'amd_info.calc_info', 'lapack_info.calc_info', 'atlas_info.calc_info', 'umfpack_info.calc_info', 'blas_info.calc_info', 'fftw_info.calc_ver_info', 'x11_info.calc_info']",8,"['blas_info', 'lapack_info', 'umfpack_info', 'atlas_info', 'fftw_info', 'x11_info', 'mkl_info', 'amd_info']",8
 system_info,has_info,[],0,[],0
 system_info,calc_extra_info,['flame_info.calc_info'],1,['flame_info'],1
 system_info,get_info,[],0,[],0
-system_info,get_paths,"['boost_python_info.get_paths', 'djbfft_info.get_paths', 'agg2_info.get_paths', 'lapack_src_info.get_paths', 'blas_src_info.get_paths', 'atlas_info.get_paths']",6,"['agg2_info', 'atlas_info', 'djbfft_info', 'boost_python_info', 'lapack_src_info', 'blas_src_info']",6
-system_info,get_lib_dirs,"['fftw_info.calc_ver_info', 'blas_info.calc_info', 'lapack_info.calc_info', 'umfpack_info.calc_info', 'djbfft_info.calc_info', 'mkl_info.calc_info', 'x11_info.calc_info', 'amd_info.calc_info', 'flame_info.calc_info', 'atlas_info.calc_info']",10,"['lapack_info', 'atlas_info', 'djbfft_info', 'mkl_info', 'blas_info', 'umfpack_info', 'flame_info', 'fftw_info', 'x11_info', 'amd_info']",10
+system_info,get_paths,"['djbfft_info.get_paths', 'agg2_info.get_paths', 'atlas_info.get_paths', 'lapack_src_info.get_paths', 'blas_src_info.get_paths', 'boost_python_info.get_paths']",6,"['djbfft_info', 'agg2_info', 'atlas_info', 'blas_src_info', 'boost_python_info', 'lapack_src_info']",6
+system_info,get_lib_dirs,"['mkl_info.calc_info', 'amd_info.calc_info', 'lapack_info.calc_info', 'flame_info.calc_info', 'fftw_info.calc_ver_info', 'atlas_info.calc_info', 'umfpack_info.calc_info', 'blas_info.calc_info', 'djbfft_info.calc_info', 'x11_info.calc_info']",10,"['djbfft_info', 'flame_info', 'blas_info', 'lapack_info', 'umfpack_info', 'atlas_info', 'fftw_info', 'x11_info', 'mkl_info', 'amd_info']",10
 system_info,get_runtime_lib_dirs,[],0,[],0
-system_info,get_include_dirs,"['fftw_info.calc_ver_info', 'blas_info.calc_info', 'umfpack_info.calc_info', 'djbfft_info.calc_info', 'mkl_info.calc_info', 'x11_info.calc_info', 'amd_info.calc_info', 'atlas_info.calc_info', '_numpy_info.calc_info', 'blas_info.get_cblas_libs']",10,"['atlas_info', 'djbfft_info', 'mkl_info', 'blas_info', 'umfpack_info', 'x11_info', 'fftw_info', '_numpy_info', 'amd_info']",9
-system_info,get_src_dirs,"['boost_python_info.calc_info', 'blas_src_info.calc_info', 'agg2_info.calc_info', 'lapack_src_info.calc_info']",4,"['agg2_info', 'lapack_src_info', 'blas_src_info', 'boost_python_info']",4
-system_info,get_libs,"['fftw_info.calc_ver_info', 'blas_info.calc_info', 'lapack_info.calc_info', 'umfpack_info.calc_info', 'accelerate_info.calc_info', 'mkl_info.calc_info', 'x11_info.calc_info', 'amd_info.calc_info', 'flame_info.calc_info', 'atlas_info.calc_info']",10,"['lapack_info', 'accelerate_info', 'atlas_info', 'mkl_info', 'blas_info', 'umfpack_info', 'flame_info', 'fftw_info', 'x11_info', 'amd_info']",10
+system_info,get_include_dirs,"['mkl_info.calc_info', '_numpy_info.calc_info', 'amd_info.calc_info', 'fftw_info.calc_ver_info', 'atlas_info.calc_info', 'blas_info.get_cblas_libs', 'umfpack_info.calc_info', 'blas_info.calc_info', 'djbfft_info.calc_info', 'x11_info.calc_info']",10,"['djbfft_info', 'blas_info', 'umfpack_info', 'atlas_info', 'fftw_info', 'x11_info', 'mkl_info', '_numpy_info', 'amd_info']",9
+system_info,get_src_dirs,"['agg2_info.calc_info', 'blas_src_info.calc_info', 'lapack_src_info.calc_info', 'boost_python_info.calc_info']",4,"['agg2_info', 'lapack_src_info', 'boost_python_info', 'blas_src_info']",4
+system_info,get_libs,"['mkl_info.calc_info', 'amd_info.calc_info', 'lapack_info.calc_info', 'flame_info.calc_info', 'atlas_info.calc_info', 'accelerate_info.calc_info', 'umfpack_info.calc_info', 'blas_info.calc_info', 'fftw_info.calc_ver_info', 'x11_info.calc_info']",10,"['accelerate_info', 'flame_info', 'blas_info', 'lapack_info', 'umfpack_info', 'atlas_info', 'fftw_info', 'x11_info', 'mkl_info', 'amd_info']",10
 system_info,get_libraries,[],0,[],0
 system_info,library_extensions,['atlas_info.calc_info'],1,['atlas_info'],1
-system_info,check_libs,"['fftw_info.calc_ver_info', 'blas_info.calc_info', 'lapack_info.calc_info', 'umfpack_info.calc_info', 'x11_info.calc_info', 'amd_info.calc_info']",6,"['lapack_info', 'blas_info', 'umfpack_info', 'x11_info', 'fftw_info', 'amd_info']",6
-system_info,check_libs2,"['mkl_info.calc_info', 'flame_info.calc_info', 'atlas_info.calc_info']",3,"['flame_info', 'atlas_info', 'mkl_info']",3
+system_info,check_libs,"['amd_info.calc_info', 'lapack_info.calc_info', 'umfpack_info.calc_info', 'blas_info.calc_info', 'fftw_info.calc_ver_info', 'x11_info.calc_info']",6,"['blas_info', 'lapack_info', 'umfpack_info', 'fftw_info', 'x11_info', 'amd_info']",6
+system_info,check_libs2,"['mkl_info.calc_info', 'flame_info.calc_info', 'atlas_info.calc_info']",3,"['flame_info', 'mkl_info', 'atlas_info']",3
 system_info,_find_lib,[],0,[],0
 system_info,_find_libs,[],0,[],0
 system_info,_check_libs,[],0,[],0
-system_info,combine_paths,"['fftw_info.calc_ver_info', '_numpy_info.calc_info', 'boost_python_info.get_paths', 'umfpack_info.calc_info', 'djbfft_info.get_paths', 'djbfft_info.calc_info', 'agg2_info.get_paths', 'x11_info.calc_info', 'amd_info.calc_info', 'lapack_src_info.get_paths', 'atlas_info.calc_info', 'blas_src_info.get_paths', 'atlas_info.get_paths']",13,"['agg2_info', 'atlas_info', 'boost_python_info', 'djbfft_info', 'umfpack_info', 'x11_info', 'fftw_info', 'lapack_src_info', '_numpy_info', 'blas_src_info', 'amd_info']",11
+system_info,combine_paths,"['djbfft_info.get_paths', 'amd_info.calc_info', 'agg2_info.get_paths', 'fftw_info.calc_ver_info', 'umfpack_info.calc_info', 'lapack_src_info.get_paths', 'boost_python_info.get_paths', 'x11_info.calc_info', 'atlas_info.calc_info', 'djbfft_info.calc_info', 'blas_src_info.get_paths']",11,"['djbfft_info', 'agg2_info', 'umfpack_info', 'atlas_info', 'blas_src_info', 'fftw_info', 'boost_python_info', 'x11_info', 'lapack_src_info', 'amd_info']",10
 fft_opt_info,calc_info,[],0,[],0
 fftw_info,calc_ver_info,[],0,[],0
 fftw_info,calc_info,[],0,[],0
@@ -395,7 +395,7 @@ lapack_opt_info,_calc_info_lapack,[],0,[],0
 lapack_opt_info,_calc_info_from_envvar,[],0,[],0
 lapack_opt_info,_calc_info,[],0,[],0
 lapack_opt_info,calc_info,[],0,[],0
-_ilp64_opt_info_mixin,_check_info,"['lapack_ilp64_opt_info._calc_info', 'blas_ilp64_opt_info._calc_info']",2,"['lapack_ilp64_opt_info', 'blas_ilp64_opt_info']",2
+_ilp64_opt_info_mixin,_check_info,"['blas_ilp64_opt_info._calc_info', 'lapack_ilp64_opt_info._calc_info']",2,"['blas_ilp64_opt_info', 'lapack_ilp64_opt_info']",2
 lapack_ilp64_opt_info,_calc_info,[],0,[],0
 blas_opt_info,_calc_info_mkl,[],0,[],0
 blas_opt_info,_calc_info_blis,[],0,[],0
@@ -411,11 +411,11 @@ blas_info,calc_info,[],0,[],0
 blas_info,get_cblas_libs,[],0,[],0
 openblas_info,symbol_prefix,[],0,[],0
 openblas_info,symbol_suffix,[],0,[],0
-openblas_info,_calc_info,[],0,[],0
+openblas_info,_calc_info,['openblas_ilp64_info._calc_info'],1,['openblas_ilp64_info'],1
 openblas_info,calc_info,[],0,[],0
 openblas_info,check_msvc_gfortran_libs,[],0,[],0
 openblas_info,check_symbols,[],0,[],0
-openblas_ilp64_info,_calc_info,[],0,[],0
+openblas_ilp64_info,_calc_info,['openblas_ilp64_lapack_info._calc_info'],1,['openblas_ilp64_lapack_info'],1
 openblas_ilp64_lapack_info,_calc_info,[],0,[],0
 blis_info,calc_info,[],0,[],0
 flame_info,check_embedded_lapack,[],0,[],0
@@ -446,6 +446,9 @@ Extension,has_cxx_sources,[],0,[],0
 Extension,has_f2py_sources,[],0,[],0
 IntelCCompiler,__init__,[],0,[],0
 IntelEM64TCCompiler,__init__,[],0,[],0
+IntelCCompilerW,__init__,[],0,[],0
+IntelCCompilerW,initialize,[],0,[],0
+IntelEM64TCCompilerW,__init__,[],0,[],0
 CommandLineParser,join,[],0,[],0
 CommandLineParser,split,[],0,[],0
 WindowsParser,join,[],0,[],0
@@ -456,18 +459,18 @@ _Config,conf_features_partial,[],0,[],0
 _Config,__init__,['CCompilerOpt.__init__'],1,['CCompilerOpt'],1
 _Config,rm_temp,[],0,[],0
 _Distutils,__init__,['CCompilerOpt.__init__'],1,['CCompilerOpt'],1
-_Distutils,dist_compile,['CCompilerOpt.try_dispatch'],1,['CCompilerOpt'],1
+_Distutils,dist_compile,[],0,[],0
 _Distutils,dist_test,[],0,[],0
 _Distutils,dist_info,['CCompilerOpt.__init__'],1,['CCompilerOpt'],1
 _Distutils,dist_error,[],0,[],0
 _Distutils,dist_fatal,[],0,[],0
-_Distutils,dist_log,"['CCompilerOpt.__init__', 'CCompilerOpt._generate_config', 'CCompilerOpt._wrap_target', 'CCompilerOpt.generate_dispatch_header']",4,['CCompilerOpt'],1
+_Distutils,dist_log,"['CCompilerOpt._wrap_target', 'CCompilerOpt.generate_dispatch_header', 'CCompilerOpt._generate_config']",3,['CCompilerOpt'],1
 _Distutils,dist_load_module,[],0,[],0
 _Distutils,_dist_str,[],0,[],0
+_Distutils,to_str,[],0,[],0
 _Distutils,_dist_test_spawn_paths,[],0,[],0
 _Distutils,_dist_test_spawn,[],0,[],0
-_Distutils,to_str,[],0,[],0
-_Cache,__init__,['CCompilerOpt.__init__'],1,['CCompilerOpt'],1
+_Cache,__init__,[],0,[],0
 _Cache,__del__,[],0,[],0
 _Cache,cache_flush,[],0,[],0
 _Cache,cache_hash,['CCompilerOpt._generate_config'],1,['CCompilerOpt'],1
@@ -477,17 +480,20 @@ _CCompiler,__init__,['CCompilerOpt.__init__'],1,['CCompilerOpt'],1
 _CCompiler,cc_test_flags,[],0,[],0
 _CCompiler,cc_normalize_flags,[],0,[],0
 _CCompiler,_cc_normalize_unix,[],0,[],0
-_CCompiler,_cc_normalize_win,[],0,[],0
 _CCompiler,ver_flags,[],0,[],0
+_CCompiler,_cc_normalize_win,[],0,[],0
 _Feature,__init__,['CCompilerOpt.__init__'],1,['CCompilerOpt'],1
 _Feature,feature_names,[],0,[],0
 _Feature,feature_is_exist,[],0,[],0
-_Feature,feature_sorted,"['CCompilerOpt.report', 'CCompilerOpt._wrap_target']",2,['CCompilerOpt'],1
-_Feature,feature_implies,['CCompilerOpt.report'],1,['CCompilerOpt'],1
-_Feature,feature_implies_c,['CCompilerOpt._wrap_target'],1,['CCompilerOpt'],1
+_Feature,feature_sorted,"['CCompilerOpt._wrap_target', 'CCompilerOpt.report']",2,['CCompilerOpt'],1
+_Feature,sort_cb,[],0,[],0
+_Feature,feature_implies,[],0,[],0
+_Feature,get_implies,[],0,[],0
+_Feature,feature_implies_c,[],0,[],0
 _Feature,feature_ahead,[],0,[],0
 _Feature,feature_untied,[],0,[],0
 _Feature,feature_get_til,[],0,[],0
+_Feature,til,[],0,[],0
 _Feature,feature_detect,"['CCompilerOpt.report', 'CCompilerOpt._generate_config']",2,['CCompilerOpt'],1
 _Feature,feature_flags,"['CCompilerOpt.report', 'CCompilerOpt.try_dispatch']",2,['CCompilerOpt'],1
 _Feature,feature_test,[],0,[],0
@@ -495,9 +501,6 @@ _Feature,feature_is_supported,[],0,[],0
 _Feature,feature_can_autovec,[],0,[],0
 _Feature,feature_extra_checks,['CCompilerOpt.report'],1,['CCompilerOpt'],1
 _Feature,feature_c_preprocessor,['CCompilerOpt.generate_dispatch_header'],1,['CCompilerOpt'],1
-_Feature,sort_cb,[],0,[],0
-_Feature,get_implies,[],0,[],0
-_Feature,til,[],0,[],0
 _Parse,__init__,['CCompilerOpt.__init__'],1,['CCompilerOpt'],1
 _Parse,parse_targets,['CCompilerOpt.try_dispatch'],1,['CCompilerOpt'],1
 _Parse,_parse_arg_features,[],0,[],0
@@ -580,8 +583,8 @@ NAGFORCompiler,get_flags_debug,[],0,[],0
 PGroupFCompiler,get_flags,[],0,[],0
 PGroupFCompiler,get_flags_opt,[],0,[],0
 PGroupFCompiler,get_flags_debug,[],0,[],0
-PGroupFCompiler,runtime_library_dir_option,[],0,[],0
 PGroupFCompiler,get_flags_linker_so,[],0,[],0
+PGroupFCompiler,runtime_library_dir_option,[],0,[],0
 PGroupFlangCompiler,get_libraries,[],0,[],0
 PGroupFlangCompiler,get_library_dirs,[],0,[],0
 PGroupFlangCompiler,get_flags,[],0,[],0
@@ -613,10 +616,14 @@ FCompiler,__init__,[],0,[],0
 FCompiler,__copy__,[],0,[],0
 FCompiler,copy,[],0,[],0
 FCompiler,_command_property,[],0,[],0
+FCompiler,fget,[],0,[],0
 FCompiler,set_executable,[],0,[],0
 FCompiler,set_commands,[],0,[],0
 FCompiler,set_command,[],0,[],0
 FCompiler,find_executables,[],0,[],0
+FCompiler,cached_find_executable,[],0,[],0
+FCompiler,verify_command_form,[],0,[],0
+FCompiler,set_exe,[],0,[],0
 FCompiler,update_executables,[],0,[],0
 FCompiler,get_flags,['AbsoftFCompiler.get_flags'],1,['AbsoftFCompiler'],1
 FCompiler,_get_command_flags,[],0,[],0
@@ -630,9 +637,9 @@ FCompiler,get_flags_ar,[],0,[],0
 FCompiler,get_flags_opt,[],0,[],0
 FCompiler,get_flags_arch,[],0,[],0
 FCompiler,get_flags_debug,[],0,[],0
-FCompiler,get_libraries,"['AbsoftFCompiler.get_libraries', 'PGroupFlangCompiler.get_libraries']",2,"['PGroupFlangCompiler', 'AbsoftFCompiler']",2
+FCompiler,get_libraries,"['PGroupFlangCompiler.get_libraries', 'AbsoftFCompiler.get_libraries']",2,"['PGroupFlangCompiler', 'AbsoftFCompiler']",2
 FCompiler,get_library_dirs,"['PGroupFlangCompiler.get_library_dirs', 'AbsoftFCompiler.get_library_dirs']",2,"['PGroupFlangCompiler', 'AbsoftFCompiler']",2
-FCompiler,get_version,"['IBMFCompiler.get_version', 'AbsoftFCompiler.get_flags_f77', 'AbsoftFCompiler.get_library_dirs', 'HPUXFCompiler.get_version', 'SunFCompiler.get_flags_f77', 'GnuFCompiler.get_flags_opt', 'AbsoftFCompiler.get_flags_linker_so', 'AbsoftFCompiler.get_flags_f90', 'AbsoftFCompiler.get_libraries', 'AbsoftFCompiler.get_flags']",10,"['AbsoftFCompiler', 'SunFCompiler', 'GnuFCompiler', 'IBMFCompiler', 'HPUXFCompiler']",5
+FCompiler,get_version,"['IBMFCompiler.get_version', 'AbsoftFCompiler.get_flags', 'AbsoftFCompiler.get_flags_f77', 'AbsoftFCompiler.get_libraries', 'SunFCompiler.get_flags_f77', 'AbsoftFCompiler.get_flags_linker_so', 'AbsoftFCompiler.get_flags_f90', 'HPUXFCompiler.get_version', 'GnuFCompiler.get_flags_opt', 'AbsoftFCompiler.get_library_dirs']",10,"['SunFCompiler', 'AbsoftFCompiler', 'HPUXFCompiler', 'IBMFCompiler', 'GnuFCompiler']",5
 FCompiler,customize,[],0,[],0
 FCompiler,dump_properties,[],0,[],0
 FCompiler,_compile,[],0,[],0
@@ -643,10 +650,6 @@ FCompiler,link,[],0,[],0
 FCompiler,_environment_hook,[],0,[],0
 FCompiler,can_ccompiler_link,[],0,[],0
 FCompiler,wrap_unlinkable_objects,[],0,[],0
-FCompiler,fget,[],0,[],0
-FCompiler,cached_find_executable,[],0,[],0
-FCompiler,verify_command_form,[],0,[],0
-FCompiler,set_exe,[],0,[],0
 G95FCompiler,get_flags,[],0,[],0
 G95FCompiler,get_flags_opt,[],0,[],0
 G95FCompiler,get_flags_debug,[],0,[],0
@@ -700,6 +703,7 @@ config_cc,run,[],0,[],0
 build_ext,initialize_options,[],0,[],0
 build_ext,finalize_options,[],0,[],0
 build_ext,run,[],0,[],0
+build_ext,report,[],0,[],0
 build_ext,swig_sources,[],0,[],0
 build_ext,build_extension,[],0,[],0
 build_ext,_add_dummy_mingwex_sym,[],0,[],0
@@ -707,7 +711,6 @@ build_ext,_process_unlinkable_fobjects,[],0,[],0
 build_ext,_libs_with_msvc_and_fortran,[],0,[],0
 build_ext,get_source_files,[],0,[],0
 build_ext,get_outputs,[],0,[],0
-build_ext,report,[],0,[],0
 config,initialize_options,[],0,[],0
 config,_check_compiler,[],0,[],0
 config,_wrap_method,[],0,[],0
@@ -755,7 +758,7 @@ build_src,pyrex_sources,[],0,[],0
 build_src,generate_a_pyrex_source,[],0,[],0
 build_src,f2py_sources,[],0,[],0
 build_src,swig_sources,[],0,[],0
-sdist,add_defaults,[],0,[],0
+sdist,add_,[],0,[],0
 build_scripts,generate_scripts,[],0,[],0
 build_scripts,run,[],0,[],0
 build_scripts,get_source_files,[],0,[],0
@@ -769,10 +772,10 @@ build_clib,finalize_options,[],0,[],0
 build_clib,have_f_sources,[],0,[],0
 build_clib,have_cxx_sources,[],0,[],0
 build_clib,run,[],0,[],0
+build_clib,report,[],0,[],0
 build_clib,get_source_files,[],0,[],0
 build_clib,build_libraries,[],0,[],0
 build_clib,build_a_library,[],0,[],0
-build_clib,report,[],0,[],0
 egg_info,run,[],0,[],0
 install,finalize_options,[],0,[],0
 install,setuptools_run,[],0,[],0
@@ -789,7 +792,7 @@ dummy_ctype,__call__,[],0,[],0
 dummy_ctype,__eq__,[],0,[],0
 dummy_ctype,__ne__,[],0,[],0
 _missing_ctypes,cast,[],0,[],0
-_missing_ctypes,__init__,[],0,[],0
+c_void_p,__init__,[],0,[],0
 _ctypes,__init__,[],0,[],0
 _ctypes,data_as,[],0,[],0
 _ctypes,shape_as,[],0,[],0
@@ -912,12 +915,12 @@ CallOnceOnly,check_complex,[],0,[],0
 errstate,__init__,[],0,[],0
 errstate,__enter__,[],0,[],0
 errstate,__exit__,[],0,[],0
-UFuncTypeError,__init__,[],0,[],0
+UFuncTypeError,__init__,"['_UFuncBinaryResolutionError.__init__', '_UFuncCastingError.__init__', '_UFuncNoLoopError.__init__']",3,"['_UFuncBinaryResolutionError', '_UFuncCastingError', '_UFuncNoLoopError']",3
 _UFuncBinaryResolutionError,__init__,[],0,[],0
 _UFuncBinaryResolutionError,__str__,[],0,[],0
 _UFuncNoLoopError,__init__,[],0,[],0
 _UFuncNoLoopError,__str__,[],0,[],0
-_UFuncCastingError,__init__,[],0,[],0
+_UFuncCastingError,__init__,"['_UFuncOutputCastingError.__init__', '_UFuncInputCastingError.__init__']",2,"['_UFuncInputCastingError', '_UFuncOutputCastingError']",2
 _UFuncInputCastingError,__init__,[],0,[],0
 _UFuncInputCastingError,__str__,[],0,[],0
 _UFuncOutputCastingError,__init__,[],0,[],0
@@ -940,7 +943,7 @@ ComplexFloatingFormat,__init__,[],0,[],0
 ComplexFloatingFormat,__call__,[],0,[],0
 _TimelikeFormat,__init__,[],0,[],0
 _TimelikeFormat,_format_non_nat,[],0,[],0
-_TimelikeFormat,__call__,[],0,[],0
+_TimelikeFormat,__call__,['DatetimeFormat.__call__'],1,['DatetimeFormat'],1
 DatetimeFormat,__init__,[],0,[],0
 DatetimeFormat,__call__,[],0,[],0
 DatetimeFormat,_format_non_nat,[],0,[],0
@@ -966,34 +969,34 @@ Function,api_hash,[],0,[],0
 ParseError,__init__,[],0,[],0
 ParseError,__str__,[],0,[],0
 TypeApi,__init__,[],0,[],0
-TypeApi,define_from_array_api_string,[],0,[],0
-TypeApi,array_api_define,[],0,[],0
-TypeApi,internal_define,[],0,[],0
+TypeApi,,[],0,[],0
+TypeApi,array_api_,[],0,[],0
+TypeApi,internal_,[],0,[],0
 GlobalVarApi,__init__,[],0,[],0
-GlobalVarApi,define_from_array_api_string,[],0,[],0
-GlobalVarApi,array_api_define,[],0,[],0
-GlobalVarApi,internal_define,[],0,[],0
+GlobalVarApi,,[],0,[],0
+GlobalVarApi,array_api_,[],0,[],0
+GlobalVarApi,internal_,[],0,[],0
 BoolValuesApi,__init__,[],0,[],0
-BoolValuesApi,define_from_array_api_string,[],0,[],0
-BoolValuesApi,array_api_define,[],0,[],0
-BoolValuesApi,internal_define,[],0,[],0
+BoolValuesApi,,[],0,[],0
+BoolValuesApi,array_api_,[],0,[],0
+BoolValuesApi,internal_,[],0,[],0
 FunctionApi,__init__,[],0,[],0
 FunctionApi,_argtypes_string,[],0,[],0
-FunctionApi,define_from_array_api_string,[],0,[],0
-FunctionApi,array_api_define,[],0,[],0
-FunctionApi,internal_define,[],0,[],0
+FunctionApi,,[],0,[],0
 FuncNameSuffix,__init__,[],0,[],0
 TypeDescription,__init__,[],0,[],0
 TypeDescription,finish_signature,[],0,[],0
 Ufunc,__init__,[],0,[],0
+numpy_linalg_lapack_lite,calc_info,[],0,[],0
+numpy_linalg_lapack_lite,get_lapack_lite_sources,[],0,[],0
 MyScanner,__init__,['LenSubsScanner.__init__'],1,['LenSubsScanner'],1
-MyScanner,begin,"['LenSubsScanner.beginArgs', 'LenSubsScanner.endArgs']",2,['LenSubsScanner'],1
+MyScanner,begin,"['LenSubsScanner.endArgs', 'LenSubsScanner.beginArgs']",2,['LenSubsScanner'],1
 LenSubsScanner,__init__,[],0,[],0
 LenSubsScanner,beginArgs,[],0,[],0
 LenSubsScanner,endArgs,[],0,[],0
 LineQueue,__init__,['CommentQueue.__init__'],1,['CommentQueue'],1
 LineQueue,add,['CommentQueue.add'],1,['CommentQueue'],1
-LineQueue,clear,[],0,[],0
+LineQueue,clear,['CommentQueue.flushTo'],1,['CommentQueue'],1
 LineQueue,flushTo,['CommentQueue.flushTo'],1,['CommentQueue'],1
 LineQueue,getValue,[],0,[],0
 CommentQueue,__init__,[],0,[],0
@@ -1042,7 +1045,7 @@ _DomainGreater,__init__,[],0,[],0
 _DomainGreater,__call__,[],0,[],0
 _DomainGreaterEqual,__init__,[],0,[],0
 _DomainGreaterEqual,__call__,[],0,[],0
-_MaskedUFunc,__init__,[],0,[],0
+_MaskedUFunc,__init__,"['_MaskedUnaryOperation.__init__', '_MaskedBinaryOperation.__init__', '_extrema_operation.__init__', '_DomainedBinaryOperation.__init__']",4,"['_extrema_operation', '_MaskedUnaryOperation', '_MaskedBinaryOperation', '_DomainedBinaryOperation']",4
 _MaskedUFunc,__str__,[],0,[],0
 _MaskedUnaryOperation,__init__,[],0,[],0
 _MaskedUnaryOperation,__call__,[],0,[],0
@@ -1065,15 +1068,18 @@ MaskedIterator,__getitem__,[],0,[],0
 MaskedIterator,__setitem__,[],0,[],0
 MaskedIterator,__next__,[],0,[],0
 MaskedArray,__new__,[],0,[],0
+MaskedArray,_recursive_or,[],0,[],0
 MaskedArray,_update_from,['MaskedRecords.__array_finalize__'],1,['MaskedRecords'],1
 MaskedArray,__array_finalize__,['MaskedConstant.__array_finalize__'],1,['MaskedConstant'],1
 MaskedArray,__array_wrap__,[],0,[],0
 MaskedArray,view,"['MaskedConstant.__array_prepare__', 'MaskedConstant.__array_wrap__']",2,['MaskedConstant'],1
 MaskedArray,__getitem__,[],0,[],0
+MaskedArray,_is_scalar,[],0,[],0
+MaskedArray,_scalar_heuristic,[],0,[],0
 MaskedArray,__setitem__,['MaskedRecords.__setitem__'],1,['MaskedRecords'],1
-MaskedArray,dtype,['MaskedRecords.__setstate__'],1,['MaskedRecords'],1
+MaskedArray,dtype,[],0,[],0
 MaskedArray,shape,[],0,[],0
-MaskedArray,__setmask__,"['MaskedRecords.__new__', 'MaskedRecords.__setattr__']",2,['MaskedRecords'],1
+MaskedArray,__setmask__,['MaskedRecords.__setattr__'],1,['MaskedRecords'],1
 MaskedArray,mask,[],0,[],0
 MaskedArray,recordmask,[],0,[],0
 MaskedArray,harden_mask,[],0,[],0
@@ -1161,9 +1167,6 @@ MaskedArray,__getstate__,[],0,[],0
 MaskedArray,__setstate__,[],0,[],0
 MaskedArray,__reduce__,[],0,[],0
 MaskedArray,__deepcopy__,[],0,[],0
-MaskedArray,_is_scalar,[],0,[],0
-MaskedArray,_scalar_heuristic,[],0,[],0
-MaskedArray,_recursive_or,[],0,[],0
 mvoid,__new__,[],0,[],0
 mvoid,_data,[],0,[],0
 mvoid,__getitem__,[],0,[],0
@@ -1341,6 +1344,9 @@ _GenericAlias,__eq__,[],0,[],0
 _GenericAlias,__getattribute__,[],0,[],0
 NBitBase,__init_subclass__,[],0,[],0
 _SupportsDType,dtype,[],0,[],0
+_NumpyPlugin,get_type_analyze_hook,[],0,[],0
+_NumpyPlugin,get_additional_deps,[],0,[],0
+_NumpyPlugin,plugin,[],0,[],0
 _SupportsArray,__array__,[],0,[],0
 _NestedSequence,__len__,[],0,[],0
 _NestedSequence,__getitem__,[],0,[],0
@@ -1416,17 +1422,17 @@ param,from_decorator,[],0,[],0
 param,__repr__,[],0,[],0
 parameterized,__init__,[],0,[],0
 parameterized,__call__,[],0,[],0
+parameterized,wrapper,[],0,[],0
 parameterized,param_as_nose_tuple,[],0,[],0
 parameterized,assert_not_in_testcase_subclass,[],0,[],0
-parameterized,_terrible_magic_get_defining_classes,[],0,[],0
+parameterized,_terrible_magic_get_,[],0,[],0
 parameterized,input_as_callable,[],0,[],0
 parameterized,check_input_values,[],0,[],0
 parameterized,expand,[],0,[],0
-parameterized,param_as_standalone_func,[],0,[],0
-parameterized,to_safe_name,[],0,[],0
-parameterized,wrapper,[],0,[],0
 parameterized,parameterized_expand_wrapper,[],0,[],0
+parameterized,param_as_standalone_func,[],0,[],0
 parameterized,standalone_func,[],0,[],0
+parameterized,to_safe_name,[],0,[],0
 LineSplitter,autostrip,[],0,[],0
 LineSplitter,__init__,[],0,[],0
 LineSplitter,_delimited_splitter,[],0,[],0
@@ -1524,12 +1530,12 @@ container,_rc,[],0,[],0
 container,__array_wrap__,[],0,[],0
 container,__setattr__,[],0,[],0
 container,__getattr__,[],0,[],0
-nd_grid,__init__,[],0,[],0
+nd_grid,__init__,"['MGridClass.__init__', 'OGridClass.__init__']",2,"['MGridClass', 'OGridClass']",2
 nd_grid,__getitem__,[],0,[],0
 MGridClass,__init__,[],0,[],0
 OGridClass,__init__,[],0,[],0
 AxisConcatenator,__init__,"['CClass.__init__', 'RClass.__init__']",2,"['RClass', 'CClass']",2
-AxisConcatenator,__getitem__,[],0,[],0
+AxisConcatenator,__getitem__,['MAxisConcatenator.__getitem__'],1,['MAxisConcatenator'],1
 AxisConcatenator,__len__,[],0,[],0
 RClass,__init__,[],0,[],0
 CClass,__init__,[],0,[],0
@@ -1555,6 +1561,12 @@ NpzFile,__len__,[],0,[],0
 NpzFile,__getitem__,[],0,[],0
 NpzFile,iteritems,[],0,[],0
 NpzFile,iterkeys,[],0,[],0
+WriteWrap,__init__,[],0,[],0
+WriteWrap,close,[],0,[],0
+WriteWrap,write,[],0,[],0
+WriteWrap,write_bytes,[],0,[],0
+WriteWrap,write_normal,[],0,[],0
+WriteWrap,first_write,[],0,[],0
 DummyArray,__init__,[],0,[],0
 _Deprecate,__init__,[],0,[],0
 _Deprecate,__call__,[],0,[],0
@@ -1568,11 +1580,11 @@ Arrayterator,shape,[],0,[],0
 Arrayterator,__iter__,[],0,[],0
 vectorize,__init__,[],0,[],0
 vectorize,__call__,[],0,[],0
+vectorize,func,[],0,[],0
 vectorize,_get_ufunc_and_otypes,[],0,[],0
+vectorize,_func,[],0,[],0
 vectorize,_vectorize_call,[],0,[],0
 vectorize,_vectorize_call_with_signature,[],0,[],0
-vectorize,func,[],0,[],0
-vectorize,_func,[],0,[],0
 poly1d,coeffs,[],0,[],0
 poly1d,variable,[],0,[],0
 poly1d,order,[],0,[],0
@@ -1583,6 +1595,7 @@ poly1d,__array__,[],0,[],0
 poly1d,__repr__,[],0,[],0
 poly1d,__len__,[],0,[],0
 poly1d,__str__,[],0,[],0
+poly1d,fmt_float,[],0,[],0
 poly1d,__call__,[],0,[],0
 poly1d,__neg__,[],0,[],0
 poly1d,__pos__,[],0,[],0
@@ -1602,7 +1615,6 @@ poly1d,__setitem__,[],0,[],0
 poly1d,__iter__,[],0,[],0
 poly1d,integ,[],0,[],0
 poly1d,deriv,[],0,[],0
-poly1d,fmt_float,[],0,[],0
 _FileOpeners,__init__,[],0,[],0
 _FileOpeners,_load,[],0,[],0
 _FileOpeners,keys,[],0,[],0
@@ -1615,11 +1627,11 @@ DataSource,_splitzipext,[],0,[],0
 DataSource,_possible_names,[],0,[],0
 DataSource,_isurl,['Repository.listdir'],1,['Repository'],1
 DataSource,_cache,[],0,[],0
-DataSource,_findfile,['Repository._findfile'],1,['Repository'],1
-DataSource,abspath,['Repository.abspath'],1,['Repository'],1
+DataSource,_findfile,[],0,[],0
+DataSource,abspath,[],0,[],0
 DataSource,_sanitize_relative_path,[],0,[],0
-DataSource,exists,['Repository.exists'],1,['Repository'],1
-DataSource,open,['Repository.open'],1,['Repository'],1
+DataSource,exists,[],0,[],0
+DataSource,open,[],0,[],0
 Repository,__init__,[],0,[],0
 Repository,__del__,[],0,[],0
 Repository,_fullpath,[],0,[],0
@@ -1764,11 +1776,11 @@ Records,time_fromstring_w_dtype,[],0,[],0
 Records,time_fromstring_formats_as_list,[],0,[],0
 Records,time_fromstring_formats_as_string,[],0,[],0
 LaplaceInplace,setup,[],0,[],0
-LaplaceInplace,time_it,[],0,[],0
 LaplaceInplace,num_update,[],0,[],0
 LaplaceInplace,num_inplace,[],0,[],0
 LaplaceInplace,laplace,[],0,[],0
 LaplaceInplace,run,[],0,[],0
+LaplaceInplace,time_it,[],0,[],0
 MaxesOfDots,setup,[],0,[],0
 MaxesOfDots,maxes_of_dots,[],0,[],0
 MaxesOfDots,time_it,[],0,[],0
@@ -2109,16 +2121,3 @@ FakeCCompilerOpt,feature_test,[],0,[],0
 FakeCCompilerOpt,gen_features_table,[],0,[],0
 FakeCCompilerOpt,gen_gfeatures_table,[],0,[],0
 FakeCCompilerOpt,gen_rst_table,[],0,[],0
-IntelCCompilerW,__init__,[],0,[],0
-IntelCCompilerW,initialize,[],0,[],0
-IntelEM64TCCompilerW,__init__,[],0,[],0
-c_void_p,__init__,[],0,[],0
-_NumpyPlugin,get_type_analyze_hook,[],0,[],0
-_NumpyPlugin,get_additional_deps,[],0,[],0
-WriteWrap,__init__,[],0,[],0
-WriteWrap,close,[],0,[],0
-WriteWrap,write,[],0,[],0
-WriteWrap,write_bytes,[],0,[],0
-WriteWrap,write_normal,[],0,[],0
-WriteWrap,first_write,[],0,[],0
-numpy_linalg_lapack_lite,calc_info,[],0,[],0

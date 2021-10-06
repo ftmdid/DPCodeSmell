@@ -82,8 +82,10 @@ def getClassOfParent(content):
                 else: 
                     raise Exception("problem with getClassOfParent")
             elif hasattr(content.bases[i], 'func'):
-                parentClassList.append(content.bases[i].func.attr)
-            
+                if hasattr(content.bases[i].func, "attr"):
+                    parentClassList.append(content.bases[i].func.attr)
+                elif hasattr(content.bases[i].func, "id"):
+                    parentClassList.append(content.bases[i].func.id)
             else:
                 raise Exception("problem with getClassOfParent")
                 
@@ -92,7 +94,6 @@ def getClassOfParent(content):
         print(ex)
         print("Exception occurred in featureEnvySmell.getClassOfParent()")
          
-
                
 def checkForImportStatementsInFuncDefinition(node):
     importedClasses = []

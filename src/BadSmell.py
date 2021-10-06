@@ -6,8 +6,6 @@ Created on Mar 27, 2019
 
 import re
 import src.runOperations as op
-# import src.pythonMethods as pyMethods
-
 import src.smell.longParameterListSmell as longParameterList
 import src.smell.refusedBequestSmell as refusedBequest
 import src.smell.dataClassSmell as dataClass
@@ -44,12 +42,14 @@ class BadSmell(object):
                 for lineno, line in enumerate(source, start=0):
                     if current_class and not line.startswith(' '):
                         if line != '\n':
-                            classes[current_class]['end'] = lineno - 1
+                            #classes[current_class]['end'] = lineno - 1
+                            classes[current_class]['end'] = lineno
                             current_class = None
                             
                     if line.lstrip().startswith('class ') and (":" in line) and not(line.startswith('#')):
                         if (current_class in classes.keys())  and ('end' not in  classes[current_class].keys()):
-                            classes[current_class]['end'] = lineno - 1
+                            #classes[current_class]['end'] = lineno - 1
+                            classes[current_class]['end'] = lineno
                             current_class = None
                         if "(" and ")" in line:
                             current_class=line.split('class ')[1].lstrip().split('(')[0].lstrip().rstrip()

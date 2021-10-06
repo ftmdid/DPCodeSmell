@@ -21,10 +21,14 @@ def remove_comments_and_docstrings(source):
         if start_col > last_col:
             out += (" " * (start_col - last_col))
         if token_type == tokenize.COMMENT:
+            # Comment
             pass
+        # elif token_type == tokenize.STRING and prev_toktype == tokenize.INDENT:
+        #     # Docstring
+        #     pass
         elif token_type == tokenize.STRING:
             if prev_toktype != tokenize.INDENT:
-                if prev_toktype != tokenize.NEWLINE:
+                #if prev_toktype != tokenize.NEWLINE:
                     if start_col > 0:
                         out += token_string
         else:

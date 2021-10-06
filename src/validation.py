@@ -1,16 +1,9 @@
-
-
-
-
-
-
 '''
 Created on Sep 15, 2020
 
 
 @author: neda
 '''
-
 
 import os
 import src.BadSmell as BS
@@ -320,7 +313,7 @@ if __name__ == '__main__':
     
     #getFeatureEnvyInProject(validationFolder, projectPath)
     
-    #getShotgunSurgeryInProject(validationFolder, projectPath)
+    getShotgunSurgeryInProject(validationFolder, projectPath)
     
    
 

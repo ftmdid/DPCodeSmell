@@ -461,13 +461,15 @@ class Relation(object):
                       
                     for fileInTheFolder in filesInFolder:
                             fileIndex = filesInFolder.index(fileInTheFolder)
-                            
-                            isShotgunSurgerySmellDict=smell.checkForShotgunSurgery(fileInTheFolder, self.projectName)
-                            if isShotgunSurgerySmellDict:
-                                for k, v in isShotgunSurgerySmellDict.items():
-                                    rootName = fileInTheFolder.split("@")[0] 
-                                    shotgunSurgerySmellRelationAnalysisCSVoutList.append([fileName.split('@')[1], fileInTheFolder,k,str(v['isFeatureEnvy']),str(fileIndex),str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
-                                              
+                            if (bugFixedCommitIndexInItsFolder-fileIndex<3) and (bugFixedCommitIndexInItsFolder-fileIndex>=-1):
+                          
+                                isShotgunSurgerySmellDict=smell.checkForShotgunSurgery(fileInTheFolder, self.projectName)
+                                if isShotgunSurgerySmellDict:
+                                    for k, _ in isShotgunSurgerySmellDict.items():
+                                        rootName = fileInTheFolder.split("@")[0] 
+                                        for key, value in isShotgunSurgerySmellDict[k].items():
+                                            shotgunSurgerySmellRelationAnalysisCSVoutList.append([fileName.split('@')[1], fileInTheFolder,k+"."+key, str(value['isShotgunSurgery']),str(fileIndex),str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
+                                                  
             shotgunSurgerySmellRelationAnalysisCSVoutList=self.checkForDuplicatesInListsofList(shotgunSurgerySmellRelationAnalysisCSVoutList)
             for analysis in shotgunSurgerySmellRelationAnalysisCSVoutList:
                 relationAnalysisShotgunSurgerySmellCSVout.writerow(analysis)

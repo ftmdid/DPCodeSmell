@@ -12,8 +12,8 @@ import src.Relation as relation
 if __name__ == '__main__':
     
     #projectName='zulip'
-    projectName='keras'
-    projectName='numpy'
+    #projectName='keras'
+    #projectName='numpy'
     #projectName='models'
     #projectName="scikit-learn"
     #downloads = download.Downloads(projectName)
@@ -69,20 +69,20 @@ if __name__ == '__main__':
 #----------------------------------------------------------------------#
  
   
-    '''
+    #'''
     projectName="scikit-learn"   
     print("Started bad smell analysis on "+projectName)
     relation2=relation.Relation(projectName)   
     relation2.checkForRelation() 
     print("Finished bad smell analysis on "+projectName)
-    '''
     #'''
+    '''
     projectName="keras"   
     print("Started bad smell analysis on "+projectName)
     relation4=relation.Relation(projectName)   
     relation4.checkForRelation()  
     print("Finished bad smell analysis on "+projectName) 
-    #'''
+    '''
     '''
     projectName="models"   
     print("Started bad smell analysis on "+projectName)
