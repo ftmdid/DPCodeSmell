@@ -22,8 +22,9 @@ import src.FileOperations as FO
 import src.Relation as RL
 import numpy as np
 import re
-from git.exc import GitCommandError
+from git.exc import GitCommandError, GitError
 import shutil
+from future.builtins.misc import isinstance
 
 
 #import src.defectAnalysis as defectAnalysis
@@ -313,158 +314,212 @@ if __name__ == '__main__':
     
     #getFeatureEnvyInProject(validationFolder, projectPath)
     
-    getShotgunSurgeryInProject(validationFolder, projectPath)
+    #getShotgunSurgeryInProject(validationFolder, projectPath)
     
-   
 
     
     
+    def getFileChanges(differenceList):
+        fileChangesIndices = findIndicesOfModifiedFiles(differenceList)[0]
+        lenOfDifferences = len(differenceList) #pythonFileChangeIndices = findIndicesOfModifiedFiles(differenceList)[1]
+        fileChanges = []
+        fileChangesDict = {}
+        for i in range(lenOfDifferences):
+            if re.search(r"diff --git a/(.+?).py b/.(.+?).py", differenceList[i]):
+                fileName = find_between(differenceList[i], 'a/', 'b/').rstrip().rsplit("/", 1)[-1]
+                ind = fileChangesIndices.index(i)
+                if ind != len(fileChangesIndices) - 1:
+                    fileChanges = differenceList[i:fileChangesIndices[ind + 1]]
+                    fileChangesDict[fileName] = fileChanges
+                else:
+                    fileChanges = differenceList[i:lenOfDifferences + 1]
+                    fileChangesDict[fileName] = fileChanges
+        return fileChangesDict
+    
+    def findIndicesOfModifiedFiles(differenceList):
+        pythonFileChangesIndices=[]
+        fileChangesIndices=[]
+        for i in range(len(differenceList)):
+            if re.search(r"diff --git a/(.+?) b/.(.+?)", differenceList[i]):
+                                #print(differenceList[i])
+                fileChangesIndices.append(i)
+            if re.search(r"diff --git a/(.+?).py b/.(.+?).py", differenceList[i]):
+                                #print(differenceList[i])
+                pythonFileChangesIndices.append(i)
+    
+        return [fileChangesIndices,pythonFileChangesIndices]
+    
+    def createModifiedFilesBeforeAndAtBugFixedCommit(fileOp, repo, rootFolderForProject, bugFixedCommitID, fileCommitID):
+        try:
+            rootFolderToCreateFiles = rootFolderForProject + "/" + bugFixedCommitID
+            fileOp.createFolder(rootFolderToCreateFiles)
+        
+            #get the diff between two hashes in gitpython
+            # print("fileCommitID:" + fileCommitID)
+            sourceCommit = repo.commit(fileCommitID)
+            # print("bugFixedCommitId:" + bugFixedCommitID)
+            targetCommit = repo.commit(bugFixedCommitID)
+            git_diff = sourceCommit.diff(targetCommit)
+            changedFiles = [f.b_path for f in git_diff] #print( "\n".join( changedFiles ))
+        
+            for each in changedFiles:
+                if each.endswith('.py'): #print(each)
+                    hexsha1 = repo.git.show('%s:%s' % (fileCommitID, each))
+                    fileName= os.path.join(rootFolderToCreateFiles, each.rsplit("/", 1)[-1]).split(".py")[0]+"@@"+fileCommitID + ".py"
+                    fileOp.writeFileContentToPythonFile(hexsha1,fileName)
+                    hexsha2 = repo.git.show('%s:%s' % (bugFixedCommitID, each))
+                    fileName2 = os.path.join(rootFolderToCreateFiles, each.rsplit("/", 1)[-1]).split('.py')[0] + "@@"+bugFixedCommitID + ".py"
+                    fileOp.writeFileContentToPythonFile(hexsha2, fileName2)
+            return rootFolderToCreateFiles
+        except Exception as ex:
+            print(ex)
+    
+    def checkForMethodLinesWithAST(node):
+        methodLines={}
+        for item in ast.walk(node):
+            if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef )):
+                methodLines[item.name]=[item.lineno, item.end_lineno]
+        return methodLines
+    def checkForClassLinesWithAST(fileName):
+        parsedFileInTheFolder=lMethod.parseFile(fileInTheFolder)
+        classLines={}
+        for item in ast.walk(parsedFileInTheFolder):
+            if isinstance(item, ast.ClassDef):
+                #print(item.name)
+                classLines[item.name]={'lines':[item.lineno, item.end_lineno]}
+                classLines[item.name].update(checkForMethodLinesWithAST(item))
+                #classLines[item.name]= checkForMethodLines(item)
+        return classLines
+                
+    def findClassesInFile(fileName):
+        parsedFileInTheFolder=lMethod.parseFile(fileInTheFolder)
+        classList=[]
+        for item in ast.walk(parsedFileInTheFolder):
+            if isinstance(item, ast.ClassDef):
+                classList.append(item.name)
+        return classList
+                    
+                     
+        
+    projectName= "keras"
+    fileOp= FO.FileOperations(projectName)
+    relat= RL.Relation(projectName)
     
     
     
+    repoPath= os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Projects/'+projectName)
+    repo = Repo(repoPath)
+    commits_touching_path = list(repo.iter_commits(paths=repoPath))
+    rootFolderForProject=  os.path.dirname(os.path.dirname(__file__)) +'/util/Analysis/BadSmells/ShotgunSurgery/'+projectName
+    fileOp.createFolder(rootFolderForProject)
     
     
+    projectPath = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/SemanticVsSyntacticAnalysis'
+    csvfile = 'SemanticVsSyntacticAnalysisOf'+projectName+'.csv'
+    '''
+                buggedCommits=['Issue ID', 'Issue Body','issue User', 'commitID','Commit Subject',"Semantic Confidence Level","Syntactic Confidence Level"]
+    '''
+    
+    buggedCommitsList = fileOp.readCSVFile(os.path.join(projectPath, csvfile))
+    
+    folderDirs = os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+projectName.lower()
+    modifiedFileListDict =relat.getModifiedFilesFromProject(folderDirs)  # key is the file itself and the value is the commit id on the file name,  # 14885 files modified
+    
+    commitIDList = relat.getcommitIDsFromSyntacticvsSemanticAnalysisFile(buggedCommitsList)  # this has commitID on the analysis csv file, # 2862 commits
+    commitIDList = list(set(commitIDList))
+    
+    possibleChoices = []  
+    possibleChoices=np.array([file for file, commitIDInFile in modifiedFileListDict.items() for commitID in commitIDList if commitID in commitIDInFile])
     
     
+    possibleChoices = list(set(possibleChoices))  
     
     
+    filesListWithBugFixedCommitsDict = {} #337 files that have bug fixed commit IDs
+    checkedList= [] 
+    for each in possibleChoices:
+        rootName = os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+relat.projectName.lower()+"/"+ each.split("@")[0]
+        filesListWithBugFixedCommitsDict[each] = relat.checkFilesWithinRoot(rootName)
     
     
+        for fileName in filesListWithBugFixedCommitsDict.keys():  # key=fileName, value=filesInRootOfFileName
+            filesInFolder=filesListWithBugFixedCommitsDict[fileName]
+            bugFixedCommitFileDir=  os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+projectName.lower()+"/"+ fileName.split("@")[0] +"/"+fileName
+            bugFixedCommitIndexInItsFolder=filesInFolder.index(bugFixedCommitFileDir)
+    
+            try:
+                fileInTheFolder = filesInFolder[bugFixedCommitIndexInItsFolder-1]
+    
+                if not(bugFixedCommitFileDir in checkedList) :
+                    checkedList.append(bugFixedCommitFileDir)
+    
+                    bugFixedCommitID = find_between(bugFixedCommitFileDir, "@", "@")
+                    fileCommitID = find_between(fileInTheFolder, "@", "@")
+    
+                    print("fileCommitID: ", fileCommitID)  
+                    print("bugFixedCommitId: " + bugFixedCommitID)    
+                    
+                    
+                    
+                    '''Find the line numbers of each class and function of a file'''
+                    linesOfFileInTheFolder= checkForClassLinesWithAST(fileInTheFolder)
+                    linesOfBugFixedCommitFile= checkForClassLinesWithAST(bugFixedCommitIndexInItsFolder)
+                
+                     
+                  
+    
+                    '''Find the foreign class of each class in a project at the time project is not modified for bug fix '''
+                    '''
+                    filePath= inheritance.downloadProjectInASpecificCommit(projectName, fileCommitID) # project that is modified before bug fix commit
+                    try:
+           
+                        foreignClassCallOfEachClassInAProject=sSurgery.calculateForeignMethodsOfClassesWithAST(filePath, projectName)
+                    except Exception as ex:
+                        foreignClassCallOfEachClassInAProject = sSurgery.calculateForeignMethodsOfClassesWOutAST(filePath,projectName)  
+                    '''
+                    
+                    
+                    '''Find the changes that is made in each file before and at thhe time bug fix'''
+                    differenceList = repo.git.diff(fileCommitID, bugFixedCommitID).split("\n")
+                    fileChangesDict= getFileChanges(differenceList)
+                    
+                    
+                    
+                    
+    
+                    ''' Modified file before and at the time bug is fixed'''
+                    rootFolderToCreateFiles= createModifiedFilesBeforeAndAtBugFixedCommit(fileOp, repo, rootFolderForProject, bugFixedCommitID, fileCommitID)
+    
+                    modifiedFilePath= os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/BadSmells/ShotgunSurgery/'+projectName.lower()+"/"+bugFixedCommitID
+                    for changedFileName,value  in fileChangesDict.items():
+                        print(changedFileName)
+                        changedFileName= changedFileName.split(".py")[0]+"@@"+fileCommitID+".py"
+                        print(changedFileName)
+                        changedFilePath= os.path.join(modifiedFilePath,changedFileName )
+                        linesOfChangedFile= checkForClassLinesWithAST(changedFilePath)
+                        for it in value:
+                            if it.startswith("@@"):
+                                lineToSplit= find_between(it, "@@", "@@").split(" ")[1]
+                                if "-" in lineToSplit:
+                                    lineToSplit= lineToSplit.split("-")[1]
+                                elif "+" in lineToSplit:
+                                    lineToSplit= lineToSplit.split("+")[1]
+                                #for clss,clssItems in lines  
+                                
+                        
+                        
+                    
+                    from os import listdir
+                    from os.path import isfile, join
+                    onlyFiles = [f for f in listdir(rootFolderToCreateFiles) if isfile(join(rootFolderToCreateFiles, f))]
     
     
-    # def getFileChanges(differenceList):
-    #     fileChangesIndices = findIndicesOfModifiedFiles(differenceList)[0]
-    #     lenOfDifferences = len(differenceList) #pythonFileChangeIndices = findIndicesOfModifiedFiles(differenceList)[1]
-    #     fileChanges = []
-    #     fileChangesDict = {}
-    #     for i in range(lenOfDifferences):
-    #         if re.search(r"diff --git a/(.+?).py b/.(.+?).py", differenceList[i]):
-    #             fileName = find_between(differenceList[i], 'a/', 'b/').rstrip().rsplit("/", 1)[-1]
-    #             ind = fileChangesIndices.index(i)
-    #             if ind != len(fileChangesIndices) - 1:
-    #                 fileChanges = differenceList[i:fileChangesIndices[ind + 1]]
-    #                 fileChangesDict[fileName] = fileChanges
-    #             else:
-    #                 fileChanges = differenceList[i:lenOfDifferences + 1]
-    #                 fileChangesDict[fileName] = fileChanges
-    #     return fileChangesDict
-    #
-    # def findIndicesOfModifiedFiles(differenceList):
-    #     pythonFileChangesIndices=[]
-    #     fileChangesIndices=[]
-    #     for i in range(len(differenceList)):
-    #         if re.search(r"diff --git a/(.+?) b/.(.+?)", differenceList[i]):
-    #                             #print(differenceList[i])
-    #             fileChangesIndices.append(i)
-    #         if re.search(r"diff --git a/(.+?).py b/.(.+?).py", differenceList[i]):
-    #                             #print(differenceList[i])
-    #             pythonFileChangesIndices.append(i)
-    #
-    #     return [fileChangesIndices,pythonFileChangesIndices]
-    #
-    # def createModifiedFilesBeforeAndAtBugFixedCommit(fileOp, repo, rootFolderForProject, bugFixedCommitID, fileCommitID):
-    #     rootFolderToCreateFiles = rootFolderForProject + "/" + bugFixedCommitID
-    #     fileOp.createFolder(rootFolderToCreateFiles)
-    #
-    #     #get the diff between two hashes in gitpython
-    #     # print("fileCommitID:" + fileCommitID)
-    #     sourceCommit = repo.commit(fileCommitID)
-    #     # print("bugFixedCommitId:" + bugFixedCommitID)
-    #     targetCommit = repo.commit(bugFixedCommitID)
-    #     git_diff = sourceCommit.diff(targetCommit)
-    #     changedFiles = [f.b_path for f in git_diff] #print( "\n".join( changedFiles ))
-    #
-    #     for each in changedFiles:
-    #         if each.endswith('.py'): #print(each)
-    #             hexsha1 = repo.git.show('%s:%s' % (fileCommitID, each))
-    #             fileOp.writeFileContentToPythonFile(hexsha1, (os.path.join(rootFolderToCreateFiles, each.rsplit("/", 1)[-1])))
-    #             hexsha2 = repo.git.show('%s:%s' % (bugFixedCommitID, each))
-    #             fileName = os.path.join(rootFolderToCreateFiles, each.rsplit("/", 1)[-1]).split('.py')[0] + "2" + ".py"
-    #             fileOp.writeFileContentToPythonFile(hexsha2, fileName)
-    #     return rootFolderToCreateFiles
-    #
-    #
-    #
-    # projectName= "keras"
-    # fileOp= FO.FileOperations(projectName)
-    # relat= RL.Relation(projectName)
-    #
-    #
-    #
-    # repoPath= os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Projects/'+projectName)
-    # repo = Repo(repoPath)
-    # commits_touching_path = list(repo.iter_commits(paths=repoPath))
-    # rootFolderForProject=  os.path.dirname(os.path.dirname(__file__)) +'/util/Analysis/BadSmells/ShotgunSurgery/'+projectName
-    # fileOp.createFolder(rootFolderForProject)
-    #
-    #
-    # projectPath = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/SemanticVsSyntacticAnalysis'
-    # csvfile = 'SemanticVsSyntacticAnalysisOf'+projectName+'.csv'
-    # '''
-    #             buggedCommits=['Issue ID', 'Issue Body','issue User', 'commitID','Commit Subject',"Semantic Confidence Level","Syntactic Confidence Level"]
-    # '''
-    #
-    # buggedCommitsList = fileOp.readCSVFile(os.path.join(projectPath, csvfile))
-    #
-    # folderDirs = os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+projectName.lower()
-    # modifiedFileListDict =relat.getModifiedFilesFromProject(folderDirs)  # key is the file itself and the value is the commit id on the file name,  # 14885 files modified
-    #
-    # commitIDList = relat.getcommitIDsFromSyntacticvsSemanticAnalysisFile(buggedCommitsList)  # this has commitID on the analysis csv file, # 2862 commits
-    # commitIDList = list(set(commitIDList))
-    #
-    # possibleChoices = []  
-    # possibleChoices=np.array([file for file, commitIDInFile in modifiedFileListDict.items() for commitID in commitIDList if commitID in commitIDInFile])
-    #
-    #
-    # possibleChoices = list(set(possibleChoices))  
-    #
-    #
-    # filesListWithBugFixedCommitsDict = {} #337 files that have bug fixed commit IDs
-    # checkedList= [] 
-    # for each in possibleChoices:
-    #     rootName = os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+relat.projectName.lower()+"/"+ each.split("@")[0]
-    #     filesListWithBugFixedCommitsDict[each] = relat.checkFilesWithinRoot(rootName)
-    #
-    #
-    #     for fileName in filesListWithBugFixedCommitsDict.keys():  # key=fileName, value=filesInRootOfFileName
-    #         filesInFolder=filesListWithBugFixedCommitsDict[fileName]
-    #         bugFixedCommitFileDir=  os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+projectName.lower()+"/"+ fileName.split("@")[0] +"/"+fileName
-    #         bugFixedCommitIndexInItsFolder=filesInFolder.index(bugFixedCommitFileDir)
-    #
-    #         try:
-    #             fileInTheFolder = filesInFolder[bugFixedCommitIndexInItsFolder-1]
-    #
-    #             if not(bugFixedCommitFileDir in checkedList) :
-    #                 checkedList.append(bugFixedCommitFileDir)
-    #
-    #                 bugFixedCommitID = find_between(bugFixedCommitFileDir, "@", "@")
-    #                 fileCommitID = find_between(fileInTheFolder, "@", "@")
-    #
-    #                 print("fileCommitID: ", fileCommitID)  
-    #                 print("bugFixedCommitId: " + bugFixedCommitID)     
-    #
-    #                 '''Find the changes that is made in each file before and at thhe time bug fix'''
-    #                 differenceList = repo.git.diff(fileCommitID, bugFixedCommitID).split("\n")
-    #                 fileChangesDict= getFileChanges(differenceList)
-    #
-    #
-    #                 '''Find the foreign class of each class in a project at the time project is not modified for bug fix '''
-    #                 filePath= inheritance.downloadProjectInASpecificCommit(projectName, fileCommitID) # project that is modified before bug fix commit
-    #                 foreignClassCallOfEachClassInAProject=sSurgery.calculateForeignMethodsOfClasses(filePath, projectName)
-    #
-    #                 ''' Modified file before and at the time bug is fixed'''
-    #                 rootFolderToCreateFiles= createModifiedFilesBeforeAndAtBugFixedCommit(fileOp, repo, rootFolderForProject, bugFixedCommitID, fileCommitID)
-    #
-    #                 from os import listdir
-    #                 from os.path import isfile, join
-    #                 onlyFiles = [f for f in listdir(rootFolderToCreateFiles) if isfile(join(rootFolderToCreateFiles, f))]
-    #
-    #                 for fle in onlyFiles:
-    #                     if fle in fileChangesDict.keys():
-    #                         print(fileChangesDict[fle])
-    #
-    #         except GitCommandError as ex:
-    #             print(ex)           
+                    for fle in onlyFiles:
+                        if fle in fileChangesDict.keys():
+                            print(fileChangesDict[fle])
+    
+            except GitCommandError as ex:
+                print(ex)           
     
     #shutil.rmtree(rootFolderForProject) #to remove project folder that has modified files in it. 
     

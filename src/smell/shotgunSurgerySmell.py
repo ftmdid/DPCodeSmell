@@ -16,60 +16,7 @@ import re
 
 def calculateShotgunSurgery(fileInTheFolder, projectName):
     try:
-        fileCommitID = find_between(fileInTheFolder, "@", "@")
-        filePath= inheritance.downloadProjectInASpecificCommit(projectName, fileCommitID) # project that is modified before bug fix commit
-
-        try:
-            parsedWholeFile =  lMethod.parseFile(filePath)
-            foreignClassCallOfEachClassInAProject=calculateForeignMethodsOfClassesWithAST(filePath,parsedWholeFile, projectName)
-        except Exception as ex:
-            foreignClassCallOfEachClassInAProject = calculateForeignMethodsOfClassesWOutAST(filePath,projectName)  
-        
-        methodResultDict= {}
-        classMethodResultDict={}
-        try:
-            parsedFile =  lMethod.parseFile(fileInTheFolder)
-            parsedFileContent = list(ast.walk(parsedFile))
-        
-        
-            for content in parsedFileContent:
-                if isinstance(content, ast.ClassDef):
-                    methodResult=[]
-                    methodResultDict= {}
-                    for childNode in list(ast.walk(content)):
-                        if isinstance(childNode, ast.FunctionDef): 
-                            searchKeyword = content.name +"."+childNode.name
-                            methodResult = searchForMethod(searchKeyword, foreignClassCallOfEachClassInAProject)
-                            isShotgunSurgery=False
-                            if len(methodResult[0])>5 and len(methodResult[1])>4:
-                                isShotgunSurgery=True
-                            methodResultDict[childNode.name]= {'CM':methodResult[0],'CC':methodResult[1], 'isShotgunSurgery':isShotgunSurgery}
-        
-                        classMethodResultDict[content.name]=methodResultDict
-        except:
-            smll = smell.BadSmell()
-            classWithMethods={}
-            with open(fileInTheFolder,  encoding="utf-8", errors='ignore') as f:
-                fileLines= f.read()
-                lines= remove_comments_and_docstrings(fileLines).split("\n")
-                classes = smll.getClassLinesOfFile(lines)
-                classWithMethods= findClassMethods(classes, lines)
-                f.close()
-
-            classMethodResultDict={}
-            for className, value in classWithMethods.items():
-                methodResultDict= {}
-                for methodName in value:
-                    searchKeyword=className.lstrip().rstrip()+"."+methodName.lstrip().rstrip()
-                    methodResult = searchForMethod(searchKeyword, foreignClassCallOfEachClassInAProject)
-                    isShotgunSurgery=False
-                    if len(methodResult[0])>5 and len(methodResult[1])>4:
-                        isShotgunSurgery=True
-                    methodResultDict[methodName]= {'CM':methodResult[0],'CC':methodResult[1], 'isShotgunSurgery':isShotgunSurgery}
-        
-                classMethodResultDict[className]=methodResultDict
-        
-        return classMethodResultDict 
+        pass
        
     except Exception as ex:
         print(ex)

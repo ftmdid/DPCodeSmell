@@ -5,14 +5,14 @@ Created on Oct 10, 2020
 '''
 #import src.Downloads as download
 #import src.Analysis as analysis
-import src.Relation as relation
+#import src.Relation as relation
 
 
   
 if __name__ == '__main__':
     
     #projectName='zulip'
-    #projectName='keras'
+   # projectName='keras'
     #projectName='numpy'
     #projectName='models'
     #projectName="scikit-learn"
@@ -69,13 +69,13 @@ if __name__ == '__main__':
 #----------------------------------------------------------------------#
  
   
-    #'''
+    '''
     projectName="scikit-learn"   
     print("Started bad smell analysis on "+projectName)
     relation2=relation.Relation(projectName)   
     relation2.checkForRelation() 
     print("Finished bad smell analysis on "+projectName)
-    #'''
+    '''
     '''
     projectName="keras"   
     print("Started bad smell analysis on "+projectName)
