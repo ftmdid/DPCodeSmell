@@ -229,17 +229,17 @@ def getMethodLinesOfClass(source):
                     current_method = None
             #if line.lstrip().startswith('def ') and (":" in line) and not(line.startswith('#')):               
             #if line.lstrip().startswith('def ') and ((":" in line) or (":" in totalLine[lineno+1])) and not(line.startswith('#')):
-            if line.lstrip().startswith('def ')  and not(line.startswith('#')):
+            if line.lstrip().startswith('def')  and not(line.startswith('#')):
                 if (current_method in methods.keys())  and ('end' not in  methods[current_method].keys()):
                     #methods[current_method]['end'] = lineno - 1
                     methods[current_method]['end'] = lineno
                     current_method = None
-                if "(" and ")" in line:
-                    current_method=line.split('def ')[1].lstrip().split('(')[0].lstrip().rstrip()
+                if "(" in line:
+                    current_method=line.split('def')[1].lstrip().split('(')[0].lstrip().rstrip()
                     methods[current_method] = {'start': lineno}
                     
                 else:
-                    className=line.split('def ')[1].lstrip().split(':')[0].lstrip().rstrip()
+                    className=line.split('def')[1].lstrip().split(':')[0].lstrip().rstrip()
                     if not ' ' in className:
                         current_method=className.lstrip().rstrip()
                         methods[current_method] = {'start': lineno}

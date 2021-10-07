@@ -16,27 +16,22 @@ import re
 
 def calculateShotgunSurgery(fileInTheFolder, projectName):
     try:
-        classWithMethods =  {}
-        #fileCommitID = find_between(fileInTheFolder, "@", "@")
-        #filePath= inheritance.downloadProjectInASpecificCommit(projectName, fileCommitID) # project that is modified before bug fix commit
-        filePath= fileInTheFolder
-        print(filePath)
+        fileCommitID = find_between(fileInTheFolder, "@", "@")
+        filePath= inheritance.downloadProjectInASpecificCommit(projectName, fileCommitID) # project that is modified before bug fix commit
+
         try:
             parsedWholeFile =  lMethod.parseFile(filePath)
             foreignClassCallOfEachClassInAProject=calculateForeignMethodsOfClassesWithAST(filePath,parsedWholeFile, projectName)
         except Exception as ex:
-            dta = calculateForeignMethodsOfClassesWOutAST(filePath,projectName)
-            # foreignClassCallOfEachClassInAProject=calculateForeignMethodsOfClassesWOutAST(filePath,projectName)
-            foreignClassCallOfEachClassInAProject=dta[0]
-            classWithMethods = dta[1]   
+            foreignClassCallOfEachClassInAProject = calculateForeignMethodsOfClassesWOutAST(filePath,projectName)  
         
         methodResultDict= {}
         classMethodResultDict={}
         try:
             parsedFile =  lMethod.parseFile(fileInTheFolder)
             parsedFileContent = list(ast.walk(parsedFile))
-            
-               
+        
+        
             for content in parsedFileContent:
                 if isinstance(content, ast.ClassDef):
                     methodResult=[]
@@ -49,42 +44,29 @@ def calculateShotgunSurgery(fileInTheFolder, projectName):
                             if len(methodResult[0])>5 and len(methodResult[1])>4:
                                 isShotgunSurgery=True
                             methodResultDict[childNode.name]= {'CM':methodResult[0],'CC':methodResult[1], 'isShotgunSurgery':isShotgunSurgery}
-            
+        
                         classMethodResultDict[content.name]=methodResultDict
         except:
-            
+            smll = smell.BadSmell()
+            classWithMethods={}
+            with open(fileInTheFolder,  encoding="utf-8", errors='ignore') as f:
+                fileLines= f.read()
+                lines= remove_comments_and_docstrings(fileLines).split("\n")
+                classes = smll.getClassLinesOfFile(lines)
+                classWithMethods= findClassMethods(classes, lines)
+                f.close()
+
             classMethodResultDict={}
             for className, value in classWithMethods.items():
-                if className=="_ilp64_opt_info_mixin":
-                    print("here")
-                if className=="_Distutils":
-                    print("here")
-                if className=="_Cache":
-                    print("here")
-                if className=="_Feature":
-                    print("here")
-                if className=="_Parse":
-                    print("here")
-                if className=="build_ext":
-                    print("here")
-                if className=="build_clib":
-                    print("here")
-                if className=="_TimelikeFormat":
-                    print("here")
-                if className=="MaskedArray":
-                    print("here")
-                if className=="DataSource":
-                    print("here")
-                    
                 methodResultDict= {}
                 for methodName in value:
-                    searchKeyword=className+"."+methodName
+                    searchKeyword=className.lstrip().rstrip()+"."+methodName.lstrip().rstrip()
                     methodResult = searchForMethod(searchKeyword, foreignClassCallOfEachClassInAProject)
                     isShotgunSurgery=False
                     if len(methodResult[0])>5 and len(methodResult[1])>4:
                         isShotgunSurgery=True
                     methodResultDict[methodName]= {'CM':methodResult[0],'CC':methodResult[1], 'isShotgunSurgery':isShotgunSurgery}
-                     
+        
                 classMethodResultDict[className]=methodResultDict
         
         return classMethodResultDict 
@@ -101,7 +83,7 @@ def findClassMethods(classes,lines):
             if ('start' and 'end') in value:
                 classLines=lines[int(value['start']):int(value['end'])]
                 classMethods=checkClassMethods(classLines)
-                classWithMethods[key]=classMethods
+                classWithMethods[key.lstrip().rstrip()]=classMethods
         return classWithMethods
     except Exception as ex:
         print(ex)
@@ -111,7 +93,7 @@ def checkClassMethods(classLines):
             try:
                 methodsList=[]
                 for each in classLines:
-                    if re.match(r'def (.+?)( ?\()', each.lstrip()):
+                    if re.match(r'def(.+?)( ?\()', each.lstrip()) and not (each.lstrip().startswith("#")):
                         currentMethod=each.split('def')[1].lstrip().split('(')[0]
                         methodsList.append(currentMethod.lstrip().rstrip())
                 
@@ -119,6 +101,7 @@ def checkClassMethods(classLines):
             except Exception as ex:
                 print(ex)
                 print("Exception occurred in BadSmell.checkClassMethodsWithSelf method")  
+                
 def checkForFunctionaCallsWoutAST(methods, classLines, parentClasses,className,classWithMethods):
     try:
         foreignCallsDict= {}
@@ -130,7 +113,7 @@ def checkForFunctionaCallsWoutAST(methods, classLines, parentClasses,className,c
                 foreignCallsDict[key]=[]
                 for line in methodLines:
                     if "self." in line:  
-                        if "(" and ")" in line: 
+                        if "(" in line: 
                             if string_check.search(line.split("self.")[1].split("(")[0])==None:
                                 if line.split("self.")[1].split("(")[0]==line.split("self.")[1].split("(")[0].strip():
                                     funcCall= line.split("self.")[1].split("(")[0]
@@ -144,7 +127,7 @@ def checkForFunctionaCallsWoutAST(methods, classLines, parentClasses,className,c
                                             foreignCallsDict[key].append(funcCall)
                         
                     elif "cls." in line:
-                        if "(" and ")" in line:  
+                        if "("  in line:  
                             if string_check.search(line.split("cls.")[1].split("(")[0])==None:
                                 if line.split("cls.")[1].split("(")[0]==line.split("cls.")[1].split("(")[0].strip():
                                     funcCall= line.split("cls.")[1].split("(")[0]
@@ -197,17 +180,6 @@ def calculateForeignMethodsOfClassesWOutAST(fileName, projectName):
             if classes!=None and len(classes.items())>=1:
                 
                 for className, value in classes.items(): 
-                    if className=="new_build_ext":
-                        print("here")
-                    if className=="new_build_clib":
-                        print("here")
-                    if className=="DatetimeFormat":
-                        print("here")
-                    if className=="MaskedConstant":
-                        print("here")
-                    if className=="Repository":
-                        print("here")
-
                     if ('start' and 'end') in value:
                         parentClasses=[]
                         classLines=[]
@@ -236,7 +208,7 @@ def calculateForeignMethodsOfClassesWOutAST(fileName, projectName):
                         foreignCallsDict=checkForFunctionaCallsWoutAST(methods, classLines, parentClasses,className,classWithMethods)
                         classDict[className]=foreignCallsDict 
         f.close()
-        return classDict,classWithMethods
+        return classDict
     except Exception as ex:
         print(ex)
         print("Exception occurred in shotgunSurgerySmell.calculateForeignMethodsOfClassesWOutAST in "+projectName)
