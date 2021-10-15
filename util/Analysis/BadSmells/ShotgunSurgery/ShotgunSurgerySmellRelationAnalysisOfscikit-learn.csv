@@ -1,0 +1,722 @@
+ClassName.MethodName,CM,Length of CM,CC,Length of CC,Changed Methods,Length of Changed Methods,Changed Classes,Length of Changed Classes
+BaseForest.decision_path,[],0,[],0,[],0,[],0
+BaseForest.decision_path,[],0,[],0,[],0,[],0
+HashingVectorizer.fit,[],0,[],0,[],0,[],0
+HashingVectorizer.transform,[],0,[],0,[],0,[],0
+CountVectorizer.fit_transform,[],0,[],0,[],0,[],0
+CountVectorizer.transform,[],0,[],0,[],0,[],0
+RFECV.fit,[],0,[],0,[],0,[],0
+RFECV.fit,[],0,[],0,[],0,[],0
+LogisticRegressionCV.fit,[],0,[],0,[],0,[],0
+PassiveAggressiveClassifier.__init__,[],0,[],0,[],0,[],0
+PassiveAggressiveRegressor.__init__,[],0,[],0,[],0,[],0
+MDS.fit,[],0,[],0,[],0,[],0
+MDS.fit_transform,[],0,[],0,[],0,[],0
+BaseSearchCV._fit,"['RandomizedSearchCV.fit', 'GridSearchCV.fit']",2,"['RandomizedSearchCV', 'GridSearchCV']",2,[],0,[],0
+BaseMultilayerPerceptron._fit,"['RandomizedSearchCV.fit', 'GridSearchCV.fit']",2,"['RandomizedSearchCV', 'GridSearchCV']",2,[],0,[],0
+BaseMultilayerPerceptron._fit,"['RandomizedSearchCV.fit', 'GridSearchCV.fit']",2,"['RandomizedSearchCV', 'GridSearchCV']",2,[],0,[],0
+BaseMultilayerPerceptron._validate_hyperparameters,"['RandomizedSearchCV.fit', 'GridSearchCV.fit']",2,"['RandomizedSearchCV', 'GridSearchCV']",2,[],0,[],0
+MockEstimatorWithParameter._is_training_data,"['RandomizedSearchCV.fit', 'GridSearchCV.fit']",2,"['RandomizedSearchCV', 'GridSearchCV']",2,[],0,[],0
+BaseDecisionTree.fit,"['RandomizedSearchCV.fit', 'GridSearchCV.fit']",2,"['RandomizedSearchCV', 'GridSearchCV']",2,[],0,[],0
+BaseDecisionTree.decision_path,"['RandomizedSearchCV.fit', 'GridSearchCV.fit']",2,"['RandomizedSearchCV', 'GridSearchCV']",2,[],0,[],0
+_PGNMF._fit_transform,[],0,[],0,[],0,[],0
+CustomReferencesResolver.resolve_anyref,[],0,[],0,[],0,[],0
+BaseEstimator.__repr__,[],0,[],0,[],0,[],0
+RegressorMixin.score,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+PCA._fit_full,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+PCA._fit_truncated,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+TreeGrower._finalize_leaf,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+BaseBagging._fit,['IsolationForest.fit'],1,['IsolationForest'],1,[],0,[],0
+IsolationForest.fit,['IsolationForest.fit'],1,['IsolationForest'],1,[],0,[],0
+FeatureHasher._validate_params,['IsolationForest.fit'],1,['IsolationForest'],1,[],0,[],0
+BaseSearchCV.fit,['IsolationForest.fit'],1,['IsolationForest'],1,[],0,[],0
+Pipeline.decision_function,['IsolationForest.fit'],1,['IsolationForest'],1,[],0,[],0
+KBinsDiscretizer._validate_n_bins,['IsolationForest.fit'],1,['IsolationForest'],1,[],0,[],0
+FunctionTransformer.transform,['IsolationForest.fit'],1,['IsolationForest'],1,[],0,[],0
+FunctionTransformer.inverse_transform,['IsolationForest.fit'],1,['IsolationForest'],1,[],0,[],0
+StandardScaler.partial_fit,['IsolationForest.fit'],1,['IsolationForest'],1,[],0,[],0
+BaseDecisionTree.fit,"['DecisionTreeRegressor.fit', 'DecisionTreeClassifier.fit']",2,"['DecisionTreeClassifier', 'DecisionTreeRegressor']",2,[],0,[],0
+BaseDecisionTree.fit,"['DecisionTreeRegressor.fit', 'DecisionTreeClassifier.fit']",2,"['DecisionTreeClassifier', 'DecisionTreeRegressor']",2,[],0,[],0
+SparseTransformer.transform,"['DecisionTreeRegressor.fit', 'DecisionTreeClassifier.fit']",2,"['DecisionTreeClassifier', 'DecisionTreeRegressor']",2,[],0,[],0
+BaseEstimator._check_n_features,['BaseMixture.fit_predict'],1,['BaseMixture'],1,[],0,[],0
+BaseEstimator._validate_data,"['VarianceThreshold.fit', 'PowerTransformer._check_input', '_BaseChain.fit', 'MDS.fit_transform', 'MiniBatchDictionaryLearning.fit', 'PolynomialFeatures.fit', 'NearestCentroid.fit', 'AdditiveChi2Sampler.fit', 'NMF.fit_transform', 'BernoulliRBM.fit', 'CalibratedClassifierCV.fit', 'KMeans.fit', 'OPTICS.fit', 'OutputCodeClassifier.fit', 'BaseRandomProjection.fit', 'MissingIndicator._validate_input', 'EmpiricalCovariance.fit', 'BaseLabelPropagation.fit', 'TSNE._fit', 'RobustScaler.fit', 'KernelCenterer.fit', 'NeighborsBase._fit', 'QuantileTransformer._check_inputs', 'TruncatedSVD.fit_transform', 'BaseLibSVM.fit', 'BaseDecisionTree.fit', 'LinearDiscriminantAnalysis.fit', 'SpectralClustering.fit', 'LogisticRegression.fit', '_MultiOutputEstimator.fit', 'LogisticRegressionCV.fit', 'BaseSpectral.fit', 'AffinityPropagation.fit', '_BaseFilter.fit', 'SpectralEmbedding.fit', 'RFE._fit', 'StandardScaler.partial_fit', 'GaussianProcessRegressor.fit', 'MaxAbsScaler.partial_fit', 'Normalizer.fit', 'FunctionTransformer._check_input', 'Binarizer.fit', 'LinearSVC.fit', 'HuberRegressor.fit', 'FactorAnalysis.fit', 'MinMaxScaler.partial_fit', 'FastICA._fit', 'PLSSVD.fit', 'KernelRidge.fit', 'Birch._fit', 'StandardScaler.transform', 'AgglomerativeClustering.fit', 'RBFSampler.fit', 'LatentDirichletAllocation._check_non_neg_array', 'KBinsDiscretizer.fit', 'Nystroem.fit', 'BaseHistGradientBoosting.fit', 'LocallyLinearEmbedding._fit_transform', 'RANSACRegressor.fit', 'KernelDensity.fit', 'DictionaryLearning.fit', '_PLS.fit', 'NeighborhoodComponentsAnalysis._validate_params', 'MeanShift.fit', 'GaussianProcessClassifier.fit', 'SkewedChi2Sampler.fit', 'KernelPCA.fit', 'DBSCAN.fit', 'OneVsOneClassifier.fit', 'QuadraticDiscriminantAnalysis.fit', 'SparsePCA.fit']",71,"['LinearDiscriminantAnalysis', 'MissingIndicator', 'MeanShift', 'VarianceThreshold', 'HuberRegressor', 'LocallyLinearEmbedding', 'KernelCenterer', 'MinMaxScaler', 'KernelDensity', 'QuantileTransformer', 'RANSACRegressor', 'BaseSpectral', 'BernoulliRBM', 'LatentDirichletAllocation', '_PLS', 'Binarizer', 'RBFSampler', 'OneVsOneClassifier', 'CalibratedClassifierCV', 'GaussianProcessClassifier', 'OutputCodeClassifier', 'Normalizer', 'KernelPCA', 'MiniBatchDictionaryLearning', 'StandardScaler', 'SpectralClustering', 'BaseLabelPropagation', 'LogisticRegression', 'MaxAbsScaler', 'FactorAnalysis', 'RFE', 'Birch', 'LogisticRegressionCV', 'DBSCAN', 'MDS', 'EmpiricalCovariance', 'NearestCentroid', 'SpectralEmbedding', 'KernelRidge', 'NMF', 'PLSSVD', 'QuadraticDiscriminantAnalysis', 'AdditiveChi2Sampler', 'BaseLibSVM', 'TSNE', 'NeighborhoodComponentsAnalysis', 'NeighborsBase', 'KBinsDiscretizer', 'BaseDecisionTree', 'Nystroem', 'FunctionTransformer', '_MultiOutputEstimator', 'FastICA', 'OPTICS', 'PowerTransformer', 'AgglomerativeClustering', 'LinearSVC', '_BaseChain', 'PolynomialFeatures', 'TruncatedSVD', 'GaussianProcessRegressor', 'SparsePCA', 'DictionaryLearning', 'KMeans', 'RobustScaler', 'BaseRandomProjection', 'SkewedChi2Sampler', 'AffinityPropagation', 'BaseHistGradientBoosting', '_BaseFilter']",70,[],0,[],0
+RegressorMixin.score,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+BaseGradientBoosting.fit,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+_PGNMF.fit,[],0,[],0,[],0,[],0
+OnGmmParamError.__str__,[],0,[],0,[],0,[],0
+OnGMM.init_kmean,[],0,[],0,[],0,[],0
+OnGMM.sufficient_statistics,[],0,[],0,[],0,[],0
+OnGMM.update_em,[],0,[],0,[],0,[],0
+RFECV.fit,[],0,[],0,[],0,[],0
+TSNE._fit,[],0,[],0,[],0,[],0
+TSNE._fit,[],0,[],0,[],0,[],0
+TSNE.n_iter_final,[],0,[],0,[],0,[],0
+BaseSpectral.fit,[],0,[],0,[],0,[],0
+SpectralBiclustering.__init__,[],0,[],0,[],0,[],0
+Birch._global_clustering,[],0,[],0,[],0,[],0
+KMeans.__init__,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.fit_predict,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.fit_transform,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.transform,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.predict,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.score,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.score,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+MiniBatchKMeans.partial_fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+ColumnTransformer.get_params,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+ColumnTransformer.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+ColumnTransformer.fit_transform,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+ColumnTransformer.transform,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+ColumnTransformer._hstack,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+TransformedTargetRegressor.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+TransformedTargetRegressor.predict,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+NMF.fit_transform,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+SparsePCA.transform,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+DummyClassifier.predict_log_proba,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseBagging._get_estimators_indices,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+ForestRegressor._set_oob_score,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseGradientBoosting._compute_partial_dependence_recursion,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting.__init__,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting._validate_parameters,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting._validate_parameters,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting._clear_state,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting._get_small_trainset,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting._check_early_stopping_loss,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting._compute_partial_dependence_recursion,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting._more_tags,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+HistGradientBoostingRegressor.__init__,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+HistGradientBoostingRegressor._encode_y,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+HistGradientBoostingClassifier.__init__,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+HistGradientBoostingClassifier._encode_y,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+HistGradientBoostingClassifier._get_loss,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseLoss.init_gradients_and_hessians,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseLoss.init_gradients_and_hessians,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseLoss.init_gradients_and_hessians,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseLoss.update_gradients_and_hessians,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+LeastAbsoluteDeviation.update_leaves_values,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BinaryCrossEntropy.get_baseline_prediction,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+CategoricalCrossEntropy.__call__,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+MockClassifier.__init__,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+GaussianProcessRegressor.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+GaussianProcessRegressor.predict,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+GaussianProcessRegressor.predict,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+IterativeImputer._impute_one_feature,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+IterativeImputer._impute_one_feature,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+IterativeImputer._impute_one_feature,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+IterativeImputer._initial_imputation,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+IterativeImputer.fit_transform,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+IterativeImputer.fit_transform,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KNNImputer.transform,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.transform,[],0,[],0,[],0,[],0
+KMeans.predict,[],0,[],0,[],0,[],0
+KMeans.score,[],0,[],0,[],0,[],0
+MiniBatchKMeans.fit,[],0,[],0,[],0,[],0
+MiniBatchKMeans.partial_fit,[],0,[],0,[],0,[],0
+BaseSGDClassifier._partial_fit,['PassiveAggressiveClassifier.partial_fit'],1,['PassiveAggressiveClassifier'],1,[],0,[],0
+SphinxDocLinkResolver._get_link,[],0,[],0,[],0,[],0
+TreeGrower._finalize_leaf,[],0,[],0,[],0,[],0
+_PGNMF.__init__,[],0,[],0,[],0,[],0
+CalibratedClassifierCV.fit,[],0,[],0,[],0,[],0
+CalibratedClassifierCV.fit,[],0,[],0,[],0,[],0
+_CalibratedClassifier._preproc,[],0,[],0,[],0,[],0
+_CalibratedClassifier.fit,[],0,[],0,[],0,[],0
+NMF.fit_transform,[],0,[],0,[],0,[],0
+NMF.fit,[],0,[],0,[],0,[],0
+NMF.transform,[],0,[],0,[],0,[],0
+NMF.transform,[],0,[],0,[],0,[],0
+SelectFromModel.fit,[],0,[],0,[],0,[],0
+LogisticRegressionCV.fit,[],0,[],0,[],0,[],0
+LogisticRegressionCV.fit,[],0,[],0,[],0,[],0
+LogisticRegressionCV.fit,[],0,[],0,[],0,[],0
+LogisticRegressionCV.fit,[],0,[],0,[],0,[],0
+LogisticRegressionCV.fit,[],0,[],0,[],0,[],0
+GaussianMixture.bic,[],0,[],0,[],0,[],0
+GaussianMixture.aic,[],0,[],0,[],0,[],0
+OneVsRestClassifier.partial_fit,[],0,[],0,[],0,[],0
+OneVsRestClassifier.predict,[],0,[],0,[],0,[],0
+OneVsRestClassifier.predict_proba,[],0,[],0,[],0,[],0
+OneVsRestClassifier.decision_function,[],0,[],0,[],0,[],0
+OneVsRestClassifier._pairwise,[],0,[],0,[],0,[],0
+BaseSVC.decision_function,[],0,[],0,[],0,[],0
+DecisionTreeClassifier.__init__,[],0,[],0,[],0,[],0
+DecisionTreeRegressor.__init__,[],0,[],0,[],0,[],0
+BaseBadClassifier.predict,[],0,[],0,[],0,[],0
+Hyperparameter.__new__,[],0,[],0,[],0,[],0
+Kernel.hyperparameters,[],0,[],0,[],0,[],0
+Kernel.theta,[],0,[],0,[],0,[],0
+ConstantKernel.__init__,[],0,[],0,[],0,[],0
+WhiteKernel.__init__,[],0,[],0,[],0,[],0
+RBF.__call__,[],0,[],0,[],0,[],0
+RBF.__call__,[],0,[],0,[],0,[],0
+RBF.__call__,[],0,[],0,[],0,[],0
+Matern.__call__,[],0,[],0,[],0,[],0
+Matern.__call__,[],0,[],0,[],0,[],0
+RationalQuadratic.__init__,[],0,[],0,[],0,[],0
+ExpSineSquared.__init__,[],0,[],0,[],0,[],0
+DotProduct.__init__,[],0,[],0,[],0,[],0
+PairwiseKernel.__init__,[],0,[],0,[],0,[],0
+PairwiseKernel.__call__,[],0,[],0,[],0,[],0
+PairwiseKernel.f,[],0,[],0,[],0,[],0
+HuberRegressor.fit,[],0,[],0,[],0,[],0
+HuberRegressor.fit,[],0,[],0,[],0,[],0
+_BaseKFold.split,[],0,[],0,[],0,[],0
+_BaseKFold.get_n_splits,[],0,[],0,[],0,[],0
+KFold._iter_test_indices,[],0,[],0,[],0,[],0
+LabelKFold._iter_test_indices,[],0,[],0,[],0,[],0
+LabelKFold._iter_test_indices,[],0,[],0,[],0,[],0
+LabelKFold._iter_test_indices,[],0,[],0,[],0,[],0
+StratifiedKFold._make_test_folds,[],0,[],0,[],0,[],0
+StratifiedKFold._make_test_folds,[],0,[],0,[],0,[],0
+StratifiedKFold.split,[],0,[],0,[],0,[],0
+BaseShuffleSplit.get_n_splits,[],0,[],0,[],0,[],0
+ShuffleSplit._iter_indices,[],0,[],0,[],0,[],0
+StratifiedShuffleSplit._iter_indices,[],0,[],0,[],0,[],0
+KernelPCA._fit_transform,[],0,[],0,[],0,[],0
+BaseHistGradientBoosting.fit,[],0,[],0,[],0,[],0
+GaussianProcessRegressor.log_marginal_likelihood,[],0,[],0,[],0,[],0
+IsotonicRegression._build_y,[],0,[],0,[],0,[],0
+BaseEstimator._check_n_features,['BaseMixture.fit_predict'],1,['BaseMixture'],1,[],0,[],0
+BaseEstimator._validate_data,"['VarianceThreshold.fit', 'PowerTransformer._check_input', '_BaseChain.fit', 'MDS.fit_transform', 'MiniBatchDictionaryLearning.fit', 'PolynomialFeatures.fit', 'NearestCentroid.fit', 'AdditiveChi2Sampler.fit', 'NMF.fit_transform', 'BernoulliRBM.fit', 'CalibratedClassifierCV.fit', 'KMeans.fit', 'OPTICS.fit', 'OutputCodeClassifier.fit', 'BaseRandomProjection.fit', 'MissingIndicator._validate_input', 'EmpiricalCovariance.fit', 'BaseLabelPropagation.fit', 'TSNE._fit', 'RobustScaler.fit', 'KernelCenterer.fit', 'NeighborsBase._fit', 'QuantileTransformer._check_inputs', 'TruncatedSVD.fit_transform', 'BaseLibSVM.fit', 'BaseDecisionTree.fit', 'LinearDiscriminantAnalysis.fit', 'SpectralClustering.fit', 'LogisticRegression.fit', '_MultiOutputEstimator.fit', 'LogisticRegressionCV.fit', 'BaseSpectral.fit', 'AffinityPropagation.fit', '_BaseFilter.fit', 'SpectralEmbedding.fit', 'RFE._fit', 'StandardScaler.partial_fit', 'GaussianProcessRegressor.fit', 'MaxAbsScaler.partial_fit', 'Normalizer.fit', 'FunctionTransformer._check_input', 'Binarizer.fit', 'LinearSVC.fit', 'HuberRegressor.fit', 'FactorAnalysis.fit', 'MinMaxScaler.partial_fit', 'FastICA._fit', 'PLSSVD.fit', 'KernelRidge.fit', 'Birch._fit', 'StandardScaler.transform', 'AgglomerativeClustering.fit', 'RBFSampler.fit', 'LatentDirichletAllocation._check_non_neg_array', 'KBinsDiscretizer.fit', 'Nystroem.fit', 'BaseHistGradientBoosting.fit', 'LocallyLinearEmbedding._fit_transform', 'RANSACRegressor.fit', 'KernelDensity.fit', 'DictionaryLearning.fit', '_PLS.fit', 'NeighborhoodComponentsAnalysis._validate_params', 'MeanShift.fit', 'GaussianProcessClassifier.fit', 'SkewedChi2Sampler.fit', 'KernelPCA.fit', 'DBSCAN.fit', 'OneVsOneClassifier.fit', 'QuadraticDiscriminantAnalysis.fit', 'SparsePCA.fit']",71,"['LinearDiscriminantAnalysis', 'MissingIndicator', 'MeanShift', 'VarianceThreshold', 'HuberRegressor', 'LocallyLinearEmbedding', 'KernelCenterer', 'MinMaxScaler', 'KernelDensity', 'QuantileTransformer', 'RANSACRegressor', 'BaseSpectral', 'BernoulliRBM', 'LatentDirichletAllocation', '_PLS', 'Binarizer', 'RBFSampler', 'OneVsOneClassifier', 'CalibratedClassifierCV', 'GaussianProcessClassifier', 'OutputCodeClassifier', 'Normalizer', 'KernelPCA', 'MiniBatchDictionaryLearning', 'StandardScaler', 'SpectralClustering', 'BaseLabelPropagation', 'LogisticRegression', 'MaxAbsScaler', 'FactorAnalysis', 'RFE', 'Birch', 'LogisticRegressionCV', 'DBSCAN', 'MDS', 'EmpiricalCovariance', 'NearestCentroid', 'SpectralEmbedding', 'KernelRidge', 'NMF', 'PLSSVD', 'QuadraticDiscriminantAnalysis', 'AdditiveChi2Sampler', 'BaseLibSVM', 'TSNE', 'NeighborhoodComponentsAnalysis', 'NeighborsBase', 'KBinsDiscretizer', 'BaseDecisionTree', 'Nystroem', 'FunctionTransformer', '_MultiOutputEstimator', 'FastICA', 'OPTICS', 'PowerTransformer', 'AgglomerativeClustering', 'LinearSVC', '_BaseChain', 'PolynomialFeatures', 'TruncatedSVD', 'GaussianProcessRegressor', 'SparsePCA', 'DictionaryLearning', 'KMeans', 'RobustScaler', 'BaseRandomProjection', 'SkewedChi2Sampler', 'AffinityPropagation', 'BaseHistGradientBoosting', '_BaseFilter']",70,[],0,[],0
+RegressorMixin.score,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+DBSCAN.fit_predict,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+DBSCAN.fit_predict,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+KMeans.fit,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+ColumnTransformer._validate_remainder,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+ColumnTransformer.get_feature_names,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+ColumnTransformer.transform,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+_PLS.fit_transform,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+PCA._fit_full,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+TruncatedSVD.transform,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+LinearDiscriminantAnalysis.predict_log_proba,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+QuadraticDiscriminantAnalysis.fit,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+QuadraticDiscriminantAnalysis.fit,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+QuadraticDiscriminantAnalysis._decision_function,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+QuadraticDiscriminantAnalysis.decision_function,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+QuadraticDiscriminantAnalysis.decision_function,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+QuadraticDiscriminantAnalysis.predict_proba,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+DummyClassifier._more_tags,['DummyRegressor.score'],1,['DummyRegressor'],1,[],0,[],0
+BaseEnsemble._make_estimator,['BaseForest.fit'],1,['BaseForest'],1,[],0,[],0
+BaseGradientBoosting._fit_stages,['BaseForest.fit'],1,['BaseForest'],1,[],0,[],0
+BaseHistGradientBoosting._validate_parameters,['BaseForest.fit'],1,['BaseForest'],1,[],0,[],0
+BaseHistGradientBoosting.fit,['BaseForest.fit'],1,['BaseForest'],1,[],0,[],0
+BaseHistGradientBoosting.fit,['BaseForest.fit'],1,['BaseForest'],1,[],0,[],0
+BaseHistGradientBoosting.fit,['BaseForest.fit'],1,['BaseForest'],1,[],0,[],0
+OnGmmParamError.__str__,[],0,[],0,[],0,[],0
+OnGMM.init_kmean,[],0,[],0,[],0,[],0
+OnGMM.sufficient_statistics,[],0,[],0,[],0,[],0
+OnGmmParamError.__str__,[],0,[],0,[],0,[],0
+OnGMM.init_kmean,[],0,[],0,[],0,[],0
+OnGMM.sufficient_statistics,[],0,[],0,[],0,[],0
+SparseCodingMixin._set_sparse_coding_params,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+DictionaryLearning.__init__,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+DictionaryLearning.__init__,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+DictionaryLearning.fit,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+MiniBatchDictionaryLearning.__init__,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+MiniBatchDictionaryLearning.__init__,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+MiniBatchDictionaryLearning.fit,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+MiniBatchDictionaryLearning.partial_fit,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+IncrementalPCA.partial_fit,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+BaseGradientBoosting.feature_importances_,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+SimpleImputer.transform,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+MICEImputer.fit_transform,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+MICEImputer.fit_transform,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+MICEImputer.transform,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+MICEImputer.transform,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+StandardScaler.partial_fit,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+StandardScaler.partial_fit,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+StandardScaler.partial_fit,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+StandardScaler.transform,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+MaxAbsScaler.partial_fit,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+MaxAbsScaler.transform,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+MaxAbsScaler.inverse_transform,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+QuantileTransformer._transform_col,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+PowerTransformer.fit,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+PowerTransformer.transform,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+PowerTransformer._check_input,"['SparseCoder.__init__', 'MiniBatchDictionaryLearning.__init__', 'DictionaryLearning.__init__']",3,"['SparseCoder', 'MiniBatchDictionaryLearning', 'DictionaryLearning']",3,[],0,[],0
+BaseEstimator.set_params,[],0,[],0,[],0,[],0
+AgglomerativeClustering.__init__,[],0,[],0,[],0,[],0
+AgglomerativeClustering.fit,['FeatureAgglomeration.fit'],1,['FeatureAgglomeration'],1,[],0,[],0
+SphinxDocLinkResolver._get_link,[],0,[],0,[],0,[],0
+_PGNMF.__init__,[],0,[],0,[],0,[],0
+Model.dump_svmlight_file,[],0,[],0,[],0,[],0
+Controller.refit,[],0,[],0,[],0,[],0
+View.plot_decision_surface,[],0,[],0,[],0,[],0
+CleanCommand.run,[],0,[],0,[],0,[],0
+ClassifierMixin.score,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+_SigmoidCalibration.predict,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+_CFNode.insert_cf_subcluster,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+ColumnTransformer.named_transformers_,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+TransformedTargetRegressor.__init__,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+TransformedTargetRegressor.fit,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+QuantileEstimator.predict,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+MeanEstimator.predict,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+PriorProbabilityEstimator.predict,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+ZeroEstimator.predict,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+VotingClassifier.get_params,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+BadDataFormat.__init__,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+BadAttributeName.__init__,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+BadNominalFormatting.__init__,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+BadLayout.__init__,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+NominalConversor.__call__,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+Data._decode_values,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+Data.encode_data,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+COOData.encode_data,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+LODData.encode_data,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+ArffDecoder._decode_comment,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+ArffDecoder._decode_attribute,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+ArffDecoder._decode,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+ArffDecoder._decode,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+ArffDecoder.decode,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+ArffEncoder._encode_attribute,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+ArffEncoder._encode_attribute,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+DictVectorizer.fit,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+Kernel.is_stationary,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+NormalizedKernelMixin.diag,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+MissingIndicator._get_missing_features_info,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+MissingIndicator.fit,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+MissingIndicator.transform,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+LinearModelCV.fit,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+LogisticRegressionCV.fit,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+BaseSGDClassifier._fit_multiclass,['DummyClassifier.score'],1,['DummyClassifier'],1,[],0,[],0
+BaseSGDRegressor._partial_fit,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+EstimatorWithFitAndScore.score,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+EstimatorWithFitAndPredict.predict,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+ParameterGrid.__getitem__,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+BaseSearchCV.evaluate_candidates,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+GroupShuffleSplit._iter_indices,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+OutputCodeClassifier.fit,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+Pipeline._fit,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+KBinsDiscretizer.fit,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+Buggy.__init__,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+DelegatorData.__init__,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+_BaseComposition._validate_names,"['VotingClassifier.fit', 'FeatureUnion._validate_transformers', 'Pipeline._validate_steps', 'ColumnTransformer._validate_transformers']",4,"['VotingClassifier', 'Pipeline', 'FeatureUnion', 'ColumnTransformer']",4,[],0,[],0
+ModifiesValueInsteadOfRaisingError.set_params,"['VotingClassifier.fit', 'FeatureUnion._validate_transformers', 'Pipeline._validate_steps', 'ColumnTransformer._validate_transformers']",4,"['VotingClassifier', 'Pipeline', 'FeatureUnion', 'ColumnTransformer']",4,[],0,[],0
+ModifiesAnotherValue.set_params,"['VotingClassifier.fit', 'FeatureUnion._validate_transformers', 'Pipeline._validate_steps', 'ColumnTransformer._validate_transformers']",4,"['VotingClassifier', 'Pipeline', 'FeatureUnion', 'ColumnTransformer']",4,[],0,[],0
+Klass.f_bad_sections,"['VotingClassifier.fit', 'FeatureUnion._validate_transformers', 'Pipeline._validate_steps', 'ColumnTransformer._validate_transformers']",4,"['VotingClassifier', 'Pipeline', 'FeatureUnion', 'ColumnTransformer']",4,[],0,[],0
+MockEst.score,"['VotingClassifier.fit', 'FeatureUnion._validate_transformers', 'Pipeline._validate_steps', 'ColumnTransformer._validate_transformers']",4,"['VotingClassifier', 'Pipeline', 'FeatureUnion', 'ColumnTransformer']",4,[],0,[],0
+ParserElement.parseString,[],0,[],0,[],0,[],0
+KMeans._check_test_data,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.fit_predict,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.fit_transform,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.fit_transform,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans._transform,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.predict,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.predict,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.score,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.score,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+MiniBatchKMeans.__init__,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+MiniBatchKMeans.fit,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+MiniBatchKMeans.fit,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+MiniBatchKMeans.fit,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+MiniBatchKMeans.fit,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+MiniBatchKMeans.fit,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+MiniBatchKMeans.fit,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+MiniBatchKMeans.fit,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+MiniBatchKMeans.fit,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+MiniBatchKMeans._labels_inertia_minibatch,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+MiniBatchKMeans._labels_inertia_minibatch,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+MiniBatchKMeans.partial_fit,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+MiniBatchKMeans.partial_fit,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+MiniBatchKMeans.partial_fit,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+MiniBatchKMeans.partial_fit,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+MiniBatchKMeans.partial_fit,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+MiniBatchKMeans.predict,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+MiniBatchKMeans.predict,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+EllipticEnvelope.score_samples,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+EmpiricalCovariance.error_norm,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+FastICA.__init__,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+PCA.fit,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+IsolationForest.decision_function,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+AdaBoostClassifier._boost_real,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+HashingVectorizer.transform,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+TfidfTransformer.idf_,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+TfidfVectorizer.idf_,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+RFECV.fit,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+SimpleImputer.fit,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+SimpleImputer._sparse_fit,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+SimpleImputer._sparse_fit,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+SimpleImputer._dense_fit,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+SimpleImputer._dense_fit,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+SimpleImputer._dense_fit,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+SimpleImputer.transform,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+SimpleImputer.transform,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+SGDClassifier.__init__,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+SGDClassifier.predict_proba,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+DenseSGDClassifierTestCase.test_set_coef_multiclass,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+TSNE._tsne,['MiniBatchKMeans.predict'],1,['MiniBatchKMeans'],1,[],0,[],0
+TSNE._fit,[],0,[],0,[],0,[],0
+TSNE._fit,[],0,[],0,[],0,[],0
+TSNE.n_iter_final,[],0,[],0,[],0,[],0
+SpectralBiclustering._check_parameters,[],0,[],0,[],0,[],0
+ColumnTransformer._fit_transform,[],0,[],0,[],0,[],0
+ColumnTransformer._hstack,[],0,[],0,[],0,[],0
+BaseGradientBoosting.fit,[],0,[],0,[],0,[],0
+GradientBoostingClassifier.predict_proba,[],0,[],0,[],0,[],0
+GradientBoostingClassifier.staged_predict_proba,[],0,[],0,[],0,[],0
+_BaseVoting.fit,"['VotingClassifier.fit', 'VotingRegressor.fit']",2,"['VotingClassifier', 'VotingRegressor']",2,[],0,[],0
+EncodedNominalConversor.__call__,"['VotingClassifier.fit', 'VotingRegressor.fit']",2,"['VotingClassifier', 'VotingRegressor']",2,[],0,[],0
+DenseGeneratorData._decode_values,"['VotingClassifier.fit', 'VotingRegressor.fit']",2,"['VotingClassifier', 'VotingRegressor']",2,[],0,[],0
+COOData.decode_rows,"['VotingClassifier.fit', 'VotingRegressor.fit']",2,"['VotingClassifier', 'VotingRegressor']",2,[],0,[],0
+LODGeneratorData.decode_rows,"['VotingClassifier.fit', 'VotingRegressor.fit']",2,"['VotingClassifier', 'VotingRegressor']",2,[],0,[],0
+ArffDecoder._decode_attribute,"['VotingClassifier.fit', 'VotingRegressor.fit']",2,"['VotingClassifier', 'VotingRegressor']",2,[],0,[],0
+GaussianProcessRegressor.sample_y,"['VotingClassifier.fit', 'VotingRegressor.fit']",2,"['VotingClassifier', 'VotingRegressor']",2,[],0,[],0
+IterativeImputer.fit_transform,"['VotingClassifier.fit', 'VotingRegressor.fit']",2,"['VotingClassifier', 'VotingRegressor']",2,[],0,[],0
+BaseSGD._get_loss_function,"['BaseSGDRegressor._fit_regressor', 'BaseSGDClassifier._partial_fit']",2,"['BaseSGDRegressor', 'BaseSGDClassifier']",2,[],0,[],0
+OneVsRestClassifier.partial_fit,"['BaseSGDRegressor._fit_regressor', 'BaseSGDClassifier._partial_fit']",2,"['BaseSGDRegressor', 'BaseSGDClassifier']",2,[],0,[],0
+OneVsRestClassifier.decision_function,"['BaseSGDRegressor._fit_regressor', 'BaseSGDClassifier._partial_fit']",2,"['BaseSGDRegressor', 'BaseSGDClassifier']",2,[],0,[],0
+OneVsOneClassifier.fit,"['BaseSGDRegressor._fit_regressor', 'BaseSGDClassifier._partial_fit']",2,"['BaseSGDRegressor', 'BaseSGDClassifier']",2,[],0,[],0
+OneVsOneClassifier.partial_fit,"['BaseSGDRegressor._fit_regressor', 'BaseSGDClassifier._partial_fit']",2,"['BaseSGDRegressor', 'BaseSGDClassifier']",2,[],0,[],0
+OneVsOneClassifier.decision_function,"['BaseSGDRegressor._fit_regressor', 'BaseSGDClassifier._partial_fit']",2,"['BaseSGDRegressor', 'BaseSGDClassifier']",2,[],0,[],0
+_MultiOutputEstimator.partial_fit,['MultiOutputRegressor.partial_fit'],1,['MultiOutputRegressor'],1,[],0,[],0
+_MultiOutputEstimator.predict,['MultiOutputClassifier.score'],1,['MultiOutputClassifier'],1,[],0,[],0
+BernoulliRBM._sample_hiddens,['MultiOutputClassifier.score'],1,['MultiOutputClassifier'],1,[],0,[],0
+BernoulliRBM._sample_visibles,['MultiOutputClassifier.score'],1,['MultiOutputClassifier'],1,[],0,[],0
+BernoulliRBM._fit,['MultiOutputClassifier.score'],1,['MultiOutputClassifier'],1,[],0,[],0
+FeatureUnion._validate_transformers,['MultiOutputClassifier.score'],1,['MultiOutputClassifier'],1,[],0,[],0
+FeatureUnion._parallel_func,['MultiOutputClassifier.score'],1,['MultiOutputClassifier'],1,[],0,[],0
+Binarizer.__init__,['MultiOutputClassifier.score'],1,['MultiOutputClassifier'],1,[],0,[],0
+Binarizer.fit,['MultiOutputClassifier.score'],1,['MultiOutputClassifier'],1,[],0,[],0
+QuantileTransformer.fit,['MultiOutputClassifier.score'],1,['MultiOutputClassifier'],1,[],0,[],0
+QuantileTransformer._check_inputs,['MultiOutputClassifier.score'],1,['MultiOutputClassifier'],1,[],0,[],0
+QuantileTransformer._transform,['MultiOutputClassifier.score'],1,['MultiOutputClassifier'],1,[],0,[],0
+PowerTransformer.inverse_transform,['MultiOutputClassifier.score'],1,['MultiOutputClassifier'],1,[],0,[],0
+BaseRandomProjection._make_random_matrix,['MultiOutputClassifier.score'],1,['MultiOutputClassifier'],1,[],0,[],0
+BaseRandomProjection.transform,['MultiOutputClassifier.score'],1,['MultiOutputClassifier'],1,[],0,[],0
+GaussianRandomProjection.__init__,['MultiOutputClassifier.score'],1,['MultiOutputClassifier'],1,[],0,[],0
+GaussianRandomProjection._make_random_matrix,['MultiOutputClassifier.score'],1,['MultiOutputClassifier'],1,[],0,[],0
+SparseRandomProjection._make_random_matrix,['MultiOutputClassifier.score'],1,['MultiOutputClassifier'],1,[],0,[],0
+SphinxDocLinkResolver._get_link,[],0,[],0,[],0,[],0
+KMeans.transform,[],0,[],0,[],0,[],0
+KMeans.predict,[],0,[],0,[],0,[],0
+KMeans.score,[],0,[],0,[],0,[],0
+MiniBatchKMeans.fit,[],0,[],0,[],0,[],0
+MiniBatchKMeans.partial_fit,[],0,[],0,[],0,[],0
+KFold.__iter__,[],0,[],0,[],0,[],0
+StratifiedKFold.__init__,[],0,[],0,[],0,[],0
+BaseForest.fit,[],0,[],0,[],0,[],0
+BaseForest.fit,[],0,[],0,[],0,[],0
+BaseGradientBoosting.fit,[],0,[],0,[],0,[],0
+VectorizerMixin.build_preprocessor,[],0,[],0,[],0,[],0
+CountVectorizer.__init__,[],0,[],0,[],0,[],0
+CountVectorizer.__init__,[],0,[],0,[],0,[],0
+CountVectorizer.fit_transform,[],0,[],0,[],0,[],0
+CountVectorizer.fit_transform,[],0,[],0,[],0,[],0
+CountVectorizer.transform,[],0,[],0,[],0,[],0
+CountVectorizer.max_df_stop_words_,[],0,[],0,[],0,[],0
+TfidfVectorizer.__init__,[],0,[],0,[],0,[],0
+IterGrid.__iter__,[],0,[],0,[],0,[],0
+GridSearchCV.__init__,[],0,[],0,[],0,[],0
+GridSearchCV.fit,[],0,[],0,[],0,[],0
+GridSearchCV.fit,[],0,[],0,[],0,[],0
+ElasticNet._dense_fit,[],0,[],0,[],0,[],0
+BaseSGDClassifier._partial_fit,['PassiveAggressiveClassifier.partial_fit'],1,['PassiveAggressiveClassifier'],1,[],0,[],0
+MinMaxScaler.fit,['PassiveAggressiveClassifier.partial_fit'],1,['PassiveAggressiveClassifier'],1,[],0,[],0
+Binarizer.transform,['PassiveAggressiveClassifier.partial_fit'],1,['PassiveAggressiveClassifier'],1,[],0,[],0
+LabelBinarizer.fit,['PassiveAggressiveClassifier.partial_fit'],1,['PassiveAggressiveClassifier'],1,[],0,[],0
+LabelBinarizer.transform,['PassiveAggressiveClassifier.partial_fit'],1,['PassiveAggressiveClassifier'],1,[],0,[],0
+LabelBinarizer.transform,['PassiveAggressiveClassifier.partial_fit'],1,['PassiveAggressiveClassifier'],1,[],0,[],0
+BaseLibSVM._pairwise,['PassiveAggressiveClassifier.partial_fit'],1,['PassiveAggressiveClassifier'],1,[],0,[],0
+BaseLibSVM.fit,['PassiveAggressiveClassifier.partial_fit'],1,['PassiveAggressiveClassifier'],1,[],0,[],0
+BaseLibSVM._dense_fit,['PassiveAggressiveClassifier.partial_fit'],1,['PassiveAggressiveClassifier'],1,[],0,[],0
+BaseLibSVM._dense_predict,['PassiveAggressiveClassifier.partial_fit'],1,['PassiveAggressiveClassifier'],1,[],0,[],0
+BaseLibSVM._sparse_predict,['PassiveAggressiveClassifier.partial_fit'],1,['PassiveAggressiveClassifier'],1,[],0,[],0
+BaseLibSVM._compute_kernel,['BaseSVC._dense_predict_proba'],1,['BaseSVC'],1,[],0,[],0
+BaseLibSVM._validate_for_predict,['BaseSVC.predict_proba'],1,['BaseSVC'],1,[],0,[],0
+BaseSVC._sparse_predict_proba,['BaseSVC.predict_proba'],1,['BaseSVC'],1,[],0,[],0
+BaseLibLinear.fit,['BaseSVC.predict_proba'],1,['BaseSVC'],1,[],0,[],0
+BaseLibLinear.fit,['BaseSVC.predict_proba'],1,['BaseSVC'],1,[],0,[],0
+BaseDecisionTree.fit,['BaseSVC.predict_proba'],1,['BaseSVC'],1,[],0,[],0
+SphinxDocLinkResolver.resolve,[],0,[],0,[],0,[],0
+OutlierDetectionMixin.decision_function,[],0,[],0,[],0,[],0
+OutlierDetectionMixin.predict,[],0,[],0,[],0,[],0
+OutlierDetectionMixin.predict,[],0,[],0,[],0,[],0
+StratifiedKFold.__init__,[],0,[],0,[],0,[],0
+StratifiedShuffleSplit.__init__,[],0,[],0,[],0,[],0
+SparseCodingMixin.transform,[],0,[],0,[],0,[],0
+FactorAnalysis.transform,[],0,[],0,[],0,[],0
+FastICA.transform,[],0,[],0,[],0,[],0
+FastICA.inverse_transform,[],0,[],0,[],0,[],0
+LatentDirichletAllocation.fit,[],0,[],0,[],0,[],0
+RandomizedPCA.transform,[],0,[],0,[],0,[],0
+RandomizedPCA.fit_transform,[],0,[],0,[],0,[],0
+RandomizedPCA.inverse_transform,[],0,[],0,[],0,[],0
+TruncatedSVD.fit_transform,[],0,[],0,[],0,[],0
+LinearDiscriminantAnalysis._solve_eigen,[],0,[],0,[],0,[],0
+LinearDiscriminantAnalysis.fit,[],0,[],0,[],0,[],0
+QuadraticDiscriminantAnalysis.fit,[],0,[],0,[],0,[],0
+DummyClassifier.fit,[],0,[],0,[],0,[],0
+DummyClassifier.predict,[],0,[],0,[],0,[],0
+DummyClassifier.predict,[],0,[],0,[],0,[],0
+DummyRegressor.fit,[],0,[],0,[],0,[],0
+BaggingClassifier._set_oob_score,[],0,[],0,[],0,[],0
+QuantileEstimator.predict,[],0,[],0,[],0,[],0
+MeanEstimator.predict,[],0,[],0,[],0,[],0
+PriorProbabilityEstimator.predict,[],0,[],0,[],0,[],0
+DictVectorizer._transform,[],0,[],0,[],0,[],0
+CountVectorizer._count_vocab,[],0,[],0,[],0,[],0
+TfidfTransformer.fit,[],0,[],0,[],0,[],0
+SelectFromModel._get_support_mask,[],0,[],0,[],0,[],0
+SelectFromModel.fit,[],0,[],0,[],0,[],0
+_BinaryGaussianProcessClassifierLaplace._posterior_mode,[],0,[],0,[],0,[],0
+GaussianProcessRegressor.fit,[],0,[],0,[],0,[],0
+BaseSearchCV.score,[],0,[],0,[],0,[],0
+IsotonicRegression._build_y,[],0,[],0,[],0,[],0
+Nystroem.fit,[],0,[],0,[],0,[],0
+LinearModelCV.fit,[],0,[],0,[],0,[],0
+LogisticRegression.fit,[],0,[],0,[],0,[],0
+BaseSGDRegressor._partial_fit,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+StratifiedKFold._make_test_folds,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+TimeSeriesSplit.split,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+_RepeatedSplits.__init__,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+StratifiedShuffleSplit._iter_indices,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+OneVsRestClassifier.predict,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+OneVsRestClassifier.decision_function,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+OneVsRestClassifier.n_classes_,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+MultiOutputEstimator.fit,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+MultiOutputRegressor.__init__,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+GaussianNB._partial_fit,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+BaseDiscreteNB.partial_fit,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+BaseDiscreteNB.fit,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+PolynomialFeatures.powers_,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+Imputer._sparse_fit,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+Imputer.transform,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+LabelEncoder.fit,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+LabelEncoder.fit_transform,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+LabelEncoder.transform,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+MaskedArray.__getstate__,['PassiveAggressiveRegressor.partial_fit'],1,['PassiveAggressiveRegressor'],1,[],0,[],0
+BaseSpectral.fit,[],0,[],0,[],0,[],0
+SpectralBiclustering.__init__,[],0,[],0,[],0,[],0
+Birch._global_clustering,[],0,[],0,[],0,[],0
+KMeans.__init__,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.fit_predict,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.fit_transform,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.transform,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.predict,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.score,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KMeans.score,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+MiniBatchKMeans.partial_fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+ColumnTransformer.get_params,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+ColumnTransformer.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+ColumnTransformer.fit_transform,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+ColumnTransformer.transform,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+ColumnTransformer._hstack,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+TransformedTargetRegressor.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+TransformedTargetRegressor.predict,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+NMF.fit_transform,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+SparsePCA.transform,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+DummyClassifier.predict_log_proba,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseBagging._get_estimators_indices,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting.__init__,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting._validate_parameters,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+BaseHistGradientBoosting.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+HistGradientBoostingRegressor.__init__,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+HistGradientBoostingClassifier.__init__,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+MockClassifier.__init__,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+_BinaryGaussianProcessClassifierLaplace.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+_BinaryGaussianProcessClassifierLaplace.predict,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+_BinaryGaussianProcessClassifierLaplace.predict_proba,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+_BinaryGaussianProcessClassifierLaplace.log_marginal_likelihood,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+_BinaryGaussianProcessClassifierLaplace.log_marginal_likelihood,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+GaussianProcessClassifier.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+GaussianProcessClassifier.predict,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+GaussianProcessClassifier.predict_proba,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+GaussianProcessClassifier.log_marginal_likelihood,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+GaussianProcessClassifier.log_marginal_likelihood,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+GaussianProcessClassifier.log_marginal_likelihood,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+GaussianProcessRegressor.fit,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+GaussianProcessRegressor.predict,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+GaussianProcessRegressor.sample_y,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+GaussianProcessRegressor.sample_y,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+GaussianProcessRegressor.log_marginal_likelihood,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+GaussianProcessRegressor.log_marginal_likelihood,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+Kernel.get_params,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+Kernel.clone_with_theta,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+Kernel.theta,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+Kernel.bounds,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+Kernel.diag,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+NormalizedKernelMixin.diag,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+CompoundKernel.get_params,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+CompoundKernel.theta,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+CompoundKernel.bounds,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+CompoundKernel.__call__,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+CompoundKernel.diag,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KernelOperator.get_params,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KernelOperator.theta,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+KernelOperator.bounds,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+Sum.__call__,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+Sum.diag,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+Product.__call__,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+Product.diag,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+Exponentiation.get_params,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+Exponentiation.theta,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+Exponentiation.bounds,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+Exponentiation.__call__,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+Exponentiation.diag,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+ConstantKernel.__call__,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+ConstantKernel.diag,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+WhiteKernel.__call__,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+WhiteKernel.diag,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+RBF.__call__,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+Matern.__call__,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+RationalQuadratic.__call__,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+ExpSineSquared.__call__,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+DotProduct.__call__,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+DotProduct.diag,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+PairwiseKernel.__call__,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+PairwiseKernel.diag,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+IterativeImputer._impute_one_feature,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+IterativeImputer._impute_one_feature,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+IterativeImputer._impute_one_feature,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+IterativeImputer._initial_imputation,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+IterativeImputer.fit_transform,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+IterativeImputer.fit_transform,['MiniBatchKMeans.__init__'],1,['MiniBatchKMeans'],1,[],0,[],0
+LinearDiscriminantAnalysis._solve_eigen,[],0,[],0,[],0,[],0
+LinearDiscriminantAnalysis.predict_proba,[],0,[],0,[],0,[],0
+BaseSearchCV.fit,[],0,[],0,[],0,[],0
+Pipeline._iter,[],0,[],0,[],0,[],0
+OnGmmParamError.__str__,[],0,[],0,[],0,[],0
+OnGMM.init_kmean,[],0,[],0,[],0,[],0
+OnGMM.sufficient_statistics,[],0,[],0,[],0,[],0
+TSNE._fit,[],0,[],0,[],0,[],0
+LogisticRegression.__init__,[],0,[],0,[],0,[],0
+LogisticRegression.__init__,[],0,[],0,[],0,[],0
+LogisticRegression.fit,[],0,[],0,[],0,[],0
+LogisticRegression.fit,[],0,[],0,[],0,[],0
+LogisticRegression.fit,[],0,[],0,[],0,[],0
+LogisticRegressionCV.__init__,[],0,[],0,[],0,[],0
+LogisticRegressionCV.__init__,[],0,[],0,[],0,[],0
+LogisticRegressionCV.fit,[],0,[],0,[],0,[],0
+LogisticRegressionCV.fit,[],0,[],0,[],0,[],0
+LogisticRegressionCV.fit,[],0,[],0,[],0,[],0
+LogisticRegressionCV.fit,[],0,[],0,[],0,[],0
+LogisticRegressionCV.fit,[],0,[],0,[],0,[],0
+CommonTest.test_plain_has_no_average_attr,[],0,[],0,[],0,[],0
+DenseSGDClassifierTestCase.test_sgd_proba,[],0,[],0,[],0,[],0
+MockClassifier.fit,[],0,[],0,[],0,[],0
+MockImprovingEstimator.__init__,[],0,[],0,[],0,[],0
+MockImprovingEstimator._is_training_data,[],0,[],0,[],0,[],0
+MockEstimatorWithParameter.score,[],0,[],0,[],0,[],0
+KNeighborsMixin.kneighbors,"['LocalOutlierFactor.fit', 'KNeighborsClassifier.predict', 'KNeighborsRegressor.predict', 'KNeighborsClassifier.predict_proba', 'LocalOutlierFactor._score_samples']",5,"['LocalOutlierFactor', 'KNeighborsClassifier', 'KNeighborsRegressor']",3,[],0,[],0
+Pipeline._fit,"['LocalOutlierFactor.fit', 'KNeighborsClassifier.predict', 'KNeighborsRegressor.predict', 'KNeighborsClassifier.predict_proba', 'LocalOutlierFactor._score_samples']",5,"['LocalOutlierFactor', 'KNeighborsClassifier', 'KNeighborsRegressor']",3,[],0,[],0
+Pipeline.predict,"['LocalOutlierFactor.fit', 'KNeighborsClassifier.predict', 'KNeighborsRegressor.predict', 'KNeighborsClassifier.predict_proba', 'LocalOutlierFactor._score_samples']",5,"['LocalOutlierFactor', 'KNeighborsClassifier', 'KNeighborsRegressor']",3,[],0,[],0
+Pipeline.predict_proba,"['LocalOutlierFactor.fit', 'KNeighborsClassifier.predict', 'KNeighborsRegressor.predict', 'KNeighborsClassifier.predict_proba', 'LocalOutlierFactor._score_samples']",5,"['LocalOutlierFactor', 'KNeighborsClassifier', 'KNeighborsRegressor']",3,[],0,[],0
+Pipeline.decision_function,"['LocalOutlierFactor.fit', 'KNeighborsClassifier.predict', 'KNeighborsRegressor.predict', 'KNeighborsClassifier.predict_proba', 'LocalOutlierFactor._score_samples']",5,"['LocalOutlierFactor', 'KNeighborsClassifier', 'KNeighborsRegressor']",3,[],0,[],0
+Pipeline.predict_log_proba,"['LocalOutlierFactor.fit', 'KNeighborsClassifier.predict', 'KNeighborsRegressor.predict', 'KNeighborsClassifier.predict_proba', 'LocalOutlierFactor._score_samples']",5,"['LocalOutlierFactor', 'KNeighborsClassifier', 'KNeighborsRegressor']",3,[],0,[],0
+Pipeline.inverse_transform,"['LocalOutlierFactor.fit', 'KNeighborsClassifier.predict', 'KNeighborsRegressor.predict', 'KNeighborsClassifier.predict_proba', 'LocalOutlierFactor._score_samples']",5,"['LocalOutlierFactor', 'KNeighborsClassifier', 'KNeighborsRegressor']",3,[],0,[],0
+Pipeline.score,"['LocalOutlierFactor.fit', 'KNeighborsClassifier.predict', 'KNeighborsRegressor.predict', 'KNeighborsClassifier.predict_proba', 'LocalOutlierFactor._score_samples']",5,"['LocalOutlierFactor', 'KNeighborsClassifier', 'KNeighborsRegressor']",3,[],0,[],0
+SubEstimator.fit,"['LocalOutlierFactor.fit', 'KNeighborsClassifier.predict', 'KNeighborsRegressor.predict', 'KNeighborsClassifier.predict_proba', 'LocalOutlierFactor._score_samples']",5,"['LocalOutlierFactor', 'KNeighborsClassifier', 'KNeighborsRegressor']",3,[],0,[],0
+CheckingClassifier.fit,"['LocalOutlierFactor.fit', 'KNeighborsClassifier.predict', 'KNeighborsRegressor.predict', 'KNeighborsClassifier.predict_proba', 'LocalOutlierFactor._score_samples']",5,"['LocalOutlierFactor', 'KNeighborsClassifier', 'KNeighborsRegressor']",3,[],0,[],0
+_IgnoreWarnings.__exit__,"['LocalOutlierFactor.fit', 'KNeighborsClassifier.predict', 'KNeighborsRegressor.predict', 'KNeighborsClassifier.predict_proba', 'LocalOutlierFactor._score_samples']",5,"['LocalOutlierFactor', 'KNeighborsClassifier', 'KNeighborsRegressor']",3,[],0,[],0
+BaseForest.decision_path,[],0,[],0,[],0,[],0
+BaseForest.fit,['RandomTreesEmbedding.fit_transform'],1,['RandomTreesEmbedding'],1,[],0,[],0
+ForestClassifier._validate_y_class_weight,['RandomTreesEmbedding.fit_transform'],1,['RandomTreesEmbedding'],1,[],0,[],0
+ForestClassifier.predict_proba,['RandomTreesEmbedding.fit_transform'],1,['RandomTreesEmbedding'],1,[],0,[],0
+_BaseFilter.fit,[],0,[],0,[],0,[],0
+BaseSearchCV._estimator_type,[],0,[],0,[],0,[],0
+_PGNMF.fit,[],0,[],0,[],0,[],0
+BaseEstimator.__repr__,[],0,[],0,[],0,[],0
+BaseEstimator.__setstate__,[],0,[],0,[],0,[],0
+AdaBoostClassifier.predict_proba,[],0,[],0,[],0,[],0
+BaseSearchCV.inverse_transform,[],0,[],0,[],0,[],0
+MockClassifier.predict,[],0,[],0,[],0,[],0
+TreeBadVersion.__getstate__,[],0,[],0,[],0,[],0
+KMeans._check_fit_data,[],0,[],0,[],0,[],0
+MiniBatchKMeans.fit,[],0,[],0,[],0,[],0
+MiniBatchKMeans.fit,[],0,[],0,[],0,[],0
+MiniBatchKMeans.fit,[],0,[],0,[],0,[],0
+MiniBatchKMeans.partial_fit,[],0,[],0,[],0,[],0
+SpectralClustering.fit,[],0,[],0,[],0,[],0
+FastICA.fit,[],0,[],0,[],0,[],0
+FastICA.transform,[],0,[],0,[],0,[],0
+BaseGradientBoosting.staged_decision_function,['GradientBoostingRegressor.staged_predict'],1,['GradientBoostingRegressor'],1,[],0,[],0
+GradientBoostingRegressor.predict,['GradientBoostingRegressor.staged_predict'],1,['GradientBoostingRegressor'],1,[],0,[],0
+GradientBoostingRegressor.staged_predict,['GradientBoostingRegressor.staged_predict'],1,['GradientBoostingRegressor'],1,[],0,[],0
+GaussianProcess.fit,['GradientBoostingRegressor.staged_predict'],1,['GradientBoostingRegressor'],1,[],0,[],0
+GaussianProcess.fit,['GradientBoostingRegressor.staged_predict'],1,['GradientBoostingRegressor'],1,[],0,[],0
+GaussianProcess.predict,['GradientBoostingRegressor.staged_predict'],1,['GradientBoostingRegressor'],1,[],0,[],0
+GaussianProcess.reduced_likelihood_function,['GradientBoostingRegressor.staged_predict'],1,['GradientBoostingRegressor'],1,[],0,[],0
+GaussianProcess.reduced_likelihood_function,['GradientBoostingRegressor.staged_predict'],1,['GradientBoostingRegressor'],1,[],0,[],0
+GaussianProcess.reduced_likelihood_function,['GradientBoostingRegressor.staged_predict'],1,['GradientBoostingRegressor'],1,[],0,[],0
+GaussianProcess.arg_max_reduced_likelihood_function,['GradientBoostingRegressor.staged_predict'],1,['GradientBoostingRegressor'],1,[],0,[],0
+GaussianProcess.arg_max_reduced_likelihood_function,['GradientBoostingRegressor.staged_predict'],1,['GradientBoostingRegressor'],1,[],0,[],0
+GaussianHMM._init,['GradientBoostingRegressor.staged_predict'],1,['GradientBoostingRegressor'],1,[],0,[],0
+ElasticNet.__init__,['GradientBoostingRegressor.staged_predict'],1,['GradientBoostingRegressor'],1,[],0,[],0
+ElasticNet.fit,['GradientBoostingRegressor.staged_predict'],1,['GradientBoostingRegressor'],1,[],0,[],0
+SGDClassifier.predict_proba,['GradientBoostingRegressor.staged_predict'],1,['GradientBoostingRegressor'],1,[],0,[],0
+DenseSGDClassifierTestCase.test_regression_losses,['GradientBoostingRegressor.staged_predict'],1,['GradientBoostingRegressor'],1,[],0,[],0
+DPGMM.fit,['GradientBoostingRegressor.staged_predict'],1,['GradientBoostingRegressor'],1,[],0,[],0
+GMM.fit,['GradientBoostingRegressor.staged_predict'],1,['GradientBoostingRegressor'],1,[],0,[],0
+GMM.fit,['GradientBoostingRegressor.staged_predict'],1,['GradientBoostingRegressor'],1,[],0,[],0
+LabelBinarizer.transform,['GradientBoostingRegressor.staged_predict'],1,['GradientBoostingRegressor'],1,[],0,[],0
+OnGmmParamError.__str__,[],0,[],0,[],0,[],0
+OnGMM.init_kmean,[],0,[],0,[],0,[],0
+OnGMM.sufficient_statistics,[],0,[],0,[],0,[],0
+LinearRegression.fit,[],0,[],0,[],0,[],0
+BaseSGDRegressor._get_loss_function,[],0,[],0,[],0,[],0
+DenseSGDRegressorTestCase.test_sgd_losses,[],0,[],0,[],0,[],0
+SphinxDocLinkResolver._get_link,[],0,[],0,[],0,[],0
+BaseEstimator.set_params,"['BaseSGD.set_params', '_BaseComposition._set_params']",2,"['BaseSGD', '_BaseComposition']",2,[],0,[],0
+_BaseRidge.fit,"['RidgeClassifier.fit', 'Ridge.fit']",2,"['RidgeClassifier', 'Ridge']",2,[],0,[],0
+_BaseScorer.__init__,[],0,[],0,[],0,[],0
+_PredictScorer.__call__,[],0,[],0,[],0,[],0
+_ProbaScorer.__call__,[],0,[],0,[],0,[],0
+_ThresholdScorer.__call__,[],0,[],0,[],0,[],0
+BaseSearchCV._fit,"['RandomizedSearchCV.fit', 'GridSearchCV.fit']",2,"['RandomizedSearchCV', 'GridSearchCV']",2,[],0,[],0
+MultiOutputRegressor.score,"['RandomizedSearchCV.fit', 'GridSearchCV.fit']",2,"['RandomizedSearchCV', 'GridSearchCV']",2,[],0,[],0
+T.__init__,"['RandomizedSearchCV.fit', 'GridSearchCV.fit']",2,"['RandomizedSearchCV', 'GridSearchCV']",2,[],0,[],0
+MockDataFrame.__array__,"['RandomizedSearchCV.fit', 'GridSearchCV.fit']",2,"['RandomizedSearchCV', 'GridSearchCV']",2,[],0,[],0
+LatentDirichletAllocation._check_params,[],0,[],0,[],0,[],0
+LatentDirichletAllocation.fit,[],0,[],0,[],0,[],0
+BaseEnsemble._validate_estimator,[],0,[],0,[],0,[],0
+BaseEnsemble._make_estimator,[],0,[],0,[],0,[],0
+BaseForest.fit,[],0,[],0,[],0,[],0
+BaseWeightBoosting.fit,[],0,[],0,[],0,[],0
+BaseWeightBoosting.fit,[],0,[],0,[],0,[],0
+BaseWeightBoosting._boost,[],0,[],0,[],0,[],0
+AdaBoostClassifier._validate_estimator,[],0,[],0,[],0,[],0
+AdaBoostClassifier._boost,[],0,[],0,[],0,[],0
+AdaBoostClassifier._boost,[],0,[],0,[],0,[],0
+AdaBoostClassifier._boost_real,[],0,[],0,[],0,[],0
+AdaBoostRegressor._validate_estimator,[],0,[],0,[],0,[],0
+AdaBoostRegressor._boost,[],0,[],0,[],0,[],0
+AdaBoostRegressor._boost,[],0,[],0,[],0,[],0
+BaseLabelPropagation._get_kernel,"['LabelPropagation._build_graph', 'LabelSpreading._build_graph']",2,"['LabelPropagation', 'LabelSpreading']",2,[],0,[],0
+CleanCommand.run,[],0,[],0,[],0,[],0
+AgglomerationTransform.transform,[],0,[],0,[],0,[],0
+AffinityPropagation.fit,[],0,[],0,[],0,[],0
+AgglomerativeClustering.__init__,['FeatureAgglomeration.__init__'],1,['FeatureAgglomeration'],1,[],0,[],0
+AgglomerativeClustering.fit,['FeatureAgglomeration.fit'],1,['FeatureAgglomeration'],1,[],0,[],0
+BaggingClassifier._set_oob_score,[],0,[],0,[],0,[],0
+FeatureHasher.transform,[],0,[],0,[],0,[],0
+FeatureHasher.transform,[],0,[],0,[],0,[],0
+HashingVectorizer.__init__,[],0,[],0,[],0,[],0
+HashingVectorizer.__init__,[],0,[],0,[],0,[],0
+HashingVectorizer._get_hasher,[],0,[],0,[],0,[],0
+GaussianProcessRegressor.fit,[],0,[],0,[],0,[],0
+TimeSeriesSplit.split,[],0,[],0,[],0,[],0
+SphinxDocLinkResolver._get_link,[],0,[],0,[],0,[],0
+_PGNMF.__init__,[],0,[],0,[],0,[],0
