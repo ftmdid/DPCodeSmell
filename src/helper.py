@@ -9,6 +9,10 @@ import src.runOperations as op
 from os import walk
 from os.path import join 
 
+def lists_overlap(a, b):
+    return [i for i in a if i in b]
+    #return list(set(a) & set(b))
+
 
 def removeEmptyStringsFromListOfStrings(pythonList):
     pythonList = [x for x in pythonList if x]
@@ -73,6 +77,12 @@ def getAllPythonFilesInProject(projectName):
                     pythonFiles.append(join(path, name)) #pythonFiles that has all the python files in numpy project
         
     return pythonFiles
+
+'''
+    Referenced from:https://stackoverflow.com/questions/1593564/python-how-to-check-if-a-nested-list-is-essentially-empty
+'''
+def isListEmpty(inList):
+    return all(map(isListEmpty,inList)) if isinstance(inList, list) else False
 
 
         

@@ -88,11 +88,14 @@ def parseFile(filename):
         with tokenize.open(filename) as f:
             return ast.parse(f.read(), filename=filename)
     '''
+    try:
     #with open(filename, 'r',encoding="utf-8", errors='ignore') as f:
-    with open(filename,'r',encoding="utf-8", errors='ignore') as f:
-        content = f.read()
-        parsedFile = ast.parse(content)
-        return parsedFile
+        with open(filename,'r',encoding="utf-8", errors='ignore') as f:
+            content = f.read()
+            parsedFile = ast.parse(content)
+            return parsedFile
+    except Exception as ex:
+        print(ex)
 
 def findClassFuncNodes(node):
     funcNodes=[]

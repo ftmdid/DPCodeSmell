@@ -16,6 +16,15 @@ import re
 
 def calculateShotgunSurgery(fileInTheFolder, projectName):
     try:
+        fileCommitID = find_between(fileInTheFolder, "@", "@")
+        filePath= inheritance.downloadProjectInASpecificCommit(projectName, fileCommitID) # project that is modified before bug fix commit
+        #foreignClassCallOfEachClassInAProject={}
+        try:
+        
+            lMethod.parseFile(filePath)
+            #foreignClassCallOfEachClassInAProject=calculateForeignMethodsOfClassesWithAST(filePath,parsedWholeFile, projectName)
+        except Exception as ex:
+            print(filePath)
         pass
        
     except Exception as ex:

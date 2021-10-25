@@ -24,7 +24,9 @@ import numpy as np
 import re
 from git.exc import GitCommandError, GitError
 import shutil
-from future.builtins.misc import isinstance
+import src.helper as helperMethods
+from _operator import pos
+from curses.ascii import TAB
 
 
 #import src.defectAnalysis as defectAnalysis
@@ -366,10 +368,12 @@ if __name__ == '__main__':
                 if each.endswith('.py'): #print(each)
                     hexsha1 = repo.git.show('%s:%s' % (fileCommitID, each))
                     fileName= os.path.join(rootFolderToCreateFiles, each.rsplit("/", 1)[-1]).split(".py")[0]+"@@"+fileCommitID + ".py"
-                    fileOp.writeFileContentToPythonFile(hexsha1,fileName)
+                    if not os.path.isfile(fileName):
+                        fileOp.writeFileContentToPythonFile(hexsha1,fileName)
                     hexsha2 = repo.git.show('%s:%s' % (bugFixedCommitID, each))
                     fileName2 = os.path.join(rootFolderToCreateFiles, each.rsplit("/", 1)[-1]).split('.py')[0] + "@@"+bugFixedCommitID + ".py"
-                    fileOp.writeFileContentToPythonFile(hexsha2, fileName2)
+                    if not os.path.isfile(fileName2):
+                        fileOp.writeFileContentToPythonFile(hexsha2, fileName2)
             return rootFolderToCreateFiles
         except Exception as ex:
             print(ex)
@@ -380,32 +384,46 @@ if __name__ == '__main__':
             if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef )):
                 methodLines[item.name]=[item.lineno, item.end_lineno]
         return methodLines
-    def checkForClassLinesWithAST(fileName):
-        parsedFileInTheFolder=lMethod.parseFile(fileInTheFolder)
+    def checkForClassLinesWithAST(fileInTheFolder):
         classLines={}
-        for item in ast.walk(parsedFileInTheFolder):
-            if isinstance(item, ast.ClassDef):
-                #print(item.name)
-                classLines[item.name]={'lines':[item.lineno, item.end_lineno]}
-                classLines[item.name].update(checkForMethodLinesWithAST(item))
-                #classLines[item.name]= checkForMethodLines(item)
+        if os.path.isfile(fileInTheFolder):
+            parsedFileInTheFolder=lMethod.parseFile(fileInTheFolder)
+            for item in ast.walk(parsedFileInTheFolder):
+                if isinstance(item, ast.ClassDef):
+                    #print(item.name)
+                    classLines[item.name]={'lines':[item.lineno, item.end_lineno]}
+                    classLines[item.name].update({'methods':checkForMethodLinesWithAST(item)})
+                    #classLines[item.name]= checkForMethodLines(item)
         return classLines
                 
-    def findClassesInFile(fileName):
+    def findClassesInFile(fileInTheFolder):
         parsedFileInTheFolder=lMethod.parseFile(fileInTheFolder)
         classList=[]
         for item in ast.walk(parsedFileInTheFolder):
             if isinstance(item, ast.ClassDef):
                 classList.append(item.name)
         return classList
-                    
+    
+    def findWhichClassMethod(linesOfChangedFile,lineToSplit):
+        whatChanged=""
+        for clss,clssItems in linesOfChangedFile.items(): 
+            linesOfClass = clssItems['lines']
+            if lineToSplit in range(int (linesOfClass[0]),int(linesOfClass[1])+1):
+                for mthod,mthdLines in clssItems['methods'].items(): 
+                    if lineToSplit in range(int(mthdLines[0]), int(mthdLines[1])+1):
+                        whatChanged=clss+"."+mthod
+        return whatChanged           
                      
         
-    projectName= "keras"
+    projectName= "scikit-learn"
     fileOp= FO.FileOperations(projectName)
     relat= RL.Relation(projectName)
     
-    
+    relationAnalysisShotgunSurgerySmellCSVfile = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/BadSmells/ShotgunSurgery/ShotgunSurgerySmellRelationAnalysisOf'+projectName+'.csv'
+    relationAnalysisShotgunSurgerySmellCSVout = csv.writer(open(os.path.join(projectPath, relationAnalysisShotgunSurgerySmellCSVfile), 'w+'))
+    relationAnalysisShotgunSurgerySmellCSVout.writerow(('ClassName.MethodName', 'CM','Length of CM' ,'CC','Length of CC','Changed Methods','Length of Changed Methods', 'Changed Classes','Length of Changed Classes'))
+               
+    print("------------------------------")
     
     repoPath= os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Projects/'+projectName)
     repo = Repo(repoPath)
@@ -437,96 +455,114 @@ if __name__ == '__main__':
     
     filesListWithBugFixedCommitsDict = {} #337 files that have bug fixed commit IDs
     checkedList= [] 
-    for each in possibleChoices:
-        rootName = os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+relat.projectName.lower()+"/"+ each.split("@")[0]
-        filesListWithBugFixedCommitsDict[each] = relat.checkFilesWithinRoot(rootName)
-    
-    
+    print("Total is "+ str(len(possibleChoices)))
+    count=0
+    for i in range(len(possibleChoices)):
+        print("Count is "+str(count))
+        count +=1
+        rootName = os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+relat.projectName.lower()+"/"+ possibleChoices[i].split("@")[0]
+        filesListWithBugFixedCommitsDict[possibleChoices[i]] = relat.checkFilesWithinRoot(rootName)
+        
+        
         for fileName in filesListWithBugFixedCommitsDict.keys():  # key=fileName, value=filesInRootOfFileName
             filesInFolder=filesListWithBugFixedCommitsDict[fileName]
             bugFixedCommitFileDir=  os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+projectName.lower()+"/"+ fileName.split("@")[0] +"/"+fileName
             bugFixedCommitIndexInItsFolder=filesInFolder.index(bugFixedCommitFileDir)
-    
-            try:
-                fileInTheFolder = filesInFolder[bugFixedCommitIndexInItsFolder-1]
-    
-                if not(bugFixedCommitFileDir in checkedList) :
-                    checkedList.append(bugFixedCommitFileDir)
-    
-                    bugFixedCommitID = find_between(bugFixedCommitFileDir, "@", "@")
-                    fileCommitID = find_between(fileInTheFolder, "@", "@")
-    
-                    print("fileCommitID: ", fileCommitID)  
-                    print("bugFixedCommitId: " + bugFixedCommitID)    
-                    
-                    
-                    
-                    '''Find the line numbers of each class and function of a file'''
-                    linesOfFileInTheFolder= checkForClassLinesWithAST(fileInTheFolder)
-                    linesOfBugFixedCommitFile= checkForClassLinesWithAST(bugFixedCommitIndexInItsFolder)
-                
-                     
-                  
-    
-                    '''Find the foreign class of each class in a project at the time project is not modified for bug fix '''
-                    '''
-                    filePath= inheritance.downloadProjectInASpecificCommit(projectName, fileCommitID) # project that is modified before bug fix commit
-                    try:
+            
            
-                        foreignClassCallOfEachClassInAProject=sSurgery.calculateForeignMethodsOfClassesWithAST(filePath, projectName)
-                    except Exception as ex:
-                        foreignClassCallOfEachClassInAProject = sSurgery.calculateForeignMethodsOfClassesWOutAST(filePath,projectName)  
-                    '''
-                    
-                    
-                    '''Find the changes that is made in each file before and at thhe time bug fix'''
-                    differenceList = repo.git.diff(fileCommitID, bugFixedCommitID).split("\n")
-                    fileChangesDict= getFileChanges(differenceList)
-                    
-                    
-                    
-                    
+            
+            fileInTheFolder = filesInFolder[bugFixedCommitIndexInItsFolder-1]
     
-                    ''' Modified file before and at the time bug is fixed'''
-                    rootFolderToCreateFiles= createModifiedFilesBeforeAndAtBugFixedCommit(fileOp, repo, rootFolderForProject, bugFixedCommitID, fileCommitID)
+            if not(bugFixedCommitFileDir in checkedList) :
+                
+                checkedList.append(bugFixedCommitFileDir)
     
-                    modifiedFilePath= os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/BadSmells/ShotgunSurgery/'+projectName.lower()+"/"+bugFixedCommitID
-                    for changedFileName,value  in fileChangesDict.items():
-                        print(changedFileName)
-                        changedFileName= changedFileName.split(".py")[0]+"@@"+fileCommitID+".py"
-                        print(changedFileName)
-                        changedFilePath= os.path.join(modifiedFilePath,changedFileName )
-                        linesOfChangedFile= checkForClassLinesWithAST(changedFilePath)
+                bugFixedCommitID = find_between(bugFixedCommitFileDir, "@", "@")
+                fileCommitID = find_between(fileInTheFolder, "@", "@")
+    
+                print("fileCommitID: ", fileCommitID)  
+                print("bugFixedCommitId: " + bugFixedCommitID)    
+                                  
+    
+                '''1. Find the foreign class of each class in a project at the time project is not modified for bug fix '''
+            
+                filePath= inheritance.downloadProjectInASpecificCommit(projectName, fileCommitID) # project that is modified before bug fix commit
+                #from lib2to3.main import main
+                #main("lib2to3.fixes", ['--no-diffs', '-w', '-n', filePath])
+                try:
+                    parsedFile=lMethod.parseFile(filePath)
+                    foreignClassCallOfEachClassInAProject=sSurgery.calculateForeignMethodsOfClassesWithAST(filePath,parsedFile, projectName)
+                except Exception as ex:
+                    foreignClassCallOfEachClassInAProject = sSurgery.calculateForeignMethodsOfClassesWOutAST(filePath,projectName)  
+                
+                    
+                    
+                '''2. Find the changes that is made in each file before and at the time bug fix'''
+                differenceList = repo.git.diff(fileCommitID, bugFixedCommitID).split("\n")
+                fileChangesDict= getFileChanges(differenceList)
+                
+                
+                
+                
+                
+                
+                '''2.1 Modified file before and at the time bug is fixed'''
+                rootFolderToCreateFiles= createModifiedFilesBeforeAndAtBugFixedCommit(fileOp, repo, rootFolderForProject, bugFixedCommitID, fileCommitID)
+                
+                '''2.2 Find the methods and classes changed before and at the time bug fixed commit'''
+                whatChanged=[]
+                modifiedFilePath= os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/BadSmells/ShotgunSurgery/'+projectName.lower()+"/"+bugFixedCommitID
+                for changedFileName,value  in fileChangesDict.items():
+                    #print(changedFileName)
+                    changedFileName= changedFileName.split(".py")[0]+"@@"+fileCommitID+".py"
+                    #print(changedFileName)
+                    changedFilePath= os.path.join(modifiedFilePath,changedFileName )
+                    print(changedFilePath)
+                
+                    linesOfChangedFile={}
+                    #try:
+                    '''Find the line numbers of each class and function of a file'''
+                    linesOfChangedFile= checkForClassLinesWithAST(changedFilePath)
+                
+                    if linesOfChangedFile:
                         for it in value:
                             if it.startswith("@@"):
                                 lineToSplit= find_between(it, "@@", "@@").split(" ")[1]
                                 if "-" in lineToSplit:
-                                    lineToSplit= lineToSplit.split("-")[1]
+                                    lineToSplit= lineToSplit.split("-")[1].split(",")[0]
                                 elif "+" in lineToSplit:
-                                    lineToSplit= lineToSplit.split("+")[1]
-                                #for clss,clssItems in lines  
-                                
-                        
-                        
-                    
-                    from os import listdir
-                    from os.path import isfile, join
-                    onlyFiles = [f for f in listdir(rootFolderToCreateFiles) if isfile(join(rootFolderToCreateFiles, f))]
-    
-    
-                    for fle in onlyFiles:
-                        if fle in fileChangesDict.keys():
-                            print(fileChangesDict[fle])
-    
-            except GitCommandError as ex:
-                print(ex)           
-    
-    #shutil.rmtree(rootFolderForProject) #to remove project folder that has modified files in it. 
-    
-                 
+                                    lineToSplit= lineToSplit.split("+")[1].split(",")[0]
+                                whatChanged.append(findWhichClassMethod(linesOfChangedFile, int(lineToSplit)))
+                whatChanged = helperMethods.removeEmptyStringsFromListOfStrings(whatChanged)
+                #print(list(set(whatChanged)))    
                 
-
-         
+                
+                '''2.3 Check if the  methods changed in whatChanged are compatible with its dependent'''
+                
+                if whatChanged:
+                    CM =[]
+                    CC =[]
+                    methodData=[]
+                    commonCMItems=[]    
+                    commonCCItems=[] 
+                    for each in whatChanged:
+                        if foreignClassCallOfEachClassInAProject:
+                            methodData= sSurgery.searchForMethod(each.lstrip().rstrip(), foreignClassCallOfEachClassInAProject)
+                            if len(methodData[0])>0:
+                                CM = methodData[0]
+                                CC = methodData[1]
+                
+                                whatChanged.remove(each)
+                                if whatChanged:
+                                    commonCMItems=list(set(whatChanged) & set(CM))
+                                    #commonCMItems = [i for i in newChangedList if i.lstrip().rstrip() in CM]
+                                    if commonCMItems:
+                                        commonCCItems = list(set([i.split(".")[0] for i in commonCMItems])) 
+                            print([each, CM, len(CM), CC, len(CC),commonCMItems, len(commonCMItems),commonCCItems, len(commonCCItems)])
+                            relationAnalysisShotgunSurgerySmellCSVout.writerow([each, CM, len(CM), CC, len(CC),commonCMItems, len(commonCMItems),commonCCItems, len(commonCCItems)])
+        
+        print ("                       "   )          
+                          
     
     print("Done with validation!")
 
