@@ -15,18 +15,15 @@ import src.smell.longMethodSmell as lMethod
 import src.smell.featureEnvySmell as fEnvy
 import ast
 import src.smell.shotgunSurgerySmell as sSurgery
-from git import repo
+#from git import repo
 from git import Repo
 from src.runOperations import find_between 
 import src.FileOperations as FO
 import src.Relation as RL
 import numpy as np
 import re
-from git.exc import GitCommandError, GitError
-import shutil
+#import shutil
 import src.helper as helperMethods
-from _operator import pos
-from curses.ascii import TAB
 
 
 #import src.defectAnalysis as defectAnalysis
@@ -377,6 +374,7 @@ if __name__ == '__main__':
             return rootFolderToCreateFiles
         except Exception as ex:
             print(ex)
+            print("Exception occurred in createModifiedFilesBeforeAndAtBugFixedCommit method")
     
     def checkForMethodLinesWithAST(node):
         methodLines={}
@@ -385,16 +383,20 @@ if __name__ == '__main__':
                 methodLines[item.name]=[item.lineno, item.end_lineno]
         return methodLines
     def checkForClassLinesWithAST(fileInTheFolder):
-        classLines={}
-        if os.path.isfile(fileInTheFolder):
-            parsedFileInTheFolder=lMethod.parseFile(fileInTheFolder)
-            for item in ast.walk(parsedFileInTheFolder):
-                if isinstance(item, ast.ClassDef):
-                    #print(item.name)
-                    classLines[item.name]={'lines':[item.lineno, item.end_lineno]}
-                    classLines[item.name].update({'methods':checkForMethodLinesWithAST(item)})
-                    #classLines[item.name]= checkForMethodLines(item)
-        return classLines
+        try:
+            classLines={}
+            if os.path.isfile(fileInTheFolder):
+                parsedFileInTheFolder=lMethod.parseFile(fileInTheFolder)
+                for item in ast.walk(parsedFileInTheFolder):
+                    if isinstance(item, ast.ClassDef):
+                        #print(item.name)
+                        classLines[item.name]={'lines':[item.lineno, item.end_lineno]}
+                        classLines[item.name].update({'methods':checkForMethodLinesWithAST(item)})
+                        #classLines[item.name]= checkForMethodLines(item)
+            return classLines
+        except Exception as ex:
+            print(ex)
+            print("Problem occurred in checkForClassWithAST method")
                 
     def findClassesInFile(fileInTheFolder):
         parsedFileInTheFolder=lMethod.parseFile(fileInTheFolder)
@@ -415,7 +417,7 @@ if __name__ == '__main__':
         return whatChanged           
                      
         
-    projectName= "scikit-learn"
+    projectName= "numpy"
     fileOp= FO.FileOperations(projectName)
     relat= RL.Relation(projectName)
     
@@ -517,7 +519,7 @@ if __name__ == '__main__':
                     changedFileName= changedFileName.split(".py")[0]+"@@"+fileCommitID+".py"
                     #print(changedFileName)
                     changedFilePath= os.path.join(modifiedFilePath,changedFileName )
-                    print(changedFilePath)
+                    #print(changedFilePath)
                 
                     linesOfChangedFile={}
                     #try:
@@ -558,10 +560,10 @@ if __name__ == '__main__':
                                     #commonCMItems = [i for i in newChangedList if i.lstrip().rstrip() in CM]
                                     if commonCMItems:
                                         commonCCItems = list(set([i.split(".")[0] for i in commonCMItems])) 
-                            print([each, CM, len(CM), CC, len(CC),commonCMItems, len(commonCMItems),commonCCItems, len(commonCCItems)])
+                            #print([each, CM, len(CM), CC, len(CC),commonCMItems, len(commonCMItems),commonCCItems, len(commonCCItems)])
                             relationAnalysisShotgunSurgerySmellCSVout.writerow([each, CM, len(CM), CC, len(CC),commonCMItems, len(commonCMItems),commonCCItems, len(commonCCItems)])
         
-        print ("                       "   )          
+        #print ("                       "   )          
                           
     
     print("Done with validation!")

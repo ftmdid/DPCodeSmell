@@ -96,6 +96,7 @@ def parseFile(filename):
             return parsedFile
     except Exception as ex:
         print(ex)
+        print("Exception occurred in " + filename + "of longMethodSmell.parseFile()")
 
 def findClassFuncNodes(node):
     funcNodes=[]
