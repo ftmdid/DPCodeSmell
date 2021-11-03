@@ -11,6 +11,8 @@ import csv
 import itertools
 import src.BadSmell as BS
 import numpy as np
+from git import Repo
+from src.runOperations import find_between 
 
 class Relation(object):
     def __init__(self,projectName):
@@ -315,24 +317,16 @@ class Relation(object):
     
             #for fileName, filesInRootOfFileName in filesListWithBugFixedCommitsDict.items():  # key=fileName, value=filesInRootOfFileName
             if filesListWithBugFixedCommitsDict:
-                print("there are "+str(len(filesListWithBugFixedCommitsDict.keys())) + " possible choices")
-                count = 0
+            
                 for fileName in filesListWithBugFixedCommitsDict.keys():  # key=fileName, value=filesInRootOfFileName
-                    count +=1 
-                    print("<--------------------------------->"+str(count)+"<--------------------------------->")
                     filesInFolder=filesListWithBugFixedCommitsDict[fileName]
                     bugFixedCommitFileDir=  os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+self.projectName.lower()+"/"+ fileName.split("@")[0] +"/"+fileName
-                    bugFixedCommitIndexInItsFolder=filesInFolder.index(bugFixedCommitFileDir)
-                    print("There are "+str(len(filesInFolder)) +" files in the "+fileName.split("@")[0])  
-                    countOfFiles=1
+                    bugFixedCommitIndexInItsFolder=filesInFolder.index(bugFixedCommitFileDir)  
+                 
                     for fileInTheFolder in filesInFolder:
                         
                             fileIndex = filesInFolder.index(fileInTheFolder)
                             if (bugFixedCommitIndexInItsFolder-fileIndex<=50) and (bugFixedCommitIndexInItsFolder-fileIndex>=-1):
-                                print("\n")
-                                print("BugFixedCommit index is "+str(bugFixedCommitIndexInItsFolder))
-                                print("File index is "+str(fileIndex))
-                                print("filename is "+str(fileInTheFolder))
                                 refusedBequestSmellDict=smell.checkForRefusedBequest(fileInTheFolder, self.projectName)
                                 if refusedBequestSmellDict:
                                     for k, v in refusedBequestSmellDict.items():
@@ -350,7 +344,7 @@ class Relation(object):
                                                                                               str(bugFixedCommitIndexInItsFolder) ,
                                                                                               str(len(filesInFolder)), 
                                                                                               rootName])
-                                    countOfFiles +=1
+                             
                                         
                                 
                 refusedBequestSmellRelationAnalysisCSVoutList=self.checkForDuplicatesInListsofList(refusedBequestSmellRelationAnalysisCSVoutList)
@@ -443,36 +437,31 @@ class Relation(object):
     def analyzeShotgunSurgerySmell(self,filesListWithBugFixedCommitsDict, projectName,projectPath,smell):  
         try:
             print("Started on shotgun surgery bad smell analysis for "+projectName)       
-            relationAnalysisShotgunSurgerySmellCSVfile = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/BadSmells/ShotgunSurgery/ShotgunSurgerySmellRelationAnalysisOf'+self.projectName+'.csv'
+            relationAnalysisShotgunSurgerySmellCSVfile = os.path.dirname(os.path.dirname(__file__)) + '/util/Analysis/BadSmells/ShotgunSurgery/ShotgunSurgerySmellRelationAnalysisOf'+projectName+'.csv'
             relationAnalysisShotgunSurgerySmellCSVout = csv.writer(open(os.path.join(projectPath, relationAnalysisShotgunSurgerySmellCSVfile), 'w+'))
-            relationAnalysisShotgunSurgerySmellCSVout.writerow(('CommitID', 'File Name','Method Name' ,'isShotgunSurgery', 'Index of File In Folder','Index of Bug Fixed Commit In File', "Number of Files In Folder", "Folder"))
-               
-            isShotgunSurgerySmellDict={}
-            fileIndex = 0
-            shotgunSurgerySmellRelationAnalysisCSVoutList=[]
+            relationAnalysisShotgunSurgerySmellCSVout.writerow(('ClassName.MethodName', 'CM','Length of CM' ,'CC','Length of CC','Changed Methods','Length of Changed Methods', 'Changed Classes','Length of Changed Classes'))
+      
+      
+            checkedList= [] 
+            for fileName in filesListWithBugFixedCommitsDict.keys():  # key=fileName, value=filesInRootOfFileName
+                filesInFolder=filesListWithBugFixedCommitsDict[fileName]
+                bugFixedCommitFileDir=  os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+projectName.lower()+"/"+ fileName.split("@")[0] +"/"+fileName
+                bugFixedCommitIndexInItsFolder=filesInFolder.index(bugFixedCommitFileDir)
+                
+                fileInTheFolder = filesInFolder[bugFixedCommitIndexInItsFolder-1]
     
-            #for fileName, filesInRootOfFileName in filesListWithBugFixedCommitsDict.items():  # key=fileName, value=filesInRootOfFileName
-            if filesListWithBugFixedCommitsDict:
-
-                for fileName in filesListWithBugFixedCommitsDict.keys():  # key=fileName, value=filesInRootOfFileName
-                    filesInFolder=filesListWithBugFixedCommitsDict[fileName]
-                    bugFixedCommitFileDir=  os.path.dirname(os.path.dirname(__file__)) + '/util/Python/'+self.projectName.lower()+"/"+ fileName.split("@")[0] +"/"+fileName
-                    bugFixedCommitIndexInItsFolder=filesInFolder.index(bugFixedCommitFileDir)
-                      
-                    for fileInTheFolder in filesInFolder:
-                            fileIndex = filesInFolder.index(fileInTheFolder)
-                            if (bugFixedCommitIndexInItsFolder-fileIndex<3) and (bugFixedCommitIndexInItsFolder-fileIndex>=-1):
-                          
-                                isShotgunSurgerySmellDict=smell.checkForShotgunSurgery(fileInTheFolder, self.projectName)
-                                if isShotgunSurgerySmellDict:
-                                    for k, _ in isShotgunSurgerySmellDict.items():
-                                        rootName = fileInTheFolder.split("@")[0] 
-                                        for key, value in isShotgunSurgerySmellDict[k].items():
-                                            shotgunSurgerySmellRelationAnalysisCSVoutList.append([fileName.split('@')[1], fileInTheFolder,k+"."+key, str(value['isShotgunSurgery']),str(fileIndex),str(bugFixedCommitIndexInItsFolder) ,str(len(filesInFolder)), rootName])
-                                                  
-            shotgunSurgerySmellRelationAnalysisCSVoutList=self.checkForDuplicatesInListsofList(shotgunSurgerySmellRelationAnalysisCSVoutList)
-            for analysis in shotgunSurgerySmellRelationAnalysisCSVoutList:
-                relationAnalysisShotgunSurgerySmellCSVout.writerow(analysis)
+                if not(bugFixedCommitFileDir in checkedList) :
+                
+                    checkedList.append(bugFixedCommitFileDir)
+    
+                    bugFixedCommitID = find_between(bugFixedCommitFileDir, "@", "@")
+                    fileCommitID = find_between(fileInTheFolder, "@", "@")
+                    print("BugfixedCommitID: "+bugFixedCommitID)
+                    print("fileCommitID: "+fileCommitID)
+                    
+                    smell.checkForShotgunSurgery(fileCommitID,bugFixedCommitID, projectName, relationAnalysisShotgunSurgerySmellCSVout)
+                    #relationAnalysisShotgunSurgerySmellCSVout.writerow(result)
+            
             print("Shotgun Surgery bad smell analysis for "+projectName +" is done!")
                 
         except Exception as ex:

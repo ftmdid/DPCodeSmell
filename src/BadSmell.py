@@ -375,12 +375,12 @@ class BadSmell(object):
             print(ex)
             print("Exception occurrred in BadSmell.checkForFeatureEnvy in :"+fileName)
         
-    def checkForShotgunSurgery(self,fileName, projectName):
+    def checkForShotgunSurgery(self,fileCommitID,bugFixedCommitID,projectName, relationAnalysisShotgunSurgerySmellCSVout):
         try:
-            shotgunSurgeryList=sSurgery.calculateShotgunSurgery(fileName, projectName)
+            shotgunSurgeryList=sSurgery.calculateShotgunSurgery(fileCommitID,bugFixedCommitID,projectName,relationAnalysisShotgunSurgerySmellCSVout)
             return shotgunSurgeryList
         except Exception as ex:
             print(ex)
-            print("Exception occurrred in BadSmell.checkForFeatureEnvy in :"+fileName)
+            print("Exception occurrred in BadSmell.checkForShotgunSurgery pf "+projectName +" with bugFixedcommitID: "+bugFixedCommitID)
   
     
